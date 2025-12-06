@@ -163,8 +163,8 @@ int benchmark(MNPuzzleState<MN_SIZE, MN_SIZE> start,
   int forwardDepth = depth / 2;
   int backwardDepth = depth - forwardDepth;
 
-  int sizes[12] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048};
-  int k_hashes[4] = {2, 3, 4, 5};
+  int sizes[14] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
+  int k_hashes[5] = {1, 2, 4, 8, 16};
 
   for (int i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++) {
     for (int j = 0; j < sizeof(k_hashes) / sizeof(k_hashes[0]); j++) {

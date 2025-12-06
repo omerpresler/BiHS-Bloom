@@ -1,3 +1,4 @@
+from numpy._core.shape_base import block
 import re
 import ast
 import pandas as pd
@@ -94,7 +95,7 @@ ratio_by_iter = (
 mean_values = df.groupby("Size_KiB")["Inserted_Length"].mean()
 
 # Only keep lengths that occur > freq_limit
-freq_limit = 5
+freq_limit = 25
 freq = df["Inserted_Length"].value_counts().sort_index()
 freq = freq[freq > freq_limit]
 
@@ -108,8 +109,7 @@ plt.grid(axis="y", linestyle="--", alpha=0.5)
 plt.tight_layout()
 plt.savefig(OUTPUT_MEAN, dpi=300)
 print(f"[OK] Saved mean plot to: {OUTPUT_MEAN}")
-plt.show()
-plt.close()
+plt.show(block=False)
 
 # ---------- PLOT 2: frequency of inserted lengths ----------
 plt.figure(figsize=(8, 6))
@@ -133,12 +133,11 @@ for bar in bars:
 plt.tight_layout()
 plt.savefig(OUTPUT_FREQ, dpi=300)
 print(f"[OK] Saved frequency plot to: {OUTPUT_FREQ}")
-plt.show()
-plt.close()
+plt.show(block=False)
 
 # ---------- PLOT 3: frontier KiB / Bloom KiB vs number of iterations ----------
 plt.figure(figsize=(8, 6))
-plt.plot(ratio_by_iter.index, ratio_by_iter.values, marker="o")
+plt.plot(ratio_by_iter.index, ratio_by_iter.values)
 plt.title("Frontier Memory / Bloom Size vs Number of Iterations")
 plt.xlabel("Number of Iterations (Inserted_Length)")
 plt.ylabel("Frontier KiB / Bloom KiB")
@@ -148,3 +147,49 @@ plt.savefig(OUTPUT_RATIO, dpi=300)
 print(f"[OK] Saved ratio plot to: {OUTPUT_RATIO}")
 plt.show()
 plt.close()
+
+# ---------- Print each puzzle ID once where it had only 1 iteration ----------
+one_iter_unique = df[df["Inserted_Length"] == 1].drop_duplicates(subset=["Puzzle"])
+
+if one_iter_unique.empty:
+    print("No puzzles had only 1 iteration.")
+else:
+    print("\nPuzzles (unique) with only 1 iteration:")
+    print(one_iter_unique[["Puzzle", "Size_KiB", "Inserted_Length"]].to_string(index=False))
+
+# ---------- Puzzles that didn't manage to stop (Inserted_Length == 101) ----------
+STOP_LIMIT = 101  # your "didn't stop" threshold
+
+df_failed = df[df["Inserted_Length"] == STOP_LIMIT]
+
+if df_failed.empty:
+    print(f"No puzzles reached Inserted_Length == {STOP_LIMIT}.")
+else:
+    # 1) Basic counts
+    total_rows = len(df_failed)
+    unique_puzzles = df_failed["Puzzle"].nunique()
+    print(f"\n[FAILED] Total rows with Inserted_Length == {STOP_LIMIT}: {total_rows}")
+    print(f"[FAILED] Unique puzzles that didn't stop: {unique_puzzles}")
+
+    # 2) List all puzzle IDs that didn't stop
+    print("\nPuzzle IDs that didn't manage to stop:")
+    print(sorted(df_failed["Puzzle"].unique()))
+
+    # 3) How many of them are from each Bloom filter size (KiB)
+    print("\nCount of FAILED rows per Bloom filter size (KiB):")
+    print(df_failed["Size_KiB"].value_counts().sort_index())
+
+    print("\nCount of UNIQUE puzzles per Bloom filter size (KiB):")
+    print(df_failed.groupby("Size_KiB")["Puzzle"].nunique())
+
+    # 4) How many k-hash values were used (and how often)
+    print("\nCount of FAILED rows per K_Hashes:")
+    print(df_failed["K_Hashes"].value_counts().sort_index())
+
+    print("\nCount of UNIQUE puzzles per (Size_KiB, K_Hashes):")
+    print(
+        df_failed
+        .groupby(["Size_KiB", "K_Hashes"])["Puzzle"]
+        .nunique()
+        .sort_index()
+    )
