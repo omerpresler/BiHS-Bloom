@@ -2,7 +2,7 @@
 # Makefile for stp_bihs_bloom
 
 CXX = g++
-CXXFLAGS = -std=c++17 -O3 -Wall -I../.. -I../../environments -I../../generic -I../../search -I../../utils -I../../abstraction -I../../algorithms -I../../graph -I../../gui -I../../simulation
+CXXFLAGS = -std=c++17 -O3 -Wall -I../.. -I../../environments -I../../generic -I../../search -I../../utils -I../../abstraction -I../../algorithms -I../../graph -I../../simulation
 
 # Adjust paths as necessary based on where headers are located
 # Based on grep results:
@@ -17,7 +17,7 @@ OBJS := $(OBJS:.c=.o)
 
 
 LDFLAGS = -L../../bin/release -L/usr/lib -L/usr/local/lib
-LIBS = -lgraph -lgui -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lutils -lpthread -lGL -lsfml-graphics -lsfml-window -lsfml-system -lsfml-graphics -lsfml-window -lsfml-system
+LIBS = -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lutils -lpthread -lGL
 
 
 all: $(TARGET)
