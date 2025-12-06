@@ -13,6 +13,3 @@ papers/FMDH/results/
 
 cmake-build-debug/
 CMakeLists.txt
-scripts/bloom_stats.csv
-scripts/*.png
-scripts/STP_distance*
