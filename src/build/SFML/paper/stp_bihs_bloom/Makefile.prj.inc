@@ -1,11 +1,8 @@
 #-----------------------------------------------------------------------------
 # GNU Makefile for static libraries: project dependent part
-#
-# $Id: Makefile.prj.inc,v 1.2 2006/10/20 20:20:15 emarkus Exp $
-# $Source: /usr/cvsroot/project_hog/build/gmake/apps/sample/Makefile.prj.inc,v $
 #-----------------------------------------------------------------------------
 
-NAME = BGS
+NAME = stp_bihs_bloom
 DBG_NAME = $(NAME)
 REL_NAME = $(NAME)
 
@@ -30,23 +27,22 @@ PROJ_REL_LIB = -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lg
 
 PROJ_DBG_DEP = \
   $(DBG_BINDIR)/libutils.a \
-  $(DBG_BINDIR)/libenvutil.a \
   $(DBG_BINDIR)/libgraph.a \
   $(DBG_BINDIR)/libgui.a \
   $(DBG_BINDIR)/libenvironments.a \
   $(DBG_BINDIR)/libmapalgorithms.a \
   $(DBG_BINDIR)/libgraphalgorithms.a \
-  $(DBG_BINDIR)/libalgorithms.a
+  $(DBG_BINDIR)/libalgorithms.a 
+
 
 PROJ_REL_DEP = \
   $(REL_BINDIR)/libutils.a \
-  $(REL_BINDIR)/libenvutil.a \
   $(REL_BINDIR)/libgraph.a \
   $(REL_BINDIR)/libgui.a \
   $(REL_BINDIR)/libenvironments.a \
   $(REL_BINDIR)/libmapalgorithms.a \
   $(REL_BINDIR)/libgraphalgorithms.a \
-  $(REL_BINDIR)/libalgorithms.a
+  $(REL_BINDIR)/libalgorithms.a 
 
 ifeq ("$(OPENGL)", "STUB")
 PROJ_DBG_LIB += -lSTUB
@@ -58,4 +54,7 @@ endif
 default : all
 
 SRC_CPP = \
-	papers/BGS/Driver.cpp \
+	paper/stp_bihs_bloom/Driver.cpp \
+
+SRC_C = \
+	paper/stp_bihs_bloom/Bloom.c \

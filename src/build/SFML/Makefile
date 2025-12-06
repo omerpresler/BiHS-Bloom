@@ -14,57 +14,16 @@ prefix = /usr/local/bin
 # All projects to build in this order.
 PROJECTS = \
   gui/STUB \
-  algorithms \
-  environments \
-  envutil \
-  graph \
-  grids \
-  graphalgorithms \
-  gui \
-  mapalgorithms \
   utils \
-  apps/arm \
-  apps/witness \
-  apps/snakebird \
-  apps/airplane \
-  apps/localsensingsearch \
-  apps/pathsample \
-  apps/puzzlesample \
-  apps/mapUtils \
-  apps/prediction \
-  apps/emotion \
-  apps/hexagon \
-  apps/3dmaps \
-  apps/rubik \
-  apps/bidirectional \
-  apps/voxel \
-  apps/delta \
-  apps/fling \
-  apps/stp \
-  apps/PDB \
-  apps/roads \
-  apps/canonicalGrids \
-  apps/delta \
-  demos/ACA \
-  demos/BOA \
-  demos/DFID \
-  demos/dijkstra \
-  demos/astar \
-  demos/idastar \
-  demos/fastmap \
-  demos/pancake \
-  demos/racetrack \
-  demos/bidir \
-  demos/multiTarget \
-  demos/rc \
-  papers/IBEX \
-  papers/DWA \
-  papers/BGS \
-  papers/DSDWA \
-  tests/mnpuzzle \
-  tests/graphics \
-  papers/FMDH \
-#  generic \
+  graph \
+  gui \
+  environments \
+  mapalgorithms \
+  graphalgorithms \
+  algorithms \
+  envutil \
+  apps/stp_astar \
+  paper/stp_bihs_bloom
 
 
 
