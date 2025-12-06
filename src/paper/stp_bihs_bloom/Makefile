@@ -11,7 +11,7 @@ CXXFLAGS = -std=c++17 -O3 -Wall -I../.. -I../../environments -I../../generic -I.
 # Bloom.h -> local directory
 
 TARGET = stp_bihs_bloom
-SRCS = Driver.cpp Bloom.c
+SRCS = Driver.cpp Bloom.c bihsBloom.cpp
 OBJS = $(SRCS:.cpp=.o)
 OBJS := $(OBJS:.c=.o)
 

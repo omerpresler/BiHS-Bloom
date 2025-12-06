@@ -5,8 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "Bloom.h"
+//#include "Bloom.h"
 #include "MNPuzzle.h"
+#include "bihsBloom.h"
 
 #define MN_SIZE 4
 

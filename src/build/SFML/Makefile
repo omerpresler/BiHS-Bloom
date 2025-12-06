@@ -26,8 +26,6 @@ PROJECTS = \
   paper/stp_bihs_bloom
 
 
-
-
 # Include projects with broken compilation
 PROJECTS_ALL = \
   gui/GL \

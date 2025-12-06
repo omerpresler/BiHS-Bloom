@@ -1,5 +1,4 @@
 #include "Driver.h"
-#include "Bloom.h"
 
 #include "IncrementalIDA.h"
 #include "MNPuzzle.h"
@@ -123,21 +122,23 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
     // TODo: limit number of loops
 
     loopCount++;
-    if (loopCount > 100) {
+    if (loopCount > 200) {
       std::cout << "Bloom filter loopCount: " << loopCount
                 << ". Breaking loop.\n";
       break;
     }
 
+    
     static size_t last_inserted = 0;
     if (bf->n_inserted == last_inserted && bf->n_inserted > 0) {
       stabilizedLoopCount++;
-      if (stabilizedLoopCount > 10) {
+      if (stabilizedLoopCount > 5) {
         std::cout << "Bloom filter population stabilized. Breaking loop.\n";
         break;
       }
     }
     last_inserted = bf->n_inserted;
+    
 
   } while (bf->n_inserted > minItemsInserted);
 
@@ -171,7 +172,7 @@ int benchmark(MNPuzzleState<MN_SIZE, MN_SIZE> start,
       if (logFile.is_open())
         logFile << puzzle << ",";
       solve_at_depth(start, goal, forwardDepth, backwardDepth, sizes[i],
-                     k_hashes[j], 3, &logFile);
+                     k_hashes[j], 0, &logFile); //testing with -1 to see behavior when algorithm runs for a long time
     }
   }
   return 0;
@@ -249,6 +250,7 @@ void printUsage(const char *progName) {
 int main(int argc, char **argv) {
   bool generate = false;
   bool benchmarkMode = false;
+  bool solveMode = false;
   int distance = -1;
   int amount = -1;
   std::string filename;
@@ -272,12 +274,15 @@ int main(int argc, char **argv) {
         filename = argv[++i];
     } else if (strcmp(argv[i], "--debug") == 0) {
       debug = true;
+    } else if (strcmp(argv[i], "--solve") == 0 ||
+               strcmp(argv[i], "-s") == 0) {
+      solveMode = true;
     }
   }
 
-  if ((generate && benchmarkMode) || (!generate && !benchmarkMode)) {
+  if ((generate && benchmarkMode) || (generate && solveMode) || (benchmarkMode && solveMode) || (!generate && !benchmarkMode && !solveMode)) {
     std::cerr
-        << "Error: Must specify exactly one of --generate or --benchmark.\n";
+        << "Error: Must specify exactly one of --generate or --benchmark or --solve.\n";
     printUsage(argv[0]);
     return 1;
   }
@@ -369,8 +374,18 @@ int main(int argc, char **argv) {
           std::cout << s << std::endl;
         }
       }
-
-      benchmark(puzzles[i], goal, distance, i, logFile);
+      if (benchmarkMode) {
+        benchmark(puzzles[i], goal, distance, i, logFile);
+      } else {
+        Timer t;
+        std::vector<slideDir> path;
+        std::cout << "BiHS-Bloom Solving...\n";
+        t.StartTimer();
+        path = solveBloom(puzzles[i], goal);
+        t.EndTimer();
+        std::cout << "BiHS-Bloom Time: " << t.GetElapsedTime() << std::endl;
+        std::cout << "BiHS-Bloom Path found length: " << path.size() << std::endl;
+      }
     }
     if (logFile)
       logFile.close();
