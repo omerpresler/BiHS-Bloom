@@ -158,7 +158,7 @@ else:
     print(one_iter_unique[["Puzzle", "Size_KiB", "Inserted_Length"]].to_string(index=False))
 
 # ---------- Puzzles that didn't manage to stop (Inserted_Length == 101) ----------
-STOP_LIMIT = 101  # your "didn't stop" threshold
+STOP_LIMIT = 202  # your "didn't stop" threshold
 
 df_failed = df[df["Inserted_Length"] == STOP_LIMIT]
 
