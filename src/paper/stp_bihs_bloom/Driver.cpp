@@ -96,6 +96,29 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
   int loopCount = 0;
   std::vector<int> insertedItems;
 
+  std::deque<std::size_t> tail;
+
+  static constexpr std::size_t ALT_PAIRS = 5;      // 5 alternations
+  static constexpr std::size_t ALT_LEN   = ALT_PAIRS * 2; // tail length to verify
+
+  auto push_tail = [&](std::size_t v) {
+    tail.push_back(v);
+    if (tail.size() > ALT_LEN) tail.pop_front();
+  };
+
+  auto last_n_period2 = [&]() -> bool {
+    if (tail.size() < ALT_LEN) return false;
+
+    std::size_t a = tail[0];
+    std::size_t b = tail[1];
+
+    for (std::size_t i = 0; i < ALT_LEN; ++i) {
+      std::size_t expected = (i % 2 == 0) ? a : b;
+      if (tail[i] != expected) return false;
+    }
+    return true;
+  };
+
   do {
     BloomFilter *nextBf;
     if (forward) {
@@ -117,10 +140,6 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
     std::cout << "Bloom filter populated with " << bf->n_inserted << " items."
               << std::endl;
 
-    // Safety break to prevent infinite loop if count doesn't increase (since
-    // depth is constant)
-    // TODo: limit number of loops
-
     loopCount++;
     if (loopCount > 200) {
       std::cout << "Bloom filter loopCount: " << loopCount
@@ -128,16 +147,12 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
       break;
     }
 
-    
-    static size_t last_inserted = 0;
-    if (bf->n_inserted == last_inserted && bf->n_inserted > 0) {
-      stabilizedLoopCount++;
-      if (stabilizedLoopCount > 5) {
-        std::cout << "Bloom filter population stabilized. Breaking loop.\n";
-        break;
-      }
+    push_tail(bf->n_inserted);
+
+    if (bf->n_inserted > 0 && last_n_period2()) {
+      std::cout << "Bloom filter population stabilized. Breaking loop.\n";
+      break;
     }
-    last_inserted = bf->n_inserted;
     
 
   } while (bf->n_inserted > minItemsInserted);
