@@ -2,7 +2,7 @@
 #define BIHS_BLOOM_H
 
 #include "MNPuzzle.h"
-#include "Bloom.h"
+#include "Bloom.hpp"
 
 #define MN_SIZE 4
 

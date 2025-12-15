@@ -11,7 +11,7 @@
 
 #define MN_SIZE 4
 
-void init_bloom_for_puzzle(BloomFilter *bf, int size_in_KiB, int k_hashes);
+void init_bloom_for_puzzle(BloomFilter *&bf, int size_in_KiB, int k_hashes);
 void DFS(MNPuzzle<MN_SIZE, MN_SIZE> &env,
          const MNPuzzleState<MN_SIZE, MN_SIZE> &curr, int depth,
          int targetDepth, int upperBound,

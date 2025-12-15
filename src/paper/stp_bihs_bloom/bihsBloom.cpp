@@ -29,7 +29,7 @@ void GetStatesInBloomAtDepth(
         return;
     }
 
-    if (depth == cost && bloom_maybe_contains(bf, &curr.puzzle, sizeof(curr.puzzle))) {
+    if (depth == cost && bf->maybe_contains(&curr.puzzle)) {
         states.push_back(std::make_pair(curr, movesSoFar)); // std::maker pair supposedly copies the vector, not sure if that's true
     }
 
@@ -65,10 +65,10 @@ void IDAStarWithBloom(
 
     if (depth == targetDepth) {
         if (existingBf == nullptr) {
-            bloom_add(bf, &curr.puzzle, sizeof(curr.puzzle));
+            bf->add(&curr.puzzle);
         } else {
-            if (bloom_maybe_contains(existingBf, &curr.puzzle, sizeof(curr.puzzle))) {
-                bloom_add(bf, &curr.puzzle, sizeof(curr.puzzle));
+            if (existingBf->maybe_contains(&curr.puzzle)) {
+                bf->add(&curr.puzzle);
             }
         }
         return;
@@ -92,8 +92,8 @@ BloomFilter *GetBloomOfStatesInBloomAtDepth(
     MNPuzzleState<MN_SIZE, MN_SIZE> start, MNPuzzleState<MN_SIZE, MN_SIZE> goal,
     int depth, int upperBound, BloomFilter *existingBf) {
 
-  BloomFilter *bf;
-  bloom_init_mk(bf, BLOOM_SIZE_IN_KiB * 1024 * 8, BLOOM_K_HASHES);
+  size_t m_bits = BLOOM_SIZE_IN_KiB * 1024 * 8ULL;
+  BloomFilter *bf = new BloomFilter(m_bits, BLOOM_K_HASHES);
 
   IDAStarWithBloom(start, goal, 0, depth, upperBound, existingBf, bf, kNoSlide);
 
@@ -112,14 +112,19 @@ std::vector<slideDir> solveBloom(MNPuzzleState<MN_SIZE, MN_SIZE> start,
   int forwardDepth = minDistance / 2;
   int backwardDepth = minDistance - forwardDepth;
   bool forward = true;
-  BloomFilter *bf;
+  BloomFilter *bf = nullptr; // Initialize to nullptr
 
   while(true){
     std::cout << "Forward depth: " << forwardDepth << std::endl;
     std::cout << "Backward depth: " << backwardDepth << std::endl;
     
-    do{
-        std::cout << "Items inserted: " << bf->n_inserted << std::endl;
+    do{ 
+        if (bf) {
+             std::cout << "Items inserted: " << bf->get_n_inserted() << std::endl;
+        } else {
+             std::cout << "Items inserted: 0" << std::endl;
+        }
+
         if(forward){
         bf = GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, backwardDepth, nullptr);
         }else{
@@ -127,10 +132,10 @@ std::vector<slideDir> solveBloom(MNPuzzleState<MN_SIZE, MN_SIZE> start,
         }
         forward = !forward;
 
-    }while(bf->n_inserted > MIN_BLOOM_SIZE);
+    }while(bf->get_n_inserted() > MIN_BLOOM_SIZE);
 
     //At this point we have a bloom filter that holds minimal number of states we suspect are on the path, lets run IDA* with them (we know their depth)
-    if (bf->n_inserted > 0){
+    if (bf->get_n_inserted() > 0){
 
         std::vector<slideDir> moves = std::vector<slideDir>();
 
@@ -159,11 +164,17 @@ std::vector<slideDir> solveBloom(MNPuzzleState<MN_SIZE, MN_SIZE> start,
                     env.InvertAction(inverted);
                     path.push_back(inverted);
                 }
-
+                
+                delete bf; // Clean up
                 return path;
             }
             }
         }
+    }
+    
+    if (bf) {
+        delete bf; // Clean up before next iteration
+        bf = nullptr;
     }
 
     if (forwardDepth == backwardDepth){ // up to this point we assume Cstar is fd + bd, if we reached here no solution was found, we increment bd first.

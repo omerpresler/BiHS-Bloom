@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Validate arguments
 if [ $# -ne 1 ]; then
     echo "ERROR: Incorrect usage."

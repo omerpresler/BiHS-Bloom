@@ -55,7 +55,5 @@ default : all
 
 SRC_CPP = \
 	paper/stp_bihs_bloom/Driver.cpp \
-	paper/stp_bihs_bloom/bihsBloom.cpp
-
-SRC_C = \
-	paper/stp_bihs_bloom/Bloom.c \
+	paper/stp_bihs_bloom/bihsBloom.cpp \
+	paper/stp_bihs_bloom/Bloom.cpp

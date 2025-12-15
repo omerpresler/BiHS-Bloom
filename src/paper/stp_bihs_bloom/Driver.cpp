@@ -1,4 +1,5 @@
 #include "Driver.h"
+#include "Bloom.hpp"
 
 #include "IncrementalIDA.h"
 #include "MNPuzzle.h"
@@ -15,13 +16,9 @@
 #include <unordered_set>
 #include <vector>
 
-void init_bloom_for_puzzle(BloomFilter *bf, int size_in_KiB, int k_hashes) {
+void init_bloom_for_puzzle(BloomFilter *&bf, int size_in_KiB, int k_hashes) {
   size_t m_bits = size_in_KiB * 1024 * 8ULL;
-
-  if (bloom_init_mk(bf, m_bits, k_hashes) != 0) {
-    std::cerr << "Failed to init bloom filter\n";
-    std::abort();
-  }
+  bf = new BloomFilter(m_bits, k_hashes);
 }
 
 void DFS(MNPuzzle<MN_SIZE, MN_SIZE> &env,
@@ -39,10 +36,10 @@ void DFS(MNPuzzle<MN_SIZE, MN_SIZE> &env,
 
   if (depth == targetDepth) {
     if (existingBf == nullptr) {
-      bloom_add(bf, &curr.puzzle, sizeof(curr.puzzle));
+      bf->add(&curr.puzzle);
     } else {
-      if (bloom_maybe_contains(existingBf, &curr.puzzle, sizeof(curr.puzzle))) {
-        bloom_add(bf, &curr.puzzle, sizeof(curr.puzzle));
+      if (existingBf->maybe_contains(&curr.puzzle)) {
+        bf->add(&curr.puzzle);
       }
     }
     return;
@@ -65,17 +62,16 @@ BloomFilter *GetBloomOfStatesInBloomAtDepth(
   MNPuzzle<MN_SIZE, MN_SIZE> env;
   size_t upperBound =
       distance * 2 + 1; // Distance cant be bigger then half of the cost
-  BloomFilter *bf = new BloomFilter();
+  BloomFilter *bf = nullptr;
   init_bloom_for_puzzle(bf, size_in_KiB, k_hashes);
 
   // If distance is 0, just add start
   if (distance == 0) {
     if (existingBf == nullptr) {
-      bloom_add(bf, &start.puzzle, sizeof(start.puzzle));
+      bf->add(&start.puzzle);
     } else {
-      if (bloom_maybe_contains(existingBf, &start.puzzle,
-                               sizeof(start.puzzle))) {
-        bloom_add(bf, &start.puzzle, sizeof(start.puzzle));
+      if (existingBf->maybe_contains(&start.puzzle)) {
+        bf->add(&start.puzzle);
       }
     }
     return bf;
@@ -84,6 +80,135 @@ BloomFilter *GetBloomOfStatesInBloomAtDepth(
   DFS(env, start, 0, distance, upperBound, goal, bf, existingBf, start);
 
   return bf;
+}
+
+using StateWithPath = std::pair<MNPuzzleState<MN_SIZE, MN_SIZE>, std::vector<slideDir>>;
+
+static void CollectStatesInBloomAtExactDepth(
+    MNPuzzle<MN_SIZE, MN_SIZE> &env,
+    MNPuzzleState<MN_SIZE, MN_SIZE> curr,
+    const MNPuzzleState<MN_SIZE, MN_SIZE> &goal,
+    int depth,
+    int targetDepth,
+    int upperBound,
+    const BloomFilter *bf,
+    std::vector<slideDir> &movesSoFar,
+    std::vector<StateWithPath> &out,
+    slideDir lastMove)
+{
+  // f = g + h prune (same rationale you use elsewhere)
+  const double h = env.HCost(curr, goal);
+  const double f = depth + h;
+  if (f > upperBound) return;
+
+  if (depth == targetDepth) {
+    if (bf && bf->maybe_contains(&curr.puzzle)) {
+      out.emplace_back(curr, movesSoFar); // vector copy is intentional
+    }
+    return;
+  }
+
+  std::vector<slideDir> moves;
+  env.GetActions(curr, moves, lastMove);
+
+  for (slideDir a : moves) {
+    env.ApplyAction(curr, a);
+    movesSoFar.push_back(a);
+
+    CollectStatesInBloomAtExactDepth(env, curr, goal,
+                                    depth + 1, targetDepth, upperBound,
+                                    bf, movesSoFar, out, a);
+
+    // restore
+    slideDir inv = a;
+    env.InvertAction(inv);
+    env.ApplyAction(curr, inv);
+    movesSoFar.pop_back();
+  }
+}
+
+static bool SanityCheckBloomYieldsValidPath(
+    const MNPuzzleState<MN_SIZE, MN_SIZE> &start,
+    const MNPuzzleState<MN_SIZE, MN_SIZE> &goal,
+    int forwardDepth,
+    int backwardDepth,
+    const BloomFilter *bf,
+    std::vector<slideDir> *outPath,   // optional; may be nullptr
+    bool verbose = true)
+{
+  if (!bf || bf->get_n_inserted() == 0) {
+    if (verbose) std::cerr << "[SANITY] Bloom is null/empty.\n";
+    return false;
+  }
+
+  MNPuzzle<MN_SIZE, MN_SIZE> env;
+  const int upperBound = forwardDepth + backwardDepth;
+
+  // Collect candidates that are in the Bloom at the exact depths
+  std::vector<StateWithPath> forwardStates, backwardStates;
+  std::vector<slideDir> tmp;
+
+  tmp.clear();
+  CollectStatesInBloomAtExactDepth(env, start, goal,
+                                  0, forwardDepth, upperBound,
+                                  bf, tmp, forwardStates, kNoSlide);
+
+  tmp.clear();
+  CollectStatesInBloomAtExactDepth(env, goal, start,
+                                  0, backwardDepth, upperBound,
+                                  bf, tmp, backwardStates, kNoSlide);
+
+  if (verbose) {
+    std::cout << "[SANITY] forwardStates in-bloom @d=" << forwardDepth
+              << ": " << forwardStates.size() << "\n";
+    std::cout << "[SANITY] backwardStates in-bloom @d=" << backwardDepth
+              << ": " << backwardStates.size() << "\n";
+  }
+
+  if (forwardStates.empty() || backwardStates.empty()) return false;
+
+  // Hash forward meet-states -> path
+  std::unordered_map<uint64_t, std::vector<slideDir>> fMap;
+  fMap.reserve(forwardStates.size() * 2);
+
+  for (const auto &p : forwardStates) {
+    const uint64_t h = env.GetStateHash(p.first);
+    // keep the first one; any is fine
+    if (fMap.find(h) == fMap.end()) fMap.emplace(h, p.second);
+  }
+
+  // Try to meet + build a full path, then validate by simulation
+  for (const auto &bp : backwardStates) {
+    const uint64_t h = env.GetStateHash(bp.first);
+    auto it = fMap.find(h);
+    if (it == fMap.end()) continue;
+
+    std::vector<slideDir> full = it->second;
+
+    // Append backward path reversed with inverted actions (as you already do) :contentReference[oaicite:2]{index=2}
+    for (auto rit = bp.second.rbegin(); rit != bp.second.rend(); ++rit) {
+      slideDir inv = *rit;
+      env.InvertAction(inv);
+      full.push_back(inv);
+    }
+
+    // Validate: apply to start and ensure we reach goal
+    MNPuzzleState<MN_SIZE, MN_SIZE> check = start;
+    for (slideDir a : full) env.ApplyAction(check, a);
+
+    if (check == goal) {
+      if (verbose) {
+        std::cout << "[SANITY] Found VALID path via bloom meet. len=" << full.size() << "\n";
+      }
+      if (outPath) *outPath = std::move(full);
+      return true;
+    }
+  }
+
+  if (verbose) {
+    std::cerr << "[SANITY] No VALID meet found. Bloom may be false-positive-only or loop break was premature.\n";
+  }
+  return false;
 }
 
 int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
@@ -131,31 +256,39 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
     forward = !forward;
 
     if (bf) {
-      bloom_free(bf);
       delete bf;
     }
     bf = nextBf;
 
-    insertedItems.push_back(bf->n_inserted);
-    std::cout << "Bloom filter populated with " << bf->n_inserted << " items."
-              << std::endl;
+    insertedItems.push_back(bf->get_n_inserted());
+    std::cout << "Bloom filter populated with " << bf->get_n_inserted() << " items.";
 
     loopCount++;
     if (loopCount > 200) {
-      std::cout << "Bloom filter loopCount: " << loopCount
-                << ". Breaking loop.\n";
+      std::cout << "Bloom filter loopCount: " << loopCount << ". Breaking loop.\n";
       break;
     }
 
-    push_tail(bf->n_inserted);
+    push_tail(bf->get_n_inserted());
 
-    if (bf->n_inserted > 0 && last_n_period2()) {
+    if (bf->get_n_inserted() > 0 && last_n_period2()) {
       std::cout << "Bloom filter population stabilized. Breaking loop.\n";
       break;
     }
     
 
-  } while (bf->n_inserted > minItemsInserted);
+  } while (bf->get_n_inserted() > (size_t)minItemsInserted);
+
+  std::vector<slideDir> sanityPath;
+  bool ok = SanityCheckBloomYieldsValidPath(start, goal,
+                                            forwardDepth, backwardDepth,
+                                            bf, &sanityPath,
+                                            /*verbose=*/true);
+  if (!ok) {
+    throw std::runtime_error("Sanity failed; benchmark invalid");
+  }
+
+  std::cout << "[SANITY] PASS for size=" << size_in_KiB << " KiB, k=" << k_hashes << "\n";
 
   if (logFile) {
     *logFile << size_in_KiB << "," << k_hashes << ",";
@@ -167,8 +300,7 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
   }
 
   std::cout << "\n" << std::endl;
-  bloom_free(bf); // Clean up
-  delete bf;
+  delete bf; // Clean up
   return 0;
 }
 
