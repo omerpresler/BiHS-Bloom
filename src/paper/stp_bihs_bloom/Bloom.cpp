@@ -17,12 +17,12 @@ static inline int get_bit(const uint8_t *bits, size_t idx)
 }
 
 /* FNV-1a 64-bit hash */
-static uint64_t fnv1a_64(const void *key, uint64_t seed)
+static uint64_t fnv1a_64(const void *key,size_t len, uint64_t seed)
 {
     const uint8_t *data = (const uint8_t *)key;
     uint64_t hash = 1469598103934665603ULL ^ seed;
 
-    for (size_t i = 0; i < sizeof(key); i++) {
+    for (size_t i = 0; i < len; i++) {
         hash ^= (uint64_t)data[i];
         hash *= 1099511628211ULL;
     }
@@ -68,21 +68,21 @@ void BloomFilter::clear()
     n_inserted = 0;
 }
 
-void BloomFilter::hashes(const void *key, uint64_t *h1, uint64_t *h2) const
+void BloomFilter::hashes(const void *key, size_t len, uint64_t *h1, uint64_t *h2) const
 {
-    *h1 = fnv1a_64(key, 0xA5A5A5A5A5A5A5A5ULL ^ seed);
-    *h2 = fnv1a_64(key, 0x5A5A5A5A5A5A5A5AULL ^ seed);
+    *h1 = fnv1a_64(key, len, 0xA5A5A5A5A5A5A5A5ULL ^ seed);
+    *h2 = fnv1a_64(key, len, 0x5A5A5A5A5A5A5A5AULL ^ seed);
     if (*h2 == 0) {
         *h2 = 0x27d4eb2d; /* avoid zero step */
     }
 }
 
-void BloomFilter::add(const void *key)
+void BloomFilter::add(const void *key, size_t len)
 {
     if (!bits || m_bits == 0 || k_hashes == 0) return;
 
     uint64_t h1, h2;
-    hashes(key, &h1, &h2);
+    hashes(key, len, &h1, &h2);
 
     for (size_t i = 0; i < k_hashes; i++) {
         uint64_t h = h1 + i * h2;
@@ -92,12 +92,12 @@ void BloomFilter::add(const void *key)
     n_inserted++;
 }
 
-bool BloomFilter::maybe_contains(const void *key) const
+bool BloomFilter::maybe_contains(const void *key, size_t len) const
 {
     if (!bits || m_bits == 0 || k_hashes == 0) return false;
 
     uint64_t h1, h2;
-    hashes(key, &h1, &h2);
+    hashes(key, len, &h1, &h2);
 
     for (size_t i = 0; i < k_hashes; i++) {
         uint64_t h = h1 + i * h2;

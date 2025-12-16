@@ -29,7 +29,7 @@ void GetStatesInBloomAtDepth(
         return;
     }
 
-    if (depth == cost && bf->maybe_contains(&curr.puzzle)) {
+    if (depth == cost && bf->maybe_contains(&curr.puzzle, sizeof(curr.puzzle))) {
         states.push_back(std::make_pair(curr, movesSoFar)); // std::maker pair supposedly copies the vector, not sure if that's true
     }
 
@@ -65,10 +65,10 @@ void IDAStarWithBloom(
 
     if (depth == targetDepth) {
         if (existingBf == nullptr) {
-            bf->add(&curr.puzzle);
+            bf->add(&curr.puzzle, sizeof(curr.puzzle));
         } else {
-            if (existingBf->maybe_contains(&curr.puzzle)) {
-                bf->add(&curr.puzzle);
+            if (existingBf->maybe_contains(&curr.puzzle, sizeof(curr.puzzle))) {
+                bf->add(&curr.puzzle, sizeof(curr.puzzle));
             }
         }
         return;

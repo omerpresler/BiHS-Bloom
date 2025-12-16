@@ -16,8 +16,8 @@ public:
     BloomFilter& operator=(const BloomFilter&) = delete;
 
     void clear();
-    void add(const void *key);
-    bool maybe_contains(const void *key) const;
+    void add(const void *key, size_t len);
+    bool maybe_contains(const void *key, size_t len) const;
     double estimate_fp() const;
 
     size_t get_n_inserted() const { return n_inserted; }
@@ -29,7 +29,7 @@ private:
     size_t   n_inserted; /* number of inserted items */
     uint64_t seed;      /* random seed */
 
-    void hashes(const void *key, uint64_t *h1, uint64_t *h2) const;
+    void hashes(const void *key, size_t len, uint64_t *h1, uint64_t *h2) const;
 };
 
 
@@ -41,16 +41,16 @@ public:
           set_limit(set_limit),
           env(std::move(env)) {}
 
-    void add(const void *key) {
+    void add(const void *key, size_t len) {
         if (set.size() < set_limit) {
             set.insert(get_hash(key));
         }
-        BloomFilter::add(key);
+        BloomFilter::add(key, len);
     }
 
-    bool maybe_contains(const void *key) const {
+    bool maybe_contains(const void *key, size_t len) const {
         if (set.size() >= set_limit) {
-            return BloomFilter::maybe_contains(key);
+            return BloomFilter::maybe_contains(key, len);
         }
         const uint64_t h = get_hash(key);
         return set.find(h) != set.end();

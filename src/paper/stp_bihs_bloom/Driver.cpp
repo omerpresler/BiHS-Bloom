@@ -36,10 +36,10 @@ void DFS(MNPuzzle<MN_SIZE, MN_SIZE> &env,
 
   if (depth == targetDepth) {
     if (existingBf == nullptr) {
-      bf->add(&curr.puzzle);
+      bf->add(&curr.puzzle, sizeof(curr.puzzle));
     } else {
-      if (existingBf->maybe_contains(&curr.puzzle)) {
-        bf->add(&curr.puzzle);
+      if (existingBf->maybe_contains(&curr.puzzle, sizeof(curr.puzzle))) {
+        bf->add(&curr.puzzle, sizeof(curr.puzzle));
       }
     }
     return;
@@ -68,10 +68,10 @@ BloomFilter *GetBloomOfStatesInBloomAtDepth(
   // If distance is 0, just add start
   if (distance == 0) {
     if (existingBf == nullptr) {
-      bf->add(&start.puzzle);
+      bf->add(&start.puzzle, sizeof(start.puzzle));
     } else {
-      if (existingBf->maybe_contains(&start.puzzle)) {
-        bf->add(&start.puzzle);
+      if (existingBf->maybe_contains(&start.puzzle, sizeof(start.puzzle))) {
+        bf->add(&start.puzzle, sizeof(start.puzzle));
       }
     }
     return bf;
@@ -102,7 +102,7 @@ static void CollectStatesInBloomAtExactDepth(
   if (f > upperBound) return;
 
   if (depth == targetDepth) {
-    if (bf && bf->maybe_contains(&curr.puzzle)) {
+    if (bf && bf->maybe_contains(&curr.puzzle, sizeof(curr.puzzle))) {
       out.emplace_back(curr, movesSoFar); // vector copy is intentional
     }
     return;
@@ -223,7 +223,7 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
 
   std::deque<std::size_t> tail;
 
-  static constexpr std::size_t ALT_PAIRS = 5;      // 5 alternations
+  static constexpr std::size_t ALT_PAIRS = 3;      // 5 alternations
   static constexpr std::size_t ALT_LEN   = ALT_PAIRS * 2; // tail length to verify
 
   auto push_tail = [&](std::size_t v) {
