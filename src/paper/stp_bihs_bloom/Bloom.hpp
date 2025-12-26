@@ -63,8 +63,8 @@ public:
 
 private:
     uint64_t get_hash(const void *key) const {
-        // Expects Env to provide: uint64_t GetStateHash(const void*) const;
-        return static_cast<uint64_t>(env.GetStateHash(key));
+        const MNPuzzleState<MN_SIZE, MN_SIZE> *state = static_cast<const MNPuzzleState<MN_SIZE, MN_SIZE> *>(key);
+        return static_cast<uint64_t>(env.GetStateHash(*state));
     }
 
     std::set<uint64_t> set;
