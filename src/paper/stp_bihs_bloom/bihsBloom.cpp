@@ -20,7 +20,7 @@ using StateWithPath = std::pair<MNPuzzleState<MN_SIZE, MN_SIZE>, std::vector<sli
 
 void GetStatesInBloomAtDepth(
     MNPuzzleState<MN_SIZE, MN_SIZE> curr, MNPuzzleState<MN_SIZE, MN_SIZE> goal,
-    int depth, int cost, BloomFilter *bf, std::vector<StateWithPath> &states,
+    int depth, int cost, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf, std::vector<StateWithPath> &states,
     std::vector<slideDir> &movesSoFar) {
     MNPuzzle<MN_SIZE, MN_SIZE> env;
     double h = env.HCost(curr, goal);
@@ -29,7 +29,7 @@ void GetStatesInBloomAtDepth(
         return;
     }
 
-    if (depth == cost && bf->maybe_contains(&curr.puzzle, sizeof(curr.puzzle))) {
+    if (depth == cost && bf->maybe_contains(curr.puzzle)) {
         states.push_back(std::make_pair(curr, movesSoFar)); // std::maker pair supposedly copies the vector, not sure if that's true
     }
 
@@ -54,7 +54,7 @@ void GetStatesInBloomAtDepth(
 
 void IDAStarWithBloom(
     MNPuzzleState<MN_SIZE, MN_SIZE> curr, MNPuzzleState<MN_SIZE, MN_SIZE> goal,
-    int depth, int targetDepth, int upperBound, BloomFilter *existingBf, BloomFilter *bf, slideDir lastMove) {
+    int depth, int targetDepth, int upperBound, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *existingBf, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf, slideDir lastMove) {
 
     MNPuzzle<MN_SIZE, MN_SIZE> env;
     double h = env.HCost(curr, goal);
@@ -65,10 +65,10 @@ void IDAStarWithBloom(
 
     if (depth == targetDepth) {
         if (existingBf == nullptr) {
-            bf->add(&curr.puzzle, sizeof(curr.puzzle));
+            bf->add(curr.puzzle);
         } else {
-            if (existingBf->maybe_contains(&curr.puzzle, sizeof(curr.puzzle))) {
-                bf->add(&curr.puzzle, sizeof(curr.puzzle));
+            if (existingBf->maybe_contains(curr.puzzle)) {
+                bf->add(curr.puzzle);
             }
         }
         return;
@@ -88,12 +88,12 @@ void IDAStarWithBloom(
 }
 
 
-BloomFilter *GetBloomOfStatesInBloomAtDepth(
+BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *GetBloomOfStatesInBloomAtDepth(
     MNPuzzleState<MN_SIZE, MN_SIZE> start, MNPuzzleState<MN_SIZE, MN_SIZE> goal,
-    int depth, int upperBound, BloomFilter *existingBf) {
+    int depth, int upperBound, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *existingBf) {
 
   size_t m_bits = BLOOM_SIZE_IN_KiB * 1024 * 8ULL;
-  BloomFilter *bf = new BloomFilter(m_bits, BLOOM_K_HASHES);
+  BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf = new BloomFilter<std::array<int, MN_SIZE * MN_SIZE>>(m_bits, BLOOM_K_HASHES);
 
   IDAStarWithBloom(start, goal, 0, depth, upperBound, existingBf, bf, kNoSlide);
 
@@ -112,7 +112,7 @@ std::vector<slideDir> solveBloom(MNPuzzleState<MN_SIZE, MN_SIZE> start,
   int forwardDepth = minDistance / 2;
   int backwardDepth = minDistance - forwardDepth;
   bool forward = true;
-  BloomFilter *bf = nullptr; // Initialize to nullptr
+  BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf = nullptr; // Initialize to nullptr
 
   while(true){
     std::cout << "Forward depth: " << forwardDepth << std::endl;

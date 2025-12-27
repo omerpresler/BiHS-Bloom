@@ -7,6 +7,7 @@
 #include "Timer.h"
 
 #include <algorithm>
+#include <random>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -15,16 +16,21 @@
 #include <unordered_set>
 #include <vector>
 
-void init_bloom_for_puzzle(BloomFilter *&bf, int size_in_KiB, int k_hashes) {
+void init_bloom_for_puzzle(BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *&bf, int size_in_KiB, int k_hashes, BloomType type) { // We set default value in Driver.h
   size_t m_bits = size_in_KiB * 1024 * 8ULL;
-  bf = new BloomFilter(m_bits, k_hashes);
+  if (type == BloomType::WITH_SET) {
+      size_t set_limit = m_bits / sizeof(MNPuzzleState<MN_SIZE, MN_SIZE>); // For now lets assume we will make the Bloom filter and the set the same size
+      bf = new BloomFilterWithSet<MNPuzzle<MN_SIZE, MN_SIZE>, std::array<int, MN_SIZE * MN_SIZE>>(m_bits, set_limit, k_hashes);
+  } else {
+      bf = new BloomFilter<std::array<int, MN_SIZE * MN_SIZE>>(m_bits, k_hashes);
+  }
 }
 
 void DFS(MNPuzzle<MN_SIZE, MN_SIZE> &env,
          const MNPuzzleState<MN_SIZE, MN_SIZE> &curr, int depth,
          int targetDepth, int upperBound,
-         const MNPuzzleState<MN_SIZE, MN_SIZE> &goal, BloomFilter *bf,
-         BloomFilter *existingBf,
+         const MNPuzzleState<MN_SIZE, MN_SIZE> &goal, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf,
+         BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *existingBf,
          const MNPuzzleState<MN_SIZE, MN_SIZE> &parent) {
   // Pruning based on f-value
   double h = env.HCost(curr, goal);
@@ -35,10 +41,10 @@ void DFS(MNPuzzle<MN_SIZE, MN_SIZE> &env,
 
   if (depth == targetDepth) {
     if (existingBf == nullptr) {
-      bf->add(&curr.puzzle, sizeof(curr.puzzle));
+      bf->add(curr.puzzle);
     } else {
-      if (existingBf->maybe_contains(&curr.puzzle, sizeof(curr.puzzle))) {
-        bf->add(&curr.puzzle, sizeof(curr.puzzle));
+      if (existingBf->maybe_contains(curr.puzzle)) {
+        bf->add(curr.puzzle);
       }
     }
     return;
@@ -55,22 +61,22 @@ void DFS(MNPuzzle<MN_SIZE, MN_SIZE> &env,
   }
 }
 
-BloomFilter *GetBloomOfStatesInBloomAtDepth(
+BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *GetBloomOfStatesInBloomAtDepth(
     MNPuzzleState<MN_SIZE, MN_SIZE> start, MNPuzzleState<MN_SIZE, MN_SIZE> goal,
-    int distance, BloomFilter *existingBf, int size_in_KiB, int k_hashes) {
+    int distance, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *existingBf, int size_in_KiB, int k_hashes) {
   MNPuzzle<MN_SIZE, MN_SIZE> env;
   size_t upperBound =
       distance * 2 + 1; // Distance cant be bigger then half of the cost
-  BloomFilter *bf = nullptr;
-  init_bloom_for_puzzle(bf, size_in_KiB, k_hashes);
+  BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf = nullptr;
+  init_bloom_for_puzzle(bf, size_in_KiB, k_hashes, BloomType::WITH_SET);
 
   // If distance is 0, just add start
   if (distance == 0) {
     if (existingBf == nullptr) {
-      bf->add(&start.puzzle, sizeof(start.puzzle));
+      bf->add(start.puzzle);
     } else {
-      if (existingBf->maybe_contains(&start.puzzle, sizeof(start.puzzle))) {
-        bf->add(&start.puzzle, sizeof(start.puzzle));
+      if (existingBf->maybe_contains(start.puzzle)) {
+        bf->add(start.puzzle);
       }
     }
     return bf;
@@ -90,7 +96,7 @@ static void CollectStatesInBloomAtExactDepth(
     int depth,
     int targetDepth,
     int upperBound,
-    const BloomFilter *bf,
+    const BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf,
     std::vector<slideDir> &movesSoFar,
     std::vector<StateWithPath> &out,
     slideDir lastMove)
@@ -101,7 +107,7 @@ static void CollectStatesInBloomAtExactDepth(
   if (f > upperBound) return;
 
   if (depth == targetDepth) {
-    if (bf && bf->maybe_contains(&curr.puzzle, sizeof(curr.puzzle))) {
+    if (bf && bf->maybe_contains(curr.puzzle)) {
       out.emplace_back(curr, movesSoFar); // vector copy is intentional
     }
     return;
@@ -131,7 +137,7 @@ static bool SanityCheckBloomYieldsValidPath(
     const MNPuzzleState<MN_SIZE, MN_SIZE> &goal,
     int forwardDepth,
     int backwardDepth,
-    const BloomFilter *bf,
+    const BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf,
     std::vector<slideDir> *outPath,   // optional; may be nullptr
     bool verbose = true)
 {
@@ -214,7 +220,7 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
                    MNPuzzleState<MN_SIZE, MN_SIZE> goal, int forwardDepth,
                    int backwardDepth, int size_in_KiB, int k_hashes,
                    int minItemsInserted, std::ostream *logFile) {
-  BloomFilter *bf = nullptr;
+  BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf = nullptr;
   bool forward = true;
   int stabilizedLoopCount = 0;
   int loopCount = 0;
@@ -244,7 +250,7 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
   };
 
   do {
-    BloomFilter *nextBf;
+    BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *nextBf;
     if (forward) {
       nextBf = GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, bf,
                                               size_in_KiB, k_hashes);
@@ -491,9 +497,13 @@ int main(int argc, char **argv) {
 
     std::cout << "Loaded " << puzzles.size() << " puzzles. Solving...\n";
 
-    std::ofstream logFile("bloom_stats.csv");
+    std::ofstream logFile("bloom_with_set_stats.csv");
     if (logFile) {
       logFile << "Puzzle,Size_KiB,K_Hashes,Inserted\n";
+    }
+    else {
+      std::cerr << "Error: Cannot open log file\n";
+      return 1;
     }
 
     for (size_t i = 0; i < puzzles.size(); ++i) {

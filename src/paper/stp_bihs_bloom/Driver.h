@@ -11,17 +11,17 @@
 
 #define MN_SIZE 4
 
-void init_bloom_for_puzzle(BloomFilter *&bf, int size_in_KiB, int k_hashes);
+void init_bloom_for_puzzle(BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *&bf, int size_in_KiB, int k_hashes, BloomType type = BloomType::REGULAR);
 void DFS(MNPuzzle<MN_SIZE, MN_SIZE> &env,
          const MNPuzzleState<MN_SIZE, MN_SIZE> &curr, int depth,
          int targetDepth, int upperBound,
-         const MNPuzzleState<MN_SIZE, MN_SIZE> &goal, BloomFilter *bf,
-         BloomFilter *existingBf,
+         const MNPuzzleState<MN_SIZE, MN_SIZE> &goal, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf,
+         BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *existingBf,
          const MNPuzzleState<MN_SIZE, MN_SIZE> &parent);
 
-BloomFilter *GetBloomOfStatesInBloomAtDepth(
+BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *GetBloomOfStatesInBloomAtDepth(
     MNPuzzleState<MN_SIZE, MN_SIZE> start, MNPuzzleState<MN_SIZE, MN_SIZE> goal,
-    int distance, BloomFilter *existingBf, int size_in_KiB, int k_hashes);
+    int distance, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *existingBf, int size_in_KiB, int k_hashes);
 
 int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
                    MNPuzzleState<MN_SIZE, MN_SIZE> goal, int forwardDepth,
