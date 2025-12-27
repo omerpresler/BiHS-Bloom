@@ -350,11 +350,11 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
     *logFile << "," << set_ratio << "," << set_limit << "," << set_size << ",";
     *logFile << loopCount << "," << (bf ? bf->get_n_inserted() : 0) << ",";
     *logFile << terminationReason << ",";
-    *logFile << "[";
+    *logFile << "\"";
     for (size_t i = 0; i < insertedItems.size(); i++) {
       *logFile << insertedItems[i] << ",";
     }
-    *logFile << "]\n";
+    *logFile << "\"\n";
   }
 
   if (verbose) {
@@ -388,6 +388,11 @@ int benchmark(MNPuzzleState<MN_SIZE, MN_SIZE> start,
     }
   }
   return 0;
+}
+
+void exploreSinglePuzzle(MNPuzzleState<MN_SIZE, MN_SIZE> start,
+                         MNPuzzleState<MN_SIZE, MN_SIZE> goal, bool verbose) {
+ 
 }
 
 std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>>
@@ -469,6 +474,8 @@ int main(int argc, char **argv) {
   std::string filename;
   bool debug = false;
   bool verbose = false;
+  bool exploreSinglePuzzle = false;
+  int puzzle = -1; 
 
   for (int i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--generate") == 0 || strcmp(argv[i], "-g") == 0) {
@@ -493,6 +500,13 @@ int main(int argc, char **argv) {
     } else if (strcmp(argv[i], "--solve") == 0 ||
                strcmp(argv[i], "-s") == 0) {
       solveMode = true;
+    } else if (strcmp(argv[i], "--explore") == 0 ||
+               strcmp(argv[i], "-e") == 0) {
+      exploreSinglePuzzle = true;
+    } else if (strcmp(argv[i], "--puzzle") == 0 ||
+               strcmp(argv[i], "-p") == 0) {
+      if (i + 1 < argc)
+        puzzle = std::atoi(argv[++i]);
     }
   }
 
@@ -550,7 +564,22 @@ int main(int argc, char **argv) {
                 << " puzzle states at distance " << distance << " and saved to "
                 << filename << "\n";
     }
-  } else {
+  } else if (exploreSinglePuzzle) {
+    std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> puzzles;
+    MNPuzzle<MN_SIZE, MN_SIZE>::read_in_mn_puzzles(filename.c_str(), false,
+                                                   10000, puzzles);
+
+    if (puzzles.empty()) {
+      std::cerr << "No puzzles loaded from " << filename << "\n";
+      return 1;
+    }
+
+    MNPuzzleState<MN_SIZE, MN_SIZE> goal;
+    goal.Reset();
+
+    exploreSinglePuzzle(puzzles[puzzle], goal, verbose);
+  } 
+  else {
     std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> puzzles;
     MNPuzzle<MN_SIZE, MN_SIZE>::read_in_mn_puzzles(filename.c_str(), false,
                                                    10000, puzzles);
