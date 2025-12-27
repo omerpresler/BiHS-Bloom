@@ -391,8 +391,11 @@ int benchmark(MNPuzzleState<MN_SIZE, MN_SIZE> start,
 }
 
 void exploreSinglePuzzle(MNPuzzleState<MN_SIZE, MN_SIZE> start,
-                         MNPuzzleState<MN_SIZE, MN_SIZE> goal, bool verbose) {
- 
+                         MNPuzzleState<MN_SIZE, MN_SIZE> goal, 
+                         int forwardDepth, int backwardDepth,
+                         bool verbose) {
+                          
+  
 }
 
 std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>>
