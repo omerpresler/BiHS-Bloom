@@ -390,12 +390,36 @@ int benchmark(MNPuzzleState<MN_SIZE, MN_SIZE> start,
   return 0;
 }
 
+size_t countPathsToGoal(MNPuzzleState<MN_SIZE, MN_SIZE> curr,
+                        MNPuzzleState<MN_SIZE, MN_SIZE> goal,
+                        int depth, int targetDepth, slideDir lastMove) {
+  if (depth > targetDepth) {
+    return 0;
+  }
+  if (depth == targetDepth && goal == curr) {
+     return 1; // Found one path
+  }
+  size_t count = 0;
+  std::vector<slideDir> moves;
+  MNPuzzle<MN_SIZE, MN_SIZE> env;
+  env.GetActions(curr, moves, lastMove); // Helper handles parent pruning
+  for (slideDir a : moves) {
+    env.ApplyAction(curr, a);
+    count += countPathsToGoal(curr, goal, depth + 1, targetDepth, a);
+    
+    // restore state for next iteration
+    slideDir inv = a;
+    env.InvertAction(inv);
+    env.ApplyAction(curr, inv);
+  }
+  return count;
+}
+
 void exploreSinglePuzzle(MNPuzzleState<MN_SIZE, MN_SIZE> start,
                          MNPuzzleState<MN_SIZE, MN_SIZE> goal, 
-                         int forwardDepth, int backwardDepth,
-                         bool verbose) {
-                          
-  
+                         int depth, bool verbose) {
+  size_t paths = countPathsToGoal(start, goal, 0, depth, kNoSlide);
+  std::cout << "Paths to goal: " << paths << std::endl;
 }
 
 std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>>
@@ -477,7 +501,7 @@ int main(int argc, char **argv) {
   std::string filename;
   bool debug = false;
   bool verbose = false;
-  bool exploreSinglePuzzle = false;
+  bool explore = false;
   int puzzle = -1; 
 
   for (int i = 1; i < argc; ++i) {
@@ -505,7 +529,7 @@ int main(int argc, char **argv) {
       solveMode = true;
     } else if (strcmp(argv[i], "--explore") == 0 ||
                strcmp(argv[i], "-e") == 0) {
-      exploreSinglePuzzle = true;
+      explore = true;
     } else if (strcmp(argv[i], "--puzzle") == 0 ||
                strcmp(argv[i], "-p") == 0) {
       if (i + 1 < argc)
@@ -513,7 +537,15 @@ int main(int argc, char **argv) {
     }
   }
 
-  if ((generate && benchmarkMode) || (generate && solveMode) || (benchmarkMode && solveMode) || (!generate && !benchmarkMode && !solveMode)) {
+  bool modes[] = {generate, benchmarkMode, solveMode, explore};
+  int modeCount = 0;
+  for (bool mode : modes) {
+    if (mode) {
+      modeCount++;
+    }
+  }
+
+  if (modeCount != 1) {
     std::cerr
         << "Error: Must specify exactly one of --generate or --benchmark or --solve.\n";
     printUsage(argv[0]);
@@ -567,7 +599,7 @@ int main(int argc, char **argv) {
                 << " puzzle states at distance " << distance << " and saved to "
                 << filename << "\n";
     }
-  } else if (exploreSinglePuzzle) {
+  } else if (explore) {
     std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> puzzles;
     MNPuzzle<MN_SIZE, MN_SIZE>::read_in_mn_puzzles(filename.c_str(), false,
                                                    10000, puzzles);
@@ -580,7 +612,15 @@ int main(int argc, char **argv) {
     MNPuzzleState<MN_SIZE, MN_SIZE> goal;
     goal.Reset();
 
-    exploreSinglePuzzle(puzzles[puzzle], goal, verbose);
+    if (puzzle < 0 || puzzle >= puzzles.size()) {
+      std::cerr << "Invalid puzzle ID: " << puzzle << "\n";
+      return 1;
+    }
+
+    std::cout << "Puzzle " << puzzle << ":\n";
+    std::cout << puzzles[puzzle] << "\n";
+
+    exploreSinglePuzzle(puzzles[puzzle], goal, distance, verbose);
   } 
   else {
     std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> puzzles;
