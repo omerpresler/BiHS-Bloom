@@ -237,8 +237,8 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
 
   std::deque<std::size_t> tail;
 
-  static constexpr std::size_t ALT_PAIRS = 3;      // 5 alternations
-  static constexpr std::size_t ALT_LEN   = ALT_PAIRS * 2; // tail length to verify
+  static constexpr std::size_t ALT_PAIRS = 3;
+  static constexpr std::size_t ALT_LEN   = ALT_PAIRS * 2;
 
   auto push_tail = [&](std::size_t v) {
     tail.push_back(v);
@@ -538,7 +538,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Loaded " << puzzles.size() << " puzzles. Solving...\n";
 
-    std::ofstream logFile("bloom_with_set_stats.csv");
+    std::ofstream logFile("bloom_stats.csv");
     if (logFile) {
       logFile << "Puzzle,Size_KiB,K_Hashes,Mode,Set_Ratio,Set_Limit,Set_Size,Loop_Count,Final_Inserted,Termination,Inserted\n";
     }
