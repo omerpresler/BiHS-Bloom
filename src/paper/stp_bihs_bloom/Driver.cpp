@@ -11,6 +11,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -228,12 +229,13 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
                    MNPuzzleState<MN_SIZE, MN_SIZE> goal, int forwardDepth,
                    int backwardDepth, int size_in_KiB, int k_hashes,
                    int minItemsInserted, BloomType bloomType, double set_ratio,
-                   std::ostream *logFile) {
+                   std::ostream *logFile, bool verbose) {
   BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf = nullptr;
   bool forward = true;
   int loopCount = 0;
   std::vector<int> insertedItems;
   std::string terminationReason = "min_items";
+  std::ostringstream batchLog;
 
   std::deque<std::size_t> tail;
 
@@ -277,11 +279,15 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
     bf = nextBf;
 
     insertedItems.push_back(bf->get_n_inserted());
-    std::cout << "Bloom filter populated with " << bf->get_n_inserted() << " items.";
+    if (verbose) {
+      batchLog << "Bloom filter populated with " << bf->get_n_inserted() << " items.\n";
+    }
 
     loopCount++;
     if (loopCount > 200) {
-      std::cout << "Bloom filter loopCount: " << loopCount << ". Breaking loop.\n";
+      if (verbose) {
+        batchLog << "Bloom filter loopCount: " << loopCount << ". Breaking loop.\n";
+      }
       terminationReason = "loop_limit";
       break;
     }
@@ -289,7 +295,9 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
     push_tail(bf->get_n_inserted());
 
     if (bf->get_n_inserted() > 0 && last_n_period2()) {
-      std::cout << "Bloom filter population stabilized. Breaking loop.\n";
+      if (verbose) {
+        batchLog << "Bloom filter population stabilized. Breaking loop.\n";
+      }
       terminationReason = "stabilized";
       break;
     }
@@ -301,12 +309,14 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
   bool ok = SanityCheckBloomYieldsValidPath(start, goal,
                                             forwardDepth, backwardDepth,
                                             bf, &sanityPath,
-                                            /*verbose=*/true);
+                                            verbose);
   if (!ok) {
     throw std::runtime_error("Sanity failed; benchmark invalid");
   }
 
-  std::cout << "[SANITY] PASS for size=" << size_in_KiB << " KiB, k=" << k_hashes << "\n";
+  if (verbose) {
+    batchLog << "[SANITY] PASS for size=" << size_in_KiB << " KiB, k=" << k_hashes << "\n";
+  }
 
   if (logFile) {
     size_t set_limit = 0;
@@ -340,7 +350,9 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
     *logFile << "]\n";
   }
 
-  std::cout << "\n" << std::endl;
+  if (verbose) {
+    std::cout << batchLog.str() << std::endl;
+  }
   delete bf; // Clean up
   return 0;
 }
@@ -348,7 +360,7 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
 // Depth is temporary, later it will look for a path itterativley
 int benchmark(MNPuzzleState<MN_SIZE, MN_SIZE> start,
               MNPuzzleState<MN_SIZE, MN_SIZE> goal, int depth, int puzzle,
-              std::ofstream &logFile) {
+              std::ofstream &logFile, bool verbose) {
   int forwardDepth = depth / 2;
   int backwardDepth = depth - forwardDepth;
 
@@ -364,7 +376,7 @@ int benchmark(MNPuzzleState<MN_SIZE, MN_SIZE> start,
           logFile << puzzle << ",";
         }
         solve_at_depth(start, goal, forwardDepth, backwardDepth, sizes[i],
-                       k_hashes[j], 0, bloomType, ratio, &logFile);
+                       k_hashes[j], 0, bloomType, ratio, &logFile, verbose);
       }
     }
   }
@@ -437,7 +449,8 @@ void printUsage(const char *progName) {
             << "  Generate: " << progName
             << " --generate -d <dist> -n <amount> -f <file>\n"
             << "  Benchmark: " << progName
-            << " --benchmark -d <dist> -f <file>\n";
+            << " --benchmark -d <dist> -f <file>\n"
+            << "  Optional:  " << progName << " --verbose\n";
 }
 
 int main(int argc, char **argv) {
@@ -448,6 +461,7 @@ int main(int argc, char **argv) {
   int amount = -1;
   std::string filename;
   bool debug = false;
+  bool verbose = false;
 
   for (int i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--generate") == 0 || strcmp(argv[i], "-g") == 0) {
@@ -467,6 +481,8 @@ int main(int argc, char **argv) {
         filename = argv[++i];
     } else if (strcmp(argv[i], "--debug") == 0) {
       debug = true;
+    } else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "-v") == 0) {
+      verbose = true;
     } else if (strcmp(argv[i], "--solve") == 0 ||
                strcmp(argv[i], "-s") == 0) {
       solveMode = true;
@@ -502,7 +518,9 @@ int main(int argc, char **argv) {
       t.StartTimer();
       states = generateRandomState(distance, amount, start);
       t.EndTimer();
-      std::cout << "Generation took " << t.GetElapsedTime() << " seconds\n";
+      if (verbose) {
+        std::cout << "Generation took " << t.GetElapsedTime() << " seconds\n";
+      }
     } catch (const std::exception &e) {
       std::cerr << "Generation failed: " << e.what() << "\n";
       return 1;
@@ -520,9 +538,11 @@ int main(int argc, char **argv) {
 
     out.close();
 
-    std::cout << "Successfully generated " << states.size()
-              << " puzzle states at distance " << distance << " and saved to "
-              << filename << "\n";
+    if (verbose) {
+      std::cout << "Successfully generated " << states.size()
+                << " puzzle states at distance " << distance << " and saved to "
+                << filename << "\n";
+    }
   } else {
     std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> puzzles;
     MNPuzzle<MN_SIZE, MN_SIZE>::read_in_mn_puzzles(filename.c_str(), false,
@@ -536,7 +556,9 @@ int main(int argc, char **argv) {
     MNPuzzleState<MN_SIZE, MN_SIZE> goal;
     goal.Reset();
 
-    std::cout << "Loaded " << puzzles.size() << " puzzles. Solving...\n";
+    if (verbose) {
+      std::cout << "Loaded " << puzzles.size() << " puzzles. Solving...\n";
+    }
 
     std::ofstream logFile("bloom_stats.csv");
     if (logFile) {
@@ -548,7 +570,10 @@ int main(int argc, char **argv) {
     }
 
     for (size_t i = 0; i < puzzles.size(); ++i) {
-      std::cout << "Puzzle " << i << ": ";
+      std::ostringstream batchLog;
+      if (verbose) {
+        batchLog << "Puzzle " << i << ": ";
+      }
       // Sanity check, check size by running A star
       MNPuzzle<MN_SIZE, MN_SIZE> mnp;
       TemplateAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir,
@@ -561,10 +586,11 @@ int main(int argc, char **argv) {
       astar.GetPath(&mnp, puzzles[i], goal, path);
       t.EndTimer();
 
-      std::cout << "A* Path found length: " << path.size() << std::endl;
-      std::cout << "A* Nodes expanded: " << astar.GetNodesExpanded()
-                << std::endl;
-      std::cout << "A* Time: " << t.GetElapsedTime() << std::endl;
+      if (verbose) {
+        batchLog << "A* Path found length: " << path.size() << '\n';
+        batchLog << "A* Nodes expanded: " << astar.GetNodesExpanded() << '\n';
+        batchLog << "A* Time: " << t.GetElapsedTime() << '\n';
+      }
       // print steps if debug
       if (debug) {
         for (const auto &s : path) {
@@ -572,16 +598,23 @@ int main(int argc, char **argv) {
         }
       }
       if (benchmarkMode) {
-        benchmark(puzzles[i], goal, distance, i, logFile);
+        benchmark(puzzles[i], goal, distance, i, logFile, verbose);
       } else {
         Timer t;
         std::vector<slideDir> path;
-        std::cout << "BiHS-Bloom Solving...\n";
+        if (verbose) {
+          batchLog << "BiHS-Bloom Solving...\n";
+        }
         t.StartTimer();
         path = solveBloom(puzzles[i], goal);
         t.EndTimer();
-        std::cout << "BiHS-Bloom Time: " << t.GetElapsedTime() << std::endl;
-        std::cout << "BiHS-Bloom Path found length: " << path.size() << std::endl;
+        if (verbose) {
+          batchLog << "BiHS-Bloom Time: " << t.GetElapsedTime() << '\n';
+          batchLog << "BiHS-Bloom Path found length: " << path.size() << '\n';
+        }
+      }
+      if (verbose) {
+        std::cout << batchLog.str();
       }
     }
     if (logFile)
