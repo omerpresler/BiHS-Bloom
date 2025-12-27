@@ -184,6 +184,8 @@ public:
         BloomFilter<Key>::clear();
         set.clear();
     }
+    size_t get_set_limit() const { return set_limit; }
+    size_t get_set_size() const { return set.size(); }
 
 private:
 /*

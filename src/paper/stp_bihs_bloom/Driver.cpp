@@ -12,17 +12,25 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <sstream>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
-void init_bloom_for_puzzle(BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *&bf, int size_in_KiB, int k_hashes, BloomType type) { // We set default value in Driver.h
+void init_bloom_for_puzzle(BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *&bf,
+                           int size_in_KiB, int k_hashes, BloomType type,
+                           double set_ratio) { // We set default value in Driver.h
   size_t m_bits = size_in_KiB * 1024 * 8ULL;
   if (type == BloomType::WITH_SET) {
-      size_t set_limit = m_bits / sizeof(MNPuzzleState<MN_SIZE, MN_SIZE>); // For now lets assume we will make the Bloom filter and the set the same size
-      bf = new BloomFilterWithSet<MNPuzzle<MN_SIZE, MN_SIZE>, std::array<int, MN_SIZE * MN_SIZE>>(m_bits, set_limit, k_hashes);
+    size_t set_limit =
+        static_cast<size_t>(m_bits * set_ratio / sizeof(MNPuzzleState<MN_SIZE, MN_SIZE>));
+    if (set_limit == 0) {
+      set_limit = 1;
+    }
+    bf = new BloomFilterWithSet<MNPuzzle<MN_SIZE, MN_SIZE>, std::array<int, MN_SIZE * MN_SIZE>>(
+        m_bits, set_limit, k_hashes);
   } else {
-      bf = new BloomFilter<std::array<int, MN_SIZE * MN_SIZE>>(m_bits, k_hashes);
+    bf = new BloomFilter<std::array<int, MN_SIZE * MN_SIZE>>(m_bits, k_hashes);
   }
 }
 
@@ -63,12 +71,13 @@ void DFS(MNPuzzle<MN_SIZE, MN_SIZE> &env,
 
 BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *GetBloomOfStatesInBloomAtDepth(
     MNPuzzleState<MN_SIZE, MN_SIZE> start, MNPuzzleState<MN_SIZE, MN_SIZE> goal,
-    int distance, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *existingBf, int size_in_KiB, int k_hashes) {
+    int distance, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *existingBf,
+    int size_in_KiB, int k_hashes, BloomType type, double set_ratio) {
   MNPuzzle<MN_SIZE, MN_SIZE> env;
   size_t upperBound =
       distance * 2 + 1; // Distance cant be bigger then half of the cost
   BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf = nullptr;
-  init_bloom_for_puzzle(bf, size_in_KiB, k_hashes, BloomType::WITH_SET);
+  init_bloom_for_puzzle(bf, size_in_KiB, k_hashes, type, set_ratio);
 
   // If distance is 0, just add start
   if (distance == 0) {
@@ -219,12 +228,14 @@ static bool SanityCheckBloomYieldsValidPath(
 int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
                    MNPuzzleState<MN_SIZE, MN_SIZE> goal, int forwardDepth,
                    int backwardDepth, int size_in_KiB, int k_hashes,
-                   int minItemsInserted, std::ostream *logFile) {
+                   int minItemsInserted, BloomType bloomType, double set_ratio,
+                   bool verbose,
+                   std::ostream *logFile) {
   BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf = nullptr;
   bool forward = true;
-  int stabilizedLoopCount = 0;
   int loopCount = 0;
   std::vector<int> insertedItems;
+  std::string terminationReason = "min_items";
 
   std::deque<std::size_t> tail;
 
@@ -253,10 +264,12 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
     BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *nextBf;
     if (forward) {
       nextBf = GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, bf,
-                                              size_in_KiB, k_hashes);
+                                              size_in_KiB, k_hashes, bloomType,
+                                              set_ratio);
     } else {
       nextBf = GetBloomOfStatesInBloomAtDepth(goal, start, backwardDepth, bf,
-                                              size_in_KiB, k_hashes);
+                                              size_in_KiB, k_hashes, bloomType,
+                                              set_ratio);
     }
     forward = !forward;
 
@@ -266,18 +279,26 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
     bf = nextBf;
 
     insertedItems.push_back(bf->get_n_inserted());
-    std::cout << "Bloom filter populated with " << bf->get_n_inserted() << " items.";
+    if (verbose) {
+      std::cout << "Bloom filter populated with " << bf->get_n_inserted() << " items.";
+    }
 
     loopCount++;
     if (loopCount > 200) {
-      std::cout << "Bloom filter loopCount: " << loopCount << ". Breaking loop.\n";
+      if (verbose) {
+        std::cout << "Bloom filter loopCount: " << loopCount << ". Breaking loop.\n";
+      }
+      terminationReason = "loop_limit";
       break;
     }
 
     push_tail(bf->get_n_inserted());
 
     if (bf->get_n_inserted() > 0 && last_n_period2()) {
-      std::cout << "Bloom filter population stabilized. Breaking loop.\n";
+      if (verbose) {
+        std::cout << "Bloom filter population stabilized. Breaking loop.\n";
+      }
+      terminationReason = "stabilized";
       break;
     }
     
@@ -288,15 +309,40 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
   bool ok = SanityCheckBloomYieldsValidPath(start, goal,
                                             forwardDepth, backwardDepth,
                                             bf, &sanityPath,
-                                            /*verbose=*/true);
+                                            /*verbose=*/verbose);
   if (!ok) {
     throw std::runtime_error("Sanity failed; benchmark invalid");
   }
 
-  std::cout << "[SANITY] PASS for size=" << size_in_KiB << " KiB, k=" << k_hashes << "\n";
+  if (verbose) {
+    std::cout << "[SANITY] PASS for size=" << size_in_KiB << " KiB, k=" << k_hashes << "\n";
+  }
 
   if (logFile) {
+    size_t set_limit = 0;
+    size_t set_size = 0;
+    if (bloomType == BloomType::WITH_SET) {
+      set_limit = static_cast<size_t>((size_in_KiB * 1024 * 8ULL) * set_ratio /
+                                      sizeof(MNPuzzleState<MN_SIZE, MN_SIZE>));
+      if (set_limit == 0) {
+        set_limit = 1;
+      }
+      auto *with_set =
+          dynamic_cast<BloomFilterWithSet<MNPuzzle<MN_SIZE, MN_SIZE>,
+                                          std::array<int, MN_SIZE * MN_SIZE>> *>(bf);
+      if (with_set) {
+        set_size = with_set->get_set_size();
+      }
+    }
     *logFile << size_in_KiB << "," << k_hashes << ",";
+    if (bloomType == BloomType::WITH_SET) {
+      *logFile << "with_set";
+    } else {
+      *logFile << "no_set";
+    }
+    *logFile << "," << set_ratio << "," << set_limit << "," << set_size << ",";
+    *logFile << loopCount << "," << (bf ? bf->get_n_inserted() : 0) << ",";
+    *logFile << terminationReason << ",";
     *logFile << "[";
     for (size_t i = 0; i < insertedItems.size(); i++) {
       *logFile << insertedItems[i] << ",";
@@ -304,7 +350,9 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
     *logFile << "]\n";
   }
 
-  std::cout << "\n" << std::endl;
+  if (verbose) {
+    std::cout << "\n" << std::endl;
+  }
   delete bf; // Clean up
   return 0;
 }
@@ -312,19 +360,24 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
 // Depth is temporary, later it will look for a path itterativley
 int benchmark(MNPuzzleState<MN_SIZE, MN_SIZE> start,
               MNPuzzleState<MN_SIZE, MN_SIZE> goal, int depth, int puzzle,
-              std::ofstream &logFile) {
+              bool verbose, std::ostream &logFile) {
   int forwardDepth = depth / 2;
   int backwardDepth = depth - forwardDepth;
 
   int sizes[14] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
   int k_hashes[5] = {1, 2, 4, 8, 16};
+  double set_ratios[] = {0.0, 0.01, 0.05, 0.10, 0.25};
 
   for (int i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++) {
     for (int j = 0; j < sizeof(k_hashes) / sizeof(k_hashes[0]); j++) {
-      if (logFile.is_open())
-        logFile << puzzle << ",";
-      solve_at_depth(start, goal, forwardDepth, backwardDepth, sizes[i],
-                     k_hashes[j], 0, &logFile); //testing with -1 to see behavior when algorithm runs for a long time
+      for (double ratio : set_ratios) {
+        BloomType bloomType = (ratio <= 0.0) ? BloomType::REGULAR : BloomType::WITH_SET;
+        if (logFile.is_open()) {
+          logFile << puzzle << ",";
+        }
+        solve_at_depth(start, goal, forwardDepth, backwardDepth, sizes[i],
+                       k_hashes[j], 0, bloomType, ratio, verbose, &logFile);
+      }
     }
   }
   return 0;
@@ -396,7 +449,9 @@ void printUsage(const char *progName) {
             << "  Generate: " << progName
             << " --generate -d <dist> -n <amount> -f <file>\n"
             << "  Benchmark: " << progName
-            << " --benchmark -d <dist> -f <file>\n";
+            << " --benchmark -d <dist> -f <file> [--verbose]\n"
+            << "  Solve: " << progName
+            << " --solve -f <file> [--verbose]\n";
 }
 
 int main(int argc, char **argv) {
@@ -407,6 +462,7 @@ int main(int argc, char **argv) {
   int amount = -1;
   std::string filename;
   bool debug = false;
+  bool verbose = false;
 
   for (int i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--generate") == 0 || strcmp(argv[i], "-g") == 0) {
@@ -426,6 +482,8 @@ int main(int argc, char **argv) {
         filename = argv[++i];
     } else if (strcmp(argv[i], "--debug") == 0) {
       debug = true;
+    } else if (strcmp(argv[i], "--verbose") == 0) {
+      verbose = true;
     } else if (strcmp(argv[i], "--solve") == 0 ||
                strcmp(argv[i], "-s") == 0) {
       solveMode = true;
@@ -461,7 +519,9 @@ int main(int argc, char **argv) {
       t.StartTimer();
       states = generateRandomState(distance, amount, start);
       t.EndTimer();
-      std::cout << "Generation took " << t.GetElapsedTime() << " seconds\n";
+      if (verbose) {
+        std::cout << "Generation took " << t.GetElapsedTime() << " seconds\n";
+      }
     } catch (const std::exception &e) {
       std::cerr << "Generation failed: " << e.what() << "\n";
       return 1;
@@ -479,9 +539,11 @@ int main(int argc, char **argv) {
 
     out.close();
 
-    std::cout << "Successfully generated " << states.size()
-              << " puzzle states at distance " << distance << " and saved to "
-              << filename << "\n";
+    if (verbose) {
+      std::cout << "Successfully generated " << states.size()
+                << " puzzle states at distance " << distance << " and saved to "
+                << filename << "\n";
+    }
   } else {
     std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> puzzles;
     MNPuzzle<MN_SIZE, MN_SIZE>::read_in_mn_puzzles(filename.c_str(), false,
@@ -495,19 +557,23 @@ int main(int argc, char **argv) {
     MNPuzzleState<MN_SIZE, MN_SIZE> goal;
     goal.Reset();
 
-    std::cout << "Loaded " << puzzles.size() << " puzzles. Solving...\n";
+    if (verbose) {
+      std::cout << "Loaded " << puzzles.size() << " puzzles. Solving...\n";
+    }
 
     std::ofstream logFile("bloom_with_set_stats.csv");
-    if (logFile) {
-      logFile << "Puzzle,Size_KiB,K_Hashes,Inserted\n";
-    }
-    else {
+    if (!logFile) {
       std::cerr << "Error: Cannot open log file\n";
       return 1;
     }
 
+    std::ostringstream logBuffer;
+    logBuffer << "Puzzle,Size_KiB,K_Hashes,Mode,Set_Ratio,Set_Limit,Set_Size,Loop_Count,Final_Inserted,Termination,Inserted\n";
+
     for (size_t i = 0; i < puzzles.size(); ++i) {
-      std::cout << "Puzzle " << i << ": ";
+      if (verbose) {
+        std::cout << "Puzzle " << i << ": ";
+      }
       // Sanity check, check size by running A star
       MNPuzzle<MN_SIZE, MN_SIZE> mnp;
       TemplateAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir,
@@ -520,10 +586,12 @@ int main(int argc, char **argv) {
       astar.GetPath(&mnp, puzzles[i], goal, path);
       t.EndTimer();
 
-      std::cout << "A* Path found length: " << path.size() << std::endl;
-      std::cout << "A* Nodes expanded: " << astar.GetNodesExpanded()
-                << std::endl;
-      std::cout << "A* Time: " << t.GetElapsedTime() << std::endl;
+      if (verbose) {
+        std::cout << "A* Path found length: " << path.size() << std::endl;
+        std::cout << "A* Nodes expanded: " << astar.GetNodesExpanded()
+                  << std::endl;
+        std::cout << "A* Time: " << t.GetElapsedTime() << std::endl;
+      }
       // print steps if debug
       if (debug) {
         for (const auto &s : path) {
@@ -531,20 +599,26 @@ int main(int argc, char **argv) {
         }
       }
       if (benchmarkMode) {
-        benchmark(puzzles[i], goal, distance, i, logFile);
+        benchmark(puzzles[i], goal, distance, i, verbose, logBuffer);
       } else {
         Timer t;
         std::vector<slideDir> path;
-        std::cout << "BiHS-Bloom Solving...\n";
+        if (verbose) {
+          std::cout << "BiHS-Bloom Solving...\n";
+        }
         t.StartTimer();
         path = solveBloom(puzzles[i], goal);
         t.EndTimer();
-        std::cout << "BiHS-Bloom Time: " << t.GetElapsedTime() << std::endl;
-        std::cout << "BiHS-Bloom Path found length: " << path.size() << std::endl;
+        if (verbose) {
+          std::cout << "BiHS-Bloom Time: " << t.GetElapsedTime() << std::endl;
+          std::cout << "BiHS-Bloom Path found length: " << path.size() << std::endl;
+        }
       }
     }
-    if (logFile)
+    if (logFile) {
+      logFile << logBuffer.str();
       logFile.close();
+    }
   }
 
   return 0;

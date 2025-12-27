@@ -11,7 +11,10 @@
 
 #define MN_SIZE 4
 
-void init_bloom_for_puzzle(BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *&bf, int size_in_KiB, int k_hashes, BloomType type = BloomType::REGULAR);
+void init_bloom_for_puzzle(BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *&bf,
+                           int size_in_KiB, int k_hashes,
+                           BloomType type = BloomType::REGULAR,
+                           double set_ratio = 0.0);
 void DFS(MNPuzzle<MN_SIZE, MN_SIZE> &env,
          const MNPuzzleState<MN_SIZE, MN_SIZE> &curr, int depth,
          int targetDepth, int upperBound,
@@ -21,16 +24,19 @@ void DFS(MNPuzzle<MN_SIZE, MN_SIZE> &env,
 
 BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *GetBloomOfStatesInBloomAtDepth(
     MNPuzzleState<MN_SIZE, MN_SIZE> start, MNPuzzleState<MN_SIZE, MN_SIZE> goal,
-    int distance, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *existingBf, int size_in_KiB, int k_hashes);
+    int distance, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *existingBf,
+    int size_in_KiB, int k_hashes, BloomType type, double set_ratio);
 
 int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
                    MNPuzzleState<MN_SIZE, MN_SIZE> goal, int forwardDepth,
                    int backwardDepth, int size_in_KiB, int k_hashes,
-                   int minItemsInserted, std::ostream *logFile = nullptr);
+                   int minItemsInserted, BloomType bloomType, double set_ratio,
+                   bool verbose,
+                   std::ostream *logFile = nullptr);
 
 int benchmark(MNPuzzleState<MN_SIZE, MN_SIZE> start,
               MNPuzzleState<MN_SIZE, MN_SIZE> goal, int depth, int puzzle,
-              std::ofstream &logFile);
+              bool verbose, std::ostream &logFile);
 
 std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>>
 generateRandomState(int distance, int amount,
