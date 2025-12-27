@@ -317,7 +317,14 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
   if (verbose) {
     batchLog << "[SANITY] PASS for size=" << size_in_KiB << " KiB, k=" << k_hashes << "\n";
   }
+/*
+  size_t numberOfPathsForward = 0;
+  size_t numberOfPathsBackward = 0;
 
+  if (terminationReason == "loop_limit") {
+    
+  }
+*/
   if (logFile) {
     size_t set_limit = 0;
     size_t set_size = 0;

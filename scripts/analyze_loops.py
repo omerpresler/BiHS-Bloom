@@ -124,4 +124,4 @@ def check_file(path):
 
 
 if __name__ == "__main__":
-    check_file("bloom_with_set_stats.csv")
+    check_file("bloom_stats.csv")

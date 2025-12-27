@@ -21,6 +21,7 @@ def parse_inserted_list(value: str):
     return items
 
 
+# Puzzle,Size_KiB,K_Hashes,Mode,Set_Ratio,Set_Limit,Set_Size,Loop_Count,Final_Inserted,Termination,Inserted
 def load_rows(path: str):
     rows = []
     with open(path, newline="") as handle:
@@ -29,6 +30,7 @@ def load_rows(path: str):
             row["Puzzle"] = int(row["Puzzle"])
             row["Size_KiB"] = int(row["Size_KiB"])
             row["K_Hashes"] = int(row["K_Hashes"])
+            row["Mode"] = row["Mode"]
             row["Set_Ratio"] = float(row["Set_Ratio"])
             row["Set_Limit"] = int(row["Set_Limit"])
             row["Set_Size"] = int(row["Set_Size"])
