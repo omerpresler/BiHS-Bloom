@@ -4,10 +4,10 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <array>
 
-//#include "Bloom.h"
+#include "Bloom.hpp"
 #include "MNPuzzle.h"
-#include "bihsBloom.h"
 
 #define MN_SIZE 4
 
@@ -27,7 +27,7 @@ BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *GetBloomOfStatesInBloomAtDepth(
     int distance, BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *existingBf,
     int size_in_KiB, int k_hashes, BloomType type, double set_ratio);
 
-int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
+std::vector<slideDir> solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
                    MNPuzzleState<MN_SIZE, MN_SIZE> goal, int forwardDepth,
                    int backwardDepth, int size_in_KiB, int k_hashes,
                    int minItemsInserted, BloomType bloomType, double set_ratio,
@@ -36,6 +36,8 @@ int solve_at_depth(MNPuzzleState<MN_SIZE, MN_SIZE> start,
 int benchmark(MNPuzzleState<MN_SIZE, MN_SIZE> start,
               MNPuzzleState<MN_SIZE, MN_SIZE> goal, int depth, int puzzle,
               std::ofstream &logFile, bool verbose = false);
+
+std::vector<slideDir> solveBloom(MNPuzzleState<MN_SIZE, MN_SIZE> start, MNPuzzleState<MN_SIZE, MN_SIZE> goal);
 
 std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>>
 generateRandomState(int distance, int amount,

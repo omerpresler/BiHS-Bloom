@@ -18,4 +18,4 @@ OUTPUT_FILE="STP_distance_$DEPTH"
 
 CMD="../src/bin/release/stp_bihs_bloom --solve -f $OUTPUT_FILE"
 
-$CMD
+$CMD --verbose
