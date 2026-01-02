@@ -141,11 +141,12 @@ protected:
         constexpr size_t byteCount =
             sizeof(key[0]) * key.size();
 
-        uint64_t hash = 1469598103934665603ULL ^ seed;
+        uint64_t hash = 14695981039346656037ULL ^ seed;
+        uint64_t fnv_prime = 1099511628211ULL;
 
         for (size_t i = 0; i < byteCount; i++) {
             hash ^= static_cast<uint64_t>(data[i]);
-            hash *= 1099511628211ULL;
+            hash *= fnv_prime;
         }
 
         return hash;
