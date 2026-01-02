@@ -12,5 +12,5 @@ papers/FMDH/results/
 *.pdb
 
 cmake-build-debug/
-CMakeLists.txt
+src/CMakeLists.txt
 scripts/bloom_stats.csv

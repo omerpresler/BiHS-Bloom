@@ -2,8 +2,10 @@
 #include "IncrementalIDA.h"
 #include "MNPuzzle.h"
 #include "TemplateAStar.h"
-#include "IDAStar.h"
+#include "STPInstances.h"
 #include "Timer.h"
+#include "BiHSBloom.h"
+#include "IDAStar.h"
 
 #include <algorithm>
 #include <random>
@@ -19,6 +21,7 @@
 void init_bloom_for_puzzle(BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *&bf,
                            int size_in_KiB, int k_hashes, BloomType type,
                            double set_ratio) { // We set default value in Driver.h
+
   size_t m_bits = size_in_KiB * 1024 * 8ULL;
   if (type == BloomType::WITH_SET) {
     size_t set_limit =
@@ -429,60 +432,22 @@ void exploreSinglePuzzle(MNPuzzleState<MN_SIZE, MN_SIZE> start,
 std::vector<slideDir> solveBloom(MNPuzzleState<MN_SIZE, MN_SIZE> start, MNPuzzleState<MN_SIZE, MN_SIZE> goal, MNPuzzle<MN_SIZE, MN_SIZE> env,
                                  int size_in_KiB, int k_hashes, BloomType bloomType, double set_ratio) {
   
-  int minDistance = env.HCost(start, goal); // Heuristic distance can under-estimate the true distance but not over-estimate it
-
-  //std::cout << "Heuristic distance: " << minDistance << std::endl;
+  int minDistance = env.HCost(start, goal);
 
   int forwardDepth = minDistance / 2;
   int backwardDepth = minDistance - forwardDepth;
-  bool forward = true;
-  BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *bf = nullptr; // Initialize to nullptr
-
-  std::string terminationReason = "min_items";
-  int loopCount = 0;
-  std::deque<std::size_t> tail;
-
-  static constexpr std::size_t ALT_PAIRS = 3;
-  static constexpr std::size_t ALT_LEN   = ALT_PAIRS * 2;
-
-  auto push_tail = [&](std::size_t v) {
-    tail.push_back(v);
-    if (tail.size() > ALT_LEN) tail.pop_front();
-  };
-
-  auto last_n_period2 = [&]() -> bool {
-    if (tail.size() < ALT_LEN) return false;
-
-    std::size_t a = tail[0];
-    std::size_t b = tail[1];
-
-    for (std::size_t i = 0; i < ALT_LEN; ++i) {
-      std::size_t expected = (i % 2 == 0) ? a : b;
-      if (tail[i] != expected) return false;
-    }
-    return true;
-  };
-  
 
   while(true){
     std::vector<slideDir> path = solve_at_depth(start, goal, env, forwardDepth, backwardDepth, size_in_KiB, k_hashes, minDistance, bloomType, set_ratio, nullptr, false);
 
-    if (path.size() > 0){
+    if (path.size() > 0)
       return path;
-    }
     
-    if (bf) {
-        delete bf; // Clean up before next iteration
-        bf = nullptr;
-    }
-
-    if (forwardDepth == backwardDepth){ // up to this point we assume Cstar is fd + bd, if we reached here no solution was found, we increment bd first.
+    if (forwardDepth == backwardDepth) // up to this point we assume Cstar is fd + bd, if we reached here no solution was found, we increment bd first.
       backwardDepth++;
-    }else{
-      forwardDepth++;
-    }
+    else
+      forwardDepth++; 
   }
-  
 }
 
 std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>>
@@ -561,7 +526,7 @@ int main(int argc, char **argv) {
   bool solveMode = false;
   int distance = -1;
   int amount = -1;
-  std::string filename;
+  std::string filename = "";
   bool debug = false;
   bool verbose = false;
   bool explore = false;
@@ -616,9 +581,7 @@ int main(int argc, char **argv) {
   }
 
   if (filename.empty()) {
-    std::cerr << "Error: Must specify filename with -f.\n";
-    printUsage(argv[0]);
-    return 1;
+    std::cout << "No file was specified, using KORF's puzzles.\n";
   }
 
   if (generate) {
@@ -685,12 +648,18 @@ int main(int argc, char **argv) {
   } 
   else {
     std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> puzzles;
-    MNPuzzle<MN_SIZE, MN_SIZE>::read_in_mn_puzzles(filename.c_str(), false,
-                                                   10000, puzzles);
+    if (filename.empty()) {
+      for (int i = 0; i < 100; i++) {
+        puzzles.push_back(STP::GetKorfInstance(i));
+      }
+    } else {
+      MNPuzzle<MN_SIZE, MN_SIZE>::read_in_mn_puzzles(filename.c_str(), false,
+                                                     10000, puzzles);
 
-    if (puzzles.empty()) {
-      std::cerr << "No puzzles loaded from " << filename << "\n";
-      return 1;
+      if (puzzles.empty()) {
+        std::cerr << "No puzzles loaded from " << filename << "\n";
+        return 1;
+      }
     }
 
     MNPuzzleState<MN_SIZE, MN_SIZE> goal;
@@ -705,7 +674,7 @@ int main(int argc, char **argv) {
       logFile << "Puzzle,Size_KiB,K_Hashes,Mode,Set_Ratio,Set_Limit,Set_Size,Loop_Count,Final_Inserted,Termination,Inserted\n";
     }
     else if (logFile && solveMode) {
-      logFile << "Puzzle,A_Star_Time,IDAStar_Time,Bloom_Time\n";
+      logFile << "Puzzle,A_Star_Time,IDAStar_Time,Bloom_Time,New_BiHS_Time\n";
     }
     else {
       std::cerr << "Error: Cannot open log file\n";
@@ -713,9 +682,8 @@ int main(int argc, char **argv) {
     }
 
     for (size_t i = 0; i < puzzles.size(); ++i) {
-      std::ostringstream batchLog;
       if (verbose) {
-        batchLog << "Puzzle " << i << ": ";
+        std::cout << "Puzzle " << i << ": ";
       }
       // Sanity check, check size by running A star
       MNPuzzle<MN_SIZE, MN_SIZE> mnp;
@@ -723,6 +691,7 @@ int main(int argc, char **argv) {
                     MNPuzzle<MN_SIZE, MN_SIZE>>
           astar;
       std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+      
       Timer t;
       t.StartTimer();
       astar.GetPath(&mnp, puzzles[i], goal, path);
@@ -730,10 +699,11 @@ int main(int argc, char **argv) {
       double aStarTime = t.GetElapsedTime();
 
       if (verbose) {
-        batchLog << "A* Path found length: " << (path.size() - 1) << '\n'; // -1 because we don't count the start state
-        batchLog << "A* Nodes expanded: " << astar.GetNodesExpanded() << '\n';
-        batchLog << "A* Time: " << aStarTime << '\n';
+        std::cout << "A* Path found length: " << (path.size() - 1) << '\n'; // -1 because we don't count the start state
+        std::cout << "A* Nodes expanded: " << astar.GetNodesExpanded() << '\n';
+        std::cout << "A* Time: " << aStarTime << '\n';
       }
+      
       // print steps if debug
       if (debug) {
         for (const auto &s : path) {
@@ -742,12 +712,9 @@ int main(int argc, char **argv) {
       }
       if (benchmarkMode) {
         benchmark(puzzles[i], goal, mnp, distance, i, logFile, verbose);
-        if (verbose) {
-          std::cout << batchLog.str();
-        }
       } else {
 
-        IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir> ida;
+        IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
 	      std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> pathIDA;
         
         t.StartTimer();
@@ -756,15 +723,11 @@ int main(int argc, char **argv) {
         double idaTime = t.GetElapsedTime();
 
         if (verbose) {
-          batchLog << "------------------------------" << std::endl;
-          batchLog << "IDA* Path found length: " << (pathIDA.size() - 1) << '\n'; // -1 because we don't count the start state
-          batchLog << "IDA* Nodes expanded: " << ida.GetNodesExpanded() << '\n';
-          batchLog << "IDA* Time: " << idaTime << '\n';
-        }
-
-        if (verbose) {
           std::cout << "------------------------------" << std::endl;
-          std::cout << batchLog.str() << std::endl;
+          std::cout << "IDA* Path found length: " << (pathIDA.size() - 1) << '\n'; // -1 because we don't count the start state
+          std::cout << "IDA* Nodes expanded: " << ida.GetNodesExpanded() << '\n';
+          std::cout << "IDA* Time: " << idaTime << '\n';
+          std::cout << "------------------------------" << std::endl;
           std::cout << "BiHS-Bloom Solving...\n";
         }
 
@@ -797,7 +760,6 @@ int main(int argc, char **argv) {
               std::cout << "Passed sanity check\n";
               std::cout << "------------------------------" << std::endl;
             }
-            logFile << i << "," << aStarTime << "," << idaTime << "," << bloomTime << "\n";
           }
           else{
             std::cout << "Failed sanity check\n";
@@ -805,6 +767,26 @@ int main(int argc, char **argv) {
             return 0;
           }
         }
+
+        if (verbose) {
+          std::cout << "------------------------------" << std::endl;
+          std::cout << "Testing New BiHS\n";
+        }
+
+        std::vector<slideDir> pathBiHS;
+        BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes);
+
+        t.StartTimer();
+        pathBiHS = bihs.GetPath(puzzles[i], goal);
+        t.EndTimer();
+        double bihsTime = t.GetElapsedTime();
+
+        if (verbose) {
+          std::cout << "New BiHS Time: " << bihsTime << '\n';
+          std::cout << "New BiHS Path found length: " << pathBiHS.size() << '\n';
+        }
+
+        //logFile << i << "," << aStarTime << "," << idaTime << "," << bloomTime << "," << bihsTime << "\n";
       }
     }
     if (logFile)

@@ -64,6 +64,14 @@ public:
 		return false;
 	}
 
+	bool operator<(const MNPuzzleState &b) const //To be able to use set of states we need to compare left size const
+	{
+		for (size_t x = 0; x < size(); x++)
+			if (puzzle[x] != b.puzzle[x])
+				return puzzle[x] < b.puzzle[x];
+		return false;
+	}
+
 	unsigned int blank;
 	std::array<int, width*height> puzzle;
 

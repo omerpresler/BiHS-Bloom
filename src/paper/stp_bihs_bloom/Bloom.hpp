@@ -38,7 +38,7 @@ public:
             seed = (uint64_t)time(NULL) ^ (uintptr_t)this;
         }
     }
-    ~BloomFilter()
+    virtual ~BloomFilter()
     {
         if (bits) {
             free(bits);
@@ -57,6 +57,9 @@ public:
         memset(bits, 0, bytes);
         n_inserted = 0;
     }
+
+    
+
     virtual void add(const Key &key)
     {
         if (!bits || m_bits == 0 || k_hashes == 0) return;
@@ -112,6 +115,30 @@ protected:
     size_t   n_inserted; /* number of inserted items */
     uint64_t seed;      /* random seed */
 
+    static const void* get_data_ptr(const std::array<int, MN_SIZE*MN_SIZE>& key)
+    {
+        return key.data();
+    }
+
+    static size_t get_data_bytes(const std::array<int, MN_SIZE*MN_SIZE>&)
+    {
+        return sizeof(int) * MN_SIZE * MN_SIZE;
+    }
+
+    // --- OVERLOAD FOR MNPuzzleState ---
+    template <int W, int H>
+    static const void* get_data_ptr(const MNPuzzleState<W, H>& key)
+    {
+        return key.puzzle.data();
+    }
+
+    template <int W, int H>
+    static size_t get_data_bytes(const MNPuzzleState<W, H>&)
+    {
+        return sizeof(int) * W * H;
+    }
+
+
     void hashes(const Key &key, uint64_t *h1, uint64_t *h2) const
     {
         *h1 = fnv1a_64(key, 0xA5A5A5A5A5A5A5A5ULL ^ seed);
@@ -132,25 +159,29 @@ protected:
         return (bits[idx >> 3] >> (idx & 7u)) & 1u;
     }
 
+    static uint64_t fnv1a_bytes(const uint8_t* data, size_t byteCount, uint64_t seed)
+    {
+        uint64_t hash = 14695981039346656037ULL ^ seed;
+        const uint64_t fnv_prime = 1099511628211ULL;
+
+        for (size_t i = 0; i < byteCount; i++) {
+            hash ^= (uint64_t)data[i];
+            hash *= fnv_prime;
+        }
+        return hash;
+    }
+
+
     /* FNV-1a 64-bit hash */
     static uint64_t fnv1a_64(const Key &key, uint64_t seed)
     {
-        const uint8_t* data =
-        reinterpret_cast<const uint8_t*>(key.data());
-
-        constexpr size_t byteCount =
-            sizeof(key[0]) * key.size();
-
-        uint64_t hash = 14695981039346656037ULL ^ seed;
-        uint64_t fnv_prime = 1099511628211ULL;
-
-        for (size_t i = 0; i < byteCount; i++) {
-            hash ^= static_cast<uint64_t>(data[i]);
-            hash *= fnv_prime;
-        }
-
-        return hash;
+        return fnv1a_bytes(
+            reinterpret_cast<const uint8_t*>(get_data_ptr(key)),
+            get_data_bytes(key),
+            seed
+        );
     }
+
 };
 
 

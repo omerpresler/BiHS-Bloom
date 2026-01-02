@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 def plot_times_by_sample(
     file_path: str,
-    cols=("A_Star_Time", "IDAStar_Time", "Bloom_Time"),
+    cols=("A_Star_Time", "IDAStar_Time", "Bloom_Time", "New_BiHS_Time"),
     chunksize: int | None = None,
     max_points: int | None = 200_000,  # cap for plotting; set None to plot all
     output_png: str = "time_by_sample.png",
@@ -72,9 +72,78 @@ def plot_times_by_sample(
 
     print(f"Saved: {output_png}")
 
+def print_statistics(file_path: str):
+    print(f"--- Statistics for {file_path} ---")
+    try:
+        df = pd.read_csv(file_path)
+    except Exception as e:
+        print(f"Error reading CSV for statistics: {e}")
+        return
+
+    required_cols = ["A_Star_Time", "IDAStar_Time", "Bloom_Time", "New_BiHS_Time"]
+    for col in required_cols:
+        if col not in df.columns:
+            print(f"Missing column '{col}' in CSV. Cannot compute full statistics.")
+            return
+
+    # Calculate averages
+    avg_a_star = df["A_Star_Time"].mean()
+    avg_ida = df["IDAStar_Time"].mean()
+    avg_bloom = df["Bloom_Time"].mean()
+    avg_new_bihs = df["New_BiHS_Time"].mean()
+
+    print(f"Average A* Time:       {avg_a_star:.6f} s")
+    print(f"Average IDA* Time:     {avg_ida:.6f} s")
+    print(f"Average Old BiHS Time: {avg_bloom:.6f} s")
+    print(f"Average New BiHS Time: {avg_new_bihs:.6f} s")
+    print("-" * 30)
+
+    # Compare Old vs New BiHS
+    if avg_bloom > 0:
+        improvement_pct = ((avg_bloom - avg_new_bihs) / avg_bloom) * 100
+        print(f"New BiHS is {improvement_pct:.2f}% faster than Old BiHS on average.")
+    else:
+        print("Old BiHS average time is 0, cannot calculate percentage improvement.")
+
+    # Compare New BiHS vs IDA*
+    if avg_new_bihs > 0:
+        if avg_ida >= avg_new_bihs:
+            speedup_ida = avg_ida / avg_new_bihs
+            print(f"New BiHS is {speedup_ida:.2f}x faster than IDA*.")
+        else:
+            slowdown_ida = avg_new_bihs / avg_ida
+            print(f"New BiHS is {slowdown_ida:.2f}x slower than IDA*.")
+    else:
+         print("New BiHS average time is 0, cannot calculate IDA* speedup.")
+
+    # Compare New BiHS vs A*
+    if avg_a_star > 0 and avg_new_bihs > 0:
+        if avg_a_star >= avg_new_bihs:
+            speedup_astar = avg_a_star / avg_new_bihs
+            print(f"New BiHS is {speedup_astar:.2f}x faster than A*.")
+        else:
+            slowdown_astar = avg_new_bihs / avg_a_star
+            print(f"New BiHS is {slowdown_astar:.2f}x slower than A*.")
+    elif avg_a_star == 0:
+        print("A* average time is 0, cannot calculate speedup/slowdown.")
+    elif avg_new_bihs == 0:
+        print("New BiHS average time is 0, cannot calculate speedup/slowdown.")
+    print("-" * 30)
+
 if __name__ == "__main__":
     # Simple (loads whole file):
     # plot_times_by_sample("bloom_stats.csv", chunksize=None)
 
     # Huge file (stream in chunks):
     plot_times_by_sample("bloom_stats.csv", chunksize=200_000, max_points=200_000)
+    
+    # Specific comparison: Old vs New
+    plot_times_by_sample(
+        "bloom_stats.csv", 
+        cols=("Bloom_Time", "New_BiHS_Time"), 
+        chunksize=200_000, 
+        max_points=200_000, 
+        output_png="comparison_old_vs_new.png"
+    )
+
+    print_statistics("bloom_stats.csv")
