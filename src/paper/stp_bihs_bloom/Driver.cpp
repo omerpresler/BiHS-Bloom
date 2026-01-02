@@ -2,6 +2,7 @@
 #include "IncrementalIDA.h"
 #include "MNPuzzle.h"
 #include "TemplateAStar.h"
+#include "IDAStar.h"
 #include "Timer.h"
 
 #include <algorithm>
@@ -704,7 +705,7 @@ int main(int argc, char **argv) {
       logFile << "Puzzle,Size_KiB,K_Hashes,Mode,Set_Ratio,Set_Limit,Set_Size,Loop_Count,Final_Inserted,Termination,Inserted\n";
     }
     else if (logFile && solveMode) {
-      logFile << "Puzzle,A_Star_Time,Bloom_Time\n";
+      logFile << "Puzzle,A_Star_Time,IDAStar_Time,Bloom_Time\n";
     }
     else {
       std::cerr << "Error: Cannot open log file\n";
@@ -722,7 +723,6 @@ int main(int argc, char **argv) {
                     MNPuzzle<MN_SIZE, MN_SIZE>>
           astar;
       std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-
       Timer t;
       t.StartTimer();
       astar.GetPath(&mnp, puzzles[i], goal, path);
@@ -746,8 +746,21 @@ int main(int argc, char **argv) {
           std::cout << batchLog.str();
         }
       } else {
-        Timer t;
-        std::vector<slideDir> path;
+
+        IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir> ida;
+	      std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> pathIDA;
+        
+        t.StartTimer();
+        ida.GetPath(&mnp, puzzles[i], goal, pathIDA);
+        t.EndTimer();
+        double idaTime = t.GetElapsedTime();
+
+        if (verbose) {
+          batchLog << "------------------------------" << std::endl;
+          batchLog << "IDA* Path found length: " << (pathIDA.size() - 1) << '\n'; // -1 because we don't count the start state
+          batchLog << "IDA* Nodes expanded: " << ida.GetNodesExpanded() << '\n';
+          batchLog << "IDA* Time: " << idaTime << '\n';
+        }
 
         if (verbose) {
           std::cout << "------------------------------" << std::endl;
@@ -760,30 +773,31 @@ int main(int argc, char **argv) {
         int k_hashes = 2;
         BloomType bloomType = BloomType::REGULAR;
         double set_ratio = 0.0;
+        std::vector<slideDir> pathBloom;
         
         t.StartTimer();
-        path = solveBloom(puzzles[i], goal, mnp, size_in_KiB, k_hashes, bloomType, set_ratio);
+        pathBloom = solveBloom(puzzles[i], goal, mnp, size_in_KiB, k_hashes, bloomType, set_ratio);
         t.EndTimer();
         double bloomTime = t.GetElapsedTime();
 
         if (verbose) {
           std::cout << "BiHS-Bloom Time: " << bloomTime << '\n';
-          std::cout << "BiHS-Bloom Path found length: " << path.size() << '\n';
+          std::cout << "BiHS-Bloom Path found length: " << pathBloom.size() << '\n';
         }
 
-        if (path.size() == 0){
+        if (pathBloom.size() == 0){
           std::cout << "BiHS-Bloom Path not found\n";
         }
         else{
           //Sanity check
           MNPuzzleState<MN_SIZE, MN_SIZE> check = puzzles[i];
-          for (slideDir a : path) mnp.ApplyAction(check, a);
+          for (slideDir a : pathBloom) mnp.ApplyAction(check, a);
           if (check == goal) {
             if (verbose) {
               std::cout << "Passed sanity check\n";
               std::cout << "------------------------------" << std::endl;
             }
-            logFile << i << "," << aStarTime << "," << bloomTime << "\n";
+            logFile << i << "," << aStarTime << "," << idaTime << "," << bloomTime << "\n";
           }
           else{
             std::cout << "Failed sanity check\n";

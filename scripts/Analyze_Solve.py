@@ -1,62 +1,80 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 
-# Set the style for the plots
-sns.set_theme(style="whitegrid")
+def plot_times_by_sample(
+    file_path: str,
+    cols=("A_Star_Time", "IDAStar_Time", "Bloom_Time"),
+    chunksize: int | None = None,
+    max_points: int | None = 200_000,  # cap for plotting; set None to plot all
+    output_png: str = "time_by_sample.png",
+):
+    """
+    X axis: sample number (row order in the CSV, starting at 1)
+    Y axis: time values from cols
+    Supports chunked reading for huge files.
+    """
 
-def analyze_bloom_stats(file_path):
-    # Load the dataset
-    try:
-        df = pd.read_csv(file_path)
-    except FileNotFoundError:
-        print(f"Error: The file '{file_path}' was not found.")
-        return
+    def downsample(df, max_n):
+        if max_n is None or len(df) <= max_n:
+            return df
+        step = max(1, len(df) // max_n)
+        return df.iloc[::step].copy()
 
-    # 1. Basic Summary Statistics
-    # Calculates mean, std, min, max, and quartiles for the time columns
-    stats = df[['A_Star_Time', 'Bloom_Time']].describe()
-    print("--- Summary Statistics ---")
-    print(stats)
-    print("\n")
+    if chunksize is None:
+        df = pd.read_csv(file_path, usecols=list(cols))
+        df = df.reset_index(drop=True)
+        df = downsample(df, max_points)
+        x = df.index + 1
 
-    # 2. Performance Comparison
-    mean_a_star = df['A_Star_Time'].mean()
-    mean_bloom = df['Bloom_Time'].mean()
-    
-    # Calculate how many times one is faster than the other
-    if mean_a_star < mean_bloom:
-        ratio = mean_bloom / mean_a_star
-        print(f"On average, A* is {ratio:.2f}x faster than the Bloom approach.")
+        plt.figure(figsize=(14, 6))
+        for c in cols:
+            plt.plot(x, df[c], linewidth=1, label=c)
     else:
-        ratio = mean_a_star / mean_bloom
-        print(f"On average, the Bloom approach is {ratio:.2f}x faster than A*.")
+        # Chunked mode: read and plot incrementally
+        plt.figure(figsize=(14, 6))
+        offset = 0
+        buffered = []
 
-    # 3. Visualization
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+        for chunk in pd.read_csv(file_path, usecols=list(cols), chunksize=chunksize):
+            chunk = chunk.reset_index(drop=True)
 
-    # Plot 1: Distribution of Execution Times (KDE Plot)
-    sns.kdeplot(df['A_Star_Time'], ax=axes[0], fill=True, label='$A^{*}$ Time')
-    sns.kdeplot(df['Bloom_Time'], ax=axes[0], fill=True, label='Bloom Time')
-    axes[0].set_title('Distribution of Execution Times')
-    axes[0].set_xlabel('Time (seconds)')
-    axes[0].set_ylabel('Density')
-    axes[0].legend()
+            # build global sample index for this chunk
+            x = (chunk.index + 1 + offset)
 
-    # Plot 2: Scatter Plot Comparison
-    # A point above the red dashed line means A* was faster for that puzzle
-    axes[1].scatter(df['A_Star_Time'], df['Bloom_Time'], alpha=0.5, s=10)
-    max_val = max(df['A_Star_Time'].max(), df['Bloom_Time'].max())
-    axes[1].plot([0, max_val], [0, max_val], color='red', linestyle='--', label='y = x (Equal Speed)')
-    axes[1].set_title('$A^{*}$ Time vs. Bloom Time')
-    axes[1].set_xlabel('$A^{*}$ Time (s)')
-    axes[1].set_ylabel('Bloom Time (s)')
-    axes[1].legend()
+            buffered.append((x, chunk.copy()))
+            offset += len(chunk)
 
+            # Optional: limit memory while still plotting big files
+            # If max_points is set, keep only ~max_points total by downsampling buffer.
+            if max_points is not None and offset > max_points * 5:
+                # merge buffer, downsample, and keep as one buffer
+                merged = pd.concat([b[1] for b in buffered], ignore_index=True)
+                merged = downsample(merged, max_points)
+                new_x = merged.index + 1
+                buffered = [(new_x, merged)]
+
+        # final plot from buffered data (downsampled if needed)
+        merged = pd.concat([b[1] for b in buffered], ignore_index=True)
+        merged = downsample(merged, max_points)
+        x = merged.index + 1
+
+        for c in cols:
+            plt.plot(x, merged[c], linewidth=1, label=c)
+
+    plt.xlabel("Sample Number (row order)")
+    plt.ylabel("Time (seconds)")
+    plt.title("Execution Time per Sample")
+    plt.legend()
+    plt.grid(True)
     plt.tight_layout()
-    plt.savefig('bloom_analysis_plots.png')
-    print("\nAnalysis complete. Visualization saved as 'bloom_analysis_plots.png'.")
+    plt.savefig(output_png, dpi=200)
     plt.show()
 
+    print(f"Saved: {output_png}")
+
 if __name__ == "__main__":
-    analyze_bloom_stats('bloom_stats.csv')
+    # Simple (loads whole file):
+    # plot_times_by_sample("bloom_stats.csv", chunksize=None)
+
+    # Huge file (stream in chunks):
+    plot_times_by_sample("bloom_stats.csv", chunksize=200_000, max_points=200_000)
