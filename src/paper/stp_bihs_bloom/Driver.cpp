@@ -732,14 +732,14 @@ int main(int argc, char **argv) {
         }
 
         //TODO: Get Actual Values
-        int size_in_KiB = 4;
+        int size_in_KiB = 4000;
         int k_hashes = 2;
         BloomType bloomType = BloomType::REGULAR;
         double set_ratio = 0.0;
         std::vector<slideDir> pathBloom;
         
         t.StartTimer();
-        pathBloom = solveBloom(puzzles[i], goal, mnp, size_in_KiB, k_hashes, bloomType, set_ratio);
+        // pathBloom = solveBloom(puzzles[i], goal, mnp, size_in_KiB, k_hashes, bloomType, set_ratio);
         t.EndTimer();
         double bloomTime = t.GetElapsedTime();
 
@@ -786,7 +786,7 @@ int main(int argc, char **argv) {
           std::cout << "New BiHS Path found length: " << pathBiHS.size() << '\n';
         }
 
-        //logFile << i << "," << aStarTime << "," << idaTime << "," << bloomTime << "," << bihsTime << "\n";
+        logFile << i << "," << aStarTime << "," << idaTime << "," << bloomTime << "," << bihsTime << "\n";
       }
     }
     if (logFile)

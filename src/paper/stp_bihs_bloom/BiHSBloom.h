@@ -7,6 +7,7 @@
 
 #include "Bloom.hpp"
 #include "BloomUtil.h"
+#include "Timer.h"
 
 #define LOOP_LIMIT 200
 
@@ -178,17 +179,24 @@ public:
         return bf;
     }
 
-    std::vector<action> SolveAtDepth(state start, state goal, int forwardDepth, int backwardDepth) {
+    std::vector<action> SolveAtDepth(state start, state &goal, int forwardDepth, int backwardDepth) {
         Period2Window<LOOP_LIMIT> tail;
         TerminationCondition term = TerminationCondition::MAX_ITERATIONS;
         std::unique_ptr<BloomFilter<state>> bf;
         std::vector<action> path;
         int upperBound = forwardDepth + backwardDepth; // We know f value from node to goal cant be bigger then Df + Db
+        Timer solveTimer;
+        solveTimer.StartTimer();
+        
+        //std::cout << "[PROF] Starting SolveAtDepth fd=" << forwardDepth << " bd=" << backwardDepth << " ub=" << upperBound << std::endl; 
 
         for(int i = 0; i < LOOP_LIMIT && term == TerminationCondition::MAX_ITERATIONS; i++) {
+            Timer iterTimer;
+            iterTimer.StartTimer();
 
             if (tail.last_n_period2()){ //Period 2 stabilized, we can stop the algorithm
                 term = TerminationCondition::STABILIZED;
+                //std::cout << "[PROF] Stabilized at iter " << i << std::endl;
                 break;
             }
 
@@ -198,14 +206,26 @@ public:
                 bf.reset(GetBloomOfStatesInBloomAtDepth(goal, start, backwardDepth, upperBound, bf.get()));
 
             tail.push(bf->get_n_inserted());
+            
+            iterTimer.EndTimer();
+            //std::cout << "[PROF] Iter " << i << " items=" << bf->get_n_inserted() << " time=" << iterTimer.GetElapsedTime() << "s" << " fp=" << bf->estimate_fp() << std::endl;
 
             if (bf->get_n_inserted() <= this->min_items){ //Bloom is small enopugh that we can save the states in memory
                 term = TerminationCondition::MIN_ITEMS;
+                //std::cout << "[PROF] Min items reached at iter " << i << std::endl;
                 break;
             }
         }
 
+        solveTimer.EndTimer();
+        //std::cout << "[PROF] BuildBloom loop finished in " << solveTimer.GetElapsedTime() << "s. Starting GetPathFromBloom." << std::endl;
+
+        Timer pathTimer;
+        pathTimer.StartTimer();
         path = GetPathFromBloom(start, goal, forwardDepth, backwardDepth, bf.get());
+        pathTimer.EndTimer();
+        //std::cout << "[PROF] GetPathFromBloom time=" << pathTimer.GetElapsedTime() << "s" << std::endl;
+
         return path;
     }
 
@@ -215,13 +235,18 @@ public:
         int distance = std::max(fh, bh);
         int forwardDepth = distance / 2;
         int backwardDepth = distance - forwardDepth;
+        Timer totalTimer;
+        totalTimer.StartTimer();
 
 
         while(true){
+            //std::cout << "[PROF] Trying depth: " << forwardDepth << " + " << backwardDepth << " = " << (forwardDepth + backwardDepth) << std::endl;
             std::vector<action> path = SolveAtDepth(start, goal, forwardDepth, backwardDepth);
 
             if (path.size() > 0){
                 SanityCheck(start, goal, path);
+                totalTimer.EndTimer();
+                //std::cout << "[PROF] Total GetPath time=" << totalTimer.GetElapsedTime() << "s" << std::endl;
                 return path;
             }
             
@@ -231,9 +256,6 @@ public:
                 forwardDepth++;   
         }
     }
-
-
-
 
 private:
     int size_in_KiB;
