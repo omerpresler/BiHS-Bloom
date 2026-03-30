@@ -7,6 +7,8 @@
 #include "BiHSBloom.h"
 #include "IDAStar.h"
 
+#include "PancakeInstances.h"
+
 #include <algorithm>
 #include <random>
 #include <cstring>
@@ -520,7 +522,127 @@ void printUsage(const char *progName) {
             << "  Optional:  " << progName << " --verbose\n";
 }
 
+void solveSTP(){
+  MNPuzzle<MN_SIZE, MN_SIZE> mnp;
+  MNPuzzleState<MN_SIZE, MN_SIZE> goal;
+  goal.Reset();
+  IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
+  MNPuzzleState<MN_SIZE, MN_SIZE> puzzle;
+  std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> pathIDA;
+  std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> pathRevIDA;
+  Timer t;
+  std::vector<slideDir> pathBiHS;
+  int size_in_KiB = 4000;
+  int k_hashes = 2;
+  BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes);
+
+  for (int i = 0; i < 100; i++) {
+    // Load Korf's instance
+    puzzle = STP::GetKorfInstance(i);
+
+    std::cout << "Korf's Puzzle #" << i << std::endl;
+
+    t.StartTimer();
+    ida.GetPath(&mnp, puzzle, goal, pathIDA);
+    t.EndTimer();
+    double idaTime = t.GetElapsedTime();
+
+    std::cout << "IDAStar Solve time: " << idaTime << std::endl;
+
+    t.StartTimer();
+    ida.GetPath(&mnp, goal, puzzle, pathRevIDA);
+    t.EndTimer();
+    double revIdaTime = t.GetElapsedTime();
+
+    std::cout << "Reverse IDAStar Solve time: " << revIdaTime << std::endl;
+
+    t.StartTimer();
+    pathBiHS = bihs.GetPath(puzzle, goal);
+    t.EndTimer();
+    double bihsTime = t.GetElapsedTime();
+
+    std::cout << "BIHS Bloom Solve time: " << bihsTime << std::endl;
+
+    if (pathRevIDA.size() - 1 != pathBiHS.size()){ // Comparing node vector to action vector
+      std::cout << "[ERROR] Solutions have different Lengths! Puzzle #" << i << std::endl;
+    }
+
+    std::cout << "Soultion Length: " << pathBiHS.size() << "\n" << std::endl;
+
+    pathIDA.clear();
+    pathRevIDA.clear();
+    pathBiHS.clear();
+  }
+}
+
+void solvePancake(){
+  PancakePuzzle<16> mnp;
+  PancakePuzzleState<16> goal;
+  goal.Reset();
+  IDAStar<PancakePuzzleState<16>, PancakePuzzleAction, false> ida;
+  PancakePuzzleState<16> puzzle;
+  std::vector<PancakePuzzleState<16>> pathIDA;
+  Timer t;
+  std::vector<PancakePuzzleAction> pathBiHS;
+  int size_in_KiB = 8000;
+  int k_hashes = 4;
+  BiHSBloom<PancakePuzzleState<16>, PancakePuzzleAction, PancakePuzzle<16>> bihs(size_in_KiB, k_hashes);
+
+
+
+  for (int i = 0; i < 100; i++) {
+    std::cout << "Solving Pancake challenge #" << i << std::endl;
+
+    GetPancakeInstance(puzzle, i);
+
+    t.StartTimer();
+    ida.GetPath(&mnp, puzzle, goal, pathIDA);
+    t.EndTimer();
+    double idaTime = t.GetElapsedTime();
+
+    std::cout << "IDAStar Solve time: " << idaTime << std::endl;
+
+    t.StartTimer();
+    pathBiHS = bihs.GetPath(puzzle, goal);
+    t.EndTimer();
+    double bihsTime = t.GetElapsedTime();
+
+    std::cout << "BIHS Bloom Solve time: " << bihsTime << std::endl;
+
+    pathIDA.clear();
+    pathBiHS.clear();
+  }
+}
+
+
 int main(int argc, char **argv) {
+  bool slidingTilePuzzle = false;
+  bool pancake = false;
+
+  for (int i = 1; i < argc; ++i) {
+    if (strcmp(argv[i], "--stp") == 0 )
+      slidingTilePuzzle = true;
+    else if (strcmp(argv[i], "--pancake") == 0)
+      pancake = true;
+  }
+
+  
+  if (!(pancake ^ slidingTilePuzzle)){
+    std::cerr << "Please choose exactly 1 domain";
+    return 0;
+  }
+
+  if (slidingTilePuzzle) {
+    std::cout << "Domain: Sliding Tile Puzzle" << std::endl;
+    solveSTP();
+  }
+  else if (pancake) {
+    std::cout << "Domain: Pancake Puzzle" << std::endl;
+    solvePancake();
+  }
+} 
+
+int main_old(int argc, char **argv) {
   bool generate = false;
   bool benchmarkMode = false;
   bool solveMode = false;
@@ -728,7 +850,7 @@ int main(int argc, char **argv) {
           std::cout << "IDA* Nodes expanded: " << ida.GetNodesExpanded() << '\n';
           std::cout << "IDA* Time: " << idaTime << '\n';
           std::cout << "------------------------------" << std::endl;
-          std::cout << "BiHS-Bloom Solving...\n";
+          //std::cout << "BiHS-Bloom Solving...\n";
         }
 
         //TODO: Get Actual Values
@@ -743,10 +865,12 @@ int main(int argc, char **argv) {
         t.EndTimer();
         double bloomTime = t.GetElapsedTime();
 
+        /**
         if (verbose) {
           std::cout << "BiHS-Bloom Time: " << bloomTime << '\n';
           std::cout << "BiHS-Bloom Path found length: " << pathBloom.size() << '\n';
         }
+        
 
         if (pathBloom.size() == 0){
           std::cout << "BiHS-Bloom Path not found\n";
@@ -767,10 +891,11 @@ int main(int argc, char **argv) {
             return 0;
           }
         }
+        */
 
         if (verbose) {
           std::cout << "------------------------------" << std::endl;
-          std::cout << "Testing New BiHS\n";
+          std::cout << "Testing BiHS\n";
         }
 
         std::vector<slideDir> pathBiHS;
@@ -782,8 +907,18 @@ int main(int argc, char **argv) {
         double bihsTime = t.GetElapsedTime();
 
         if (verbose) {
-          std::cout << "New BiHS Time: " << bihsTime << '\n';
-          std::cout << "New BiHS Path found length: " << pathBiHS.size() << '\n';
+          std::cout << "BiHS Time: " << bihsTime << '\n';
+          std::cout << "BiHS Path found length: " << pathBiHS.size() << std::endl;
+        }
+
+        t.StartTimer();
+        pathBiHS = bihs.GetPath(puzzles[i], goal, true);
+        t.EndTimer();
+        double bihsTimeRecursive = t.GetElapsedTime();
+
+        if (verbose) {
+          std::cout << "Recursive BiHS Time: " << bihsTime << '\n';
+          std::cout << "Recursive BiHS Path found length: " << pathBiHS.size() << '\n';
         }
 
         logFile << i << "," << aStarTime << "," << idaTime << "," << bloomTime << "," << bihsTime << "\n";

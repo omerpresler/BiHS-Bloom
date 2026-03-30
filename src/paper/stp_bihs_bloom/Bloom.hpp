@@ -6,8 +6,9 @@
 #include <set>
 
 #include "MNPuzzle.h"
+#include "PancakePuzzle.h"
 
-#define MN_SIZE 4 
+#define MN_SIZE 4
 
 enum class BloomType {
     REGULAR,
@@ -136,6 +137,32 @@ protected:
     static size_t get_data_bytes(const MNPuzzleState<W, H>&)
     {
         return sizeof(int) * W * H;
+    }
+
+    // --- OVERLOAD FOR PancakePuzzleState ---
+    template <int N>
+    static const void* get_data_ptr(const PancakePuzzleState<N>& key)
+    {
+        return key.puzzle;
+    }
+
+    template <int N>
+    static size_t get_data_bytes(const PancakePuzzleState<N>&)
+    {
+        return sizeof(int) * N;
+    }
+
+    // Generic fallback for any trivially solvable state (like PancakePuzzleState)
+    template <typename T>
+    static const void* get_data_ptr(const T& key)
+    {
+        return &key;
+    }
+
+    template <typename T>
+    static size_t get_data_bytes(const T&)
+    {
+        return sizeof(T);
     }
 
 

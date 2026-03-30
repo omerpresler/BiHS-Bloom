@@ -1,4 +1,30 @@
+#include <type_traits>
+#include <algorithm>
 #include <iostream>
+#include <cmath>
+
+namespace BiHSBloomHelper {
+    template <typename Env, typename State, typename Action>
+    auto get_actions(Env& env, const State& curr, std::vector<Action>& actions, Action last_action, int)
+        -> decltype(env.GetActions(curr, actions, last_action), void())
+    {
+        env.GetActions(curr, actions, last_action);
+    }
+
+    template <typename Env, typename State, typename Action>
+    void get_actions(Env& env, const State& curr, std::vector<Action>& actions, Action last_action, double)
+    {
+        env.GetActions(curr, actions);
+        Action inv = last_action;
+        env.InvertAction(inv);
+        for(auto it = actions.begin(); it != actions.end(); ++it) {
+            if (*it == inv) {
+                actions.erase(it);
+                break;
+            }
+        }
+    }
+}
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -10,6 +36,7 @@
 #include "Timer.h"
 
 #define LOOP_LIMIT 200
+#define BRANCH_FACTOR 4
 
 enum class TerminationCondition {
     MAX_ITERATIONS,
@@ -56,7 +83,7 @@ public:
         }
 
         std::vector<action> moves;
-        env.GetActions(curr, moves, lastMove);
+        BiHSBloomHelper::get_actions(env, curr, moves, lastMove, 0);
 
         for (action a : moves) {
             env.ApplyAction(curr, a);
@@ -72,24 +99,28 @@ public:
         }
     }
 
-    std::vector<StateWithPath> GetStatesFromBloom(state &start, state &goal,int targetDepth, int upperBound, BloomFilter<state>* bf) {
+    std::vector<StateWithPath> GetStatesFromBloom(state &start, state &goal,
+                                                int targetDepth, int upperBound,
+                                                BloomFilter<state>* bf)
+    {
         if (targetDepth == 0) {
             return {};
         }
 
         std::vector<StateWithPath> states;
-
         std::vector<action> moves;
         std::vector<action> movesSoFar;
+        movesSoFar.reserve(targetDepth);
+
         env.GetActions(start, moves);
 
-        for (action a : moves) {
+        for (const action &a : moves) {
             env.ApplyAction(start, a);
             movesSoFar.push_back(a);
 
-            GetStatesFromBloomRecursive(start, goal, 1, targetDepth, upperBound, bf, movesSoFar, states, a);
+            GetStatesFromBloomRecursive(start, goal, 1, targetDepth,
+                                        upperBound, bf, movesSoFar, states, a);
 
-            // restore
             action inv = a;
             env.InvertAction(inv);
             env.ApplyAction(start, inv);
@@ -99,54 +130,68 @@ public:
         return states;
     }
 
-    std::vector<action> GetPathFromBloom(state &start, state &goal, int forwardDepth, int backwardDepth, BloomFilter<state>* bf) {
-        StateWithPath fState;
-        StateWithPath bState;
+    std::vector<action> GetPathFromBloom(state &start, state &goal,
+                                    int forwardDepth, int backwardDepth,
+                                    BloomFilter<state>* bf)
+    {
+        auto forwardStates = GetStatesFromBloom(start, goal, forwardDepth,
+                                                forwardDepth + backwardDepth, bf);
+        auto backwardStates = GetStatesFromBloom(goal, start, backwardDepth,
+                                                forwardDepth + backwardDepth, bf);
 
-        std::vector<StateWithPath> forwardStates;
-        std::vector<StateWithPath> backwardStates;
+        std::unordered_map<uint64_t, std::vector<action>> backwardMap;
+        backwardMap.reserve(backwardStates.size() * 2);
 
-        forwardStates = GetStatesFromBloom(start, goal, forwardDepth, forwardDepth + backwardDepth, bf);
-        backwardStates = GetStatesFromBloom(goal, start, backwardDepth, forwardDepth + backwardDepth, bf);
-
-        for (auto &s : forwardStates) {
-            for (auto &s2 : backwardStates) {
-                if (s.first == s2.first) {
-                    fState = s;
-                    bState = s2;
-                    break;
-                }
+        for (auto &s : backwardStates) {
+            uint64_t h = env.GetStateHash(s.first);
+            if (backwardMap.find(h) == backwardMap.end()) {
+                backwardMap.emplace(h, s.second);
             }
         }
 
-        std::vector<action> path;
+        for (auto &f : forwardStates) {
+            uint64_t h = env.GetStateHash(f.first);
+            auto it = backwardMap.find(h);
+            if (it != backwardMap.end()) {
+                std::vector<action> path;
+                path.reserve(f.second.size() + it->second.size());
 
-        for (auto it = fState.second.begin(); it != fState.second.end(); ++it) {
-            path.push_back(*it);
+                for (const auto &a : f.second) {
+                    path.push_back(a);
+                }
+
+                for (auto rit = it->second.rbegin(); rit != it->second.rend(); ++rit) {
+                    action inv = *rit;
+                    env.InvertAction(inv);
+                    path.push_back(inv);
+                }
+
+                return path;
+            }
         }
 
-        for (auto it = bState.second.rbegin(); it != bState.second.rend(); ++it) {
-            env.InvertAction(*it);
-            path.push_back(*it);
-        }
-        return path;
+        return {};
     }
 
     void BuildBloomFrontierRecursive(state &curr, state &goal, int depth, int targetDepth, int upperBound, BloomFilter<state>* oldBf, BloomFilter<state>* newBf, action last_action) {
 
-        if (env.HCost(curr, goal) + depth > upperBound) { // If f value > upper bound no need to explore
+        size_t f_value = env.HCost(curr, goal) + depth;
+        if (f_value > upperBound) { // If f value > upper bound no need to explore
+            if (this->min_f_value == -1 || this->min_f_value > f_value)
+                    this->min_f_value = f_value;
             return;
         }
         
         // If we are at the correct depth, check if the state is in the Bloom filter, if Bloom filter is null no need to check we'll add every state at depth
         if (depth == targetDepth) {
+            this->nodeExpanded++;
             if (!oldBf || oldBf->maybe_contains(curr))
                 newBf->add(curr);
             return; // CRITICAL: do not expand deeper
         }
             
         std::vector<action> actions;
-        env.GetActions(curr, actions, last_action);
+        BiHSBloomHelper::get_actions(env, curr, actions, last_action, 0);
 
         for (auto a : actions) {
             env.ApplyAction(curr, a);
@@ -157,29 +202,122 @@ public:
         }
     }
 
-    void BuildBloomFrontier(state &start, state &goal, int targetDepth, int upperBound, BloomFilter<state>* oldBf, BloomFilter<state>* newBf) {
-        std::vector<action> actions;
-        env.GetActions(start, actions); // no lastAction at root
+    struct Frame {
+        std::vector<action> acts;
+        uint8_t next = 0;
+        action last;
+        bool has_last;
 
-        for (auto a : actions) {
-            env.ApplyAction(start, a);
-            BuildBloomFrontierRecursive(start, goal, 1, targetDepth, upperBound, oldBf, newBf, a);
+        Frame() : next(0), has_last(false) {
+            acts.reserve(BRANCH_FACTOR); // IMPORTANT: prevents reallocations
+        }
 
-            env.InvertAction(a); // "Fix" the state
-            env.ApplyAction(start, a);
+        Frame(action lastAction) : next(0), last(lastAction), has_last(true) {
+            acts.reserve(BRANCH_FACTOR); // IMPORTANT: prevents reallocations
+        }
+    };
+
+    void BuildBloomFrontier(
+        state &start,
+        state &goal,
+        int targetDepth,
+        int upperBound,
+        BloomFilter<state>* oldBf,
+        BloomFilter<state>* newBf)
+    {
+        std::vector<Frame> st;
+        st.reserve(targetDepth + 1);
+        st.emplace_back();
+        state curr = start;
+
+        while (!st.empty()) {
+            this->nodeExpanded++;
+            Frame &f = st.back();
+            int depth = (int)st.size() - 1;
+
+            size_t f_value = env.HCost(curr, goal) + depth;
+            if (f_value > upperBound) {
+                if (this->min_f_value == -1 || this->min_f_value > f_value){
+                    // std::cout << "New Min F Value: " << f_value << std::endl;
+                    this->min_f_value = f_value;
+                }
+                
+                // backtrack
+                if (st.size() == 1) break;
+                    
+                action undo = f.last;
+                st.pop_back();
+                env.UndoAction(curr, undo);
+                continue;
+            }
+
+            // If we just arrived to this frame, generate actions once
+            if (f.next == 0 && f.acts.empty()) {
+                f.acts.clear();
+                if (f.has_last) {
+                    BiHSBloomHelper::get_actions(env, curr, f.acts, f.last, 0);
+                } else {
+                    env.GetActions(curr, f.acts);
+                }
+            }
+
+            // Target depth: add to Bloom and backtrack (don’t expand deeper)
+            if (depth == targetDepth) {
+                if (!oldBf || oldBf->maybe_contains(curr))
+                    newBf->add(curr);
+
+                if (st.size() == 1) break;
+                action undo = f.last;
+                st.pop_back();
+                env.UndoAction(curr, undo);
+                continue;
+            }
+
+            // If exhausted actions, backtrack
+            if (f.next >= f.acts.size()) {
+                if (st.size() == 1) break;
+                action undo = f.last;
+                st.pop_back();
+                env.UndoAction(curr, undo);
+                continue;
+            }
+
+            // Otherwise expand next child
+            action a = f.acts[f.next++];
+            env.ApplyAction(curr, a);
+            st.emplace_back(a); // child frame "remembers" last action
         }
     }
 
-    BloomFilter<state>* GetBloomOfStatesInBloomAtDepth(state start, state goal, int depth, int upperBound, BloomFilter<state>* oldBf) {
+    BloomFilter<state>* GetBloomOfStatesInBloomAtDepth(state start, state goal, int depth, int upperBound, BloomFilter<state>* oldBf, bool recursive) {
 
         BloomFilter<state> *bf = nullptr;
         InitBloom(bf);
-        BuildBloomFrontier(start, goal, depth, upperBound, oldBf, bf);
+        this->nodeExpanded = 0;
+        
+
+        if(recursive){
+            std::vector<action> actions;
+            env.GetActions(start, actions); // no lastAction at root
+
+            for (auto a : actions) {
+                env.ApplyAction(start, a);
+                BuildBloomFrontierRecursive(start, goal, 1, depth, upperBound, oldBf, bf, a);
+
+                env.InvertAction(a); // "Fix" the state
+                env.ApplyAction(start, a);
+            }
+        }
+        else{
+            BuildBloomFrontier(start, goal, depth, upperBound, oldBf, bf);
+        }
+        
 
         return bf;
     }
 
-    std::vector<action> SolveAtDepth(state start, state &goal, int forwardDepth, int backwardDepth) {
+
+    std::vector<action> SolveAtDepth(state start, state &goal, int forwardDepth, int backwardDepth, bool recursive) {
         Period2Window<LOOP_LIMIT> tail;
         TerminationCondition term = TerminationCondition::MAX_ITERATIONS;
         std::unique_ptr<BloomFilter<state>> bf;
@@ -187,6 +325,9 @@ public:
         int upperBound = forwardDepth + backwardDepth; // We know f value from node to goal cant be bigger then Df + Db
         Timer solveTimer;
         solveTimer.StartTimer();
+
+        this->firstForwardNodeExpanded = 0;
+        this->firstBackwardNodeExpanded = 0;
         
         //std::cout << "[PROF] Starting SolveAtDepth fd=" << forwardDepth << " bd=" << backwardDepth << " ub=" << upperBound << std::endl; 
 
@@ -200,17 +341,24 @@ public:
                 break;
             }
 
-            if (i % 2 == 0)
-                bf.reset(GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound, bf.get()));
-            else
-                bf.reset(GetBloomOfStatesInBloomAtDepth(goal, start, backwardDepth, upperBound, bf.get()));
+            if (i % 2 == 0){
+                bf.reset(GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound, bf.get(), recursive));
+                if(this->firstForwardNodeExpanded == 0)
+                    this->firstForwardNodeExpanded = this->nodeExpanded;
+            }
+            else {
+                bf.reset(GetBloomOfStatesInBloomAtDepth(goal, start, backwardDepth, upperBound, bf.get(), recursive));
+                if(this->firstBackwardNodeExpanded == 0)
+                    this->firstBackwardNodeExpanded = this->nodeExpanded;
+            }
+                
 
             tail.push(bf->get_n_inserted());
             
             iterTimer.EndTimer();
             //std::cout << "[PROF] Iter " << i << " items=" << bf->get_n_inserted() << " time=" << iterTimer.GetElapsedTime() << "s" << " fp=" << bf->estimate_fp() << std::endl;
 
-            if (bf->get_n_inserted() <= this->min_items){ //Bloom is small enopugh that we can save the states in memory
+            if (i % 2 == 1 && bf->get_n_inserted() <= this->min_items){ //Bloom is small enopugh that we can save the states in memory
                 term = TerminationCondition::MIN_ITEMS;
                 //std::cout << "[PROF] Min items reached at iter " << i << std::endl;
                 break;
@@ -229,31 +377,77 @@ public:
         return path;
     }
 
-    std::vector<action> GetPath(state start, state goal) {
+    std::vector<action> GetPath(state start, state goal, bool recursive=false) {
         int fh = env.HCost(start, goal);
         int bh = env.HCost(goal, start);
         int distance = std::max(fh, bh);
+
+        // Lets test it by letting it stabilized from the start
+        //distance = 2 + (distance % 2);
+        
         int forwardDepth = distance / 2;
         int backwardDepth = distance - forwardDepth;
         Timer totalTimer;
         totalTimer.StartTimer();
+        bool hasLearnedSplit = false;
 
+        
 
         while(true){
             //std::cout << "[PROF] Trying depth: " << forwardDepth << " + " << backwardDepth << " = " << (forwardDepth + backwardDepth) << std::endl;
-            std::vector<action> path = SolveAtDepth(start, goal, forwardDepth, backwardDepth);
+            std::vector<action> path = SolveAtDepth(start, goal, forwardDepth, backwardDepth, recursive);
 
             if (path.size() > 0){
-                SanityCheck(start, goal, path);
-                totalTimer.EndTimer();
+                //SanityCheck(start, goal, path);
+                //totalTimer.EndTimer();
                 //std::cout << "[PROF] Total GetPath time=" << totalTimer.GetElapsedTime() << "s" << std::endl;
                 return path;
             }
             
-            if (forwardDepth == backwardDepth) // up to this point we assume Cstar is fd + bd, if we reached here no solution was found, we increment bd first.
-                backwardDepth++;
+            //std::cout << "Forward Node Expanded: " << this->firstForwardNodeExpanded << " Backward Node Expanded: " << this->firstBackwardNodeExpanded << std::endl;
+
+            int totalDepth = this->min_f_value;
+            if (totalDepth <= 1) {
+                totalDepth = forwardDepth + backwardDepth + 2;
+            }
+
+            
+
+            double F = std::max(1.0, static_cast<double>(this->firstForwardNodeExpanded));
+            double B = std::max(1.0, static_cast<double>(this->firstBackwardNodeExpanded));
+            
+            double forwardRatio = B / (B + F);
+
+            //std::cout << "fr: " << forwardRatio << std::endl;
+
+            if (!hasLearnedSplit){
+                forwardDepth = static_cast<int>(std::round(totalDepth * forwardRatio));
+                backwardDepth = totalDepth - forwardDepth;
+                hasLearnedSplit = true;
+            } else {
+                // clamp ratio to avoid extreme collapse
+                //this->depthRatio = std::max(0.1, std::min(10.0, this->depthRatio));
+
+                int delta = totalDepth - (forwardDepth + backwardDepth);
+
+                forwardDepth += static_cast<int>(delta * forwardRatio);
+                //forwardDepth = std::max(1, std::min(totalDepth - 1, forwardDepth));
+
+                backwardDepth = totalDepth - forwardDepth;
+                //backwardDepth = std::max(1, backwardDepth);
+            }
+
+            
+
+            /*
+            std::cout << "Test F: " << this->firstForwardNodeExpanded << " B: " << this->firstBackwardNodeExpanded << std::endl;
+
+            if ( this->firstForwardNodeExpanded > this->firstBackwardNodeExpanded)
+                backwardDepth += 2;
             else
-                forwardDepth++;   
+                forwardDepth += 2;
+            */
+            this->min_f_value = -1;
         }
     }
 
@@ -262,6 +456,13 @@ private:
     int k_hashes;
     int stab_tail_len;
     int min_items;
+
+    int firstForwardNodeExpanded = 0;
+    int firstBackwardNodeExpanded = 0;
+    int nodeExpanded;
+    double depthRatio = 1.0;
+
+    int min_f_value = -1;
 
     environment env;
 };
