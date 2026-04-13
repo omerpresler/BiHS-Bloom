@@ -536,6 +536,9 @@ void solveSTP(){
   int k_hashes = 2;
   BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes);
 
+  std::ofstream log("benchmark_stp_korf100.csv");
+  log << "instance,solution_length,ida_time,rev_ida_time,bihs_bloom_time\n";
+
   for (int i = 0; i < 100; i++) {
     // Load Korf's instance
     puzzle = STP::GetKorfInstance(i);
@@ -569,10 +572,15 @@ void solveSTP(){
 
     std::cout << "Soultion Length: " << pathBiHS.size() << "\n" << std::endl;
 
+    log << i << "," << pathBiHS.size() << "," << idaTime << "," << revIdaTime << "," << bihsTime << "\n";
+    log.flush();
+
     pathIDA.clear();
     pathRevIDA.clear();
     pathBiHS.clear();
   }
+  log.close();
+  std::cout << "Results written to benchmark_stp_korf100.csv" << std::endl;
 }
 
 void solvePancake(){
@@ -588,7 +596,8 @@ void solvePancake(){
   int k_hashes = 4;
   BiHSBloom<PancakePuzzleState<16>, PancakePuzzleAction, PancakePuzzle<16>> bihs(size_in_KiB, k_hashes);
 
-
+  std::ofstream log("benchmark_pancake16_100.csv");
+  log << "instance,solution_length,ida_time,bihs_bloom_time\n";
 
   for (int i = 0; i < 100; i++) {
     std::cout << "Solving Pancake challenge #" << i << std::endl;
@@ -609,9 +618,14 @@ void solvePancake(){
 
     std::cout << "BIHS Bloom Solve time: " << bihsTime << std::endl;
 
+    log << i << "," << pathBiHS.size() << "," << idaTime << "," << bihsTime << "\n";
+    log.flush();
+
     pathIDA.clear();
     pathBiHS.clear();
   }
+  log.close();
+  std::cout << "Results written to benchmark_pancake16_100.csv" << std::endl;
 }
 
 
@@ -790,7 +804,8 @@ int main_old(int argc, char **argv) {
     if (verbose) {
       std::cout << "Loaded " << puzzles.size() << " puzzles. Solving...\n";
     }
-
+yum check-update &&
+sudo yum install code # or code-insiders
     std::ofstream logFile("bloom_stats.csv");
     if (logFile && benchmarkMode) {
       logFile << "Puzzle,Size_KiB,K_Hashes,Mode,Set_Ratio,Set_Limit,Set_Size,Loop_Count,Final_Inserted,Termination,Inserted\n";
