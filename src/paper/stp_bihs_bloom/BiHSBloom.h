@@ -48,13 +48,17 @@ enum class TerminationCondition {
 template <class state, class action, class environment>
 class BiHSBloom {
 public:
-    BiHSBloom(int size_in_KiB, int k_hashes)
+    BiHSBloom(int size_in_KiB, int k_hashes, double time_limit_seconds = 0)
         : size_in_KiB(size_in_KiB),
           k_hashes(k_hashes),
           stab_tail_len(4),
           min_items(10),
+          time_limit(time_limit_seconds),
+          timed_out(false),
           env() // default-construct environment
     {}
+
+    bool hasTimedOut() const { return timed_out; }
 
     void InitBloom(BloomFilter<state> *&bf) {
         size_t m_bits = size_in_KiB * 1024 * 8ULL;
@@ -332,6 +336,16 @@ public:
         //std::cout << "[PROF] Starting SolveAtDepth fd=" << forwardDepth << " bd=" << backwardDepth << " ub=" << upperBound << std::endl; 
 
         for(int i = 0; i < LOOP_LIMIT && term == TerminationCondition::MAX_ITERATIONS; i++) {
+            // Check time limit
+            if (time_limit > 0) {
+                solveTimer.EndTimer();
+                if (solveTimer.GetElapsedTime() > time_limit) {
+                    timed_out = true;
+                    return {};
+                }
+                solveTimer.StartTimer(); // restart for next check
+            }
+
             Timer iterTimer;
             iterTimer.StartTimer();
 
@@ -378,6 +392,7 @@ public:
     }
 
     std::vector<action> GetPath(state start, state goal, bool recursive=false) {
+        timed_out = false;
         int fh = env.HCost(start, goal);
         int bh = env.HCost(goal, start);
         int distance = std::max(fh, bh);
@@ -394,8 +409,20 @@ public:
         
 
         while(true){
+            // Check time limit at each depth iteration
+            if (time_limit > 0) {
+                totalTimer.EndTimer();
+                if (totalTimer.GetElapsedTime() > time_limit) {
+                    timed_out = true;
+                    return {};
+                }
+                totalTimer.StartTimer();
+            }
+
             //std::cout << "[PROF] Trying depth: " << forwardDepth << " + " << backwardDepth << " = " << (forwardDepth + backwardDepth) << std::endl;
             std::vector<action> path = SolveAtDepth(start, goal, forwardDepth, backwardDepth, recursive);
+
+            if (timed_out) return {};
 
             if (path.size() > 0){
                 //SanityCheck(start, goal, path);
@@ -463,6 +490,9 @@ private:
     double depthRatio = 1.0;
 
     int min_f_value = -1;
+
+    double time_limit; // seconds, 0 = no limit
+    bool timed_out;
 
     environment env;
 };

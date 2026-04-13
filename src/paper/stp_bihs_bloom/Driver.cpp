@@ -19,6 +19,11 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <thread>
+#include <mutex>
+#include <future>
+#include <atomic>
+#include <memory>
 
 void init_bloom_for_puzzle(BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *&bf,
                            int size_in_KiB, int k_hashes, BloomType type,
@@ -522,63 +527,150 @@ void printUsage(const char *progName) {
             << "  Optional:  " << progName << " --verbose\n";
 }
 
-void solveSTP(){
+struct STPResult {
+  int instance;
+  int solutionLength;
+  double idaTime;
+  double revIdaTime;
+  double bihsTime;
+  bool idaTimeout;
+  bool revIdaTimeout;
+  bool bihsTimeout;
+};
+
+static constexpr double TIMEOUT_SECONDS = 120.0;
+static constexpr int NUM_WORKERS = 14;
+
+STPResult solveOneInstance(int i) {
+  STPResult result;
+  result.instance = i;
+  result.idaTimeout = false;
+  result.revIdaTimeout = false;
+  result.bihsTimeout = false;
+  result.solutionLength = -1;
+  result.idaTime = -1;
+  result.revIdaTime = -1;
+  result.bihsTime = -1;
+
   MNPuzzle<MN_SIZE, MN_SIZE> mnp;
   MNPuzzleState<MN_SIZE, MN_SIZE> goal;
   goal.Reset();
-  IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
-  MNPuzzleState<MN_SIZE, MN_SIZE> puzzle;
-  std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> pathIDA;
-  std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> pathRevIDA;
+  MNPuzzleState<MN_SIZE, MN_SIZE> puzzle = STP::GetKorfInstance(i);
   Timer t;
-  std::vector<slideDir> pathBiHS;
-  int size_in_KiB = 4000;
-  int k_hashes = 2;
-  BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes);
 
+  // IDA* — run with timeout
+  // We use shared_ptr to keep data alive even if the thread outlives this scope on timeout
+  {
+    auto pMnp = std::make_shared<MNPuzzle<MN_SIZE, MN_SIZE>>(mnp);
+    auto pPath = std::make_shared<std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>>>();
+    auto pPuzzle = std::make_shared<MNPuzzleState<MN_SIZE, MN_SIZE>>(puzzle);
+    auto pGoal = std::make_shared<MNPuzzleState<MN_SIZE, MN_SIZE>>(goal);
+    auto fut = std::async(std::launch::async, [pMnp, pPath, pPuzzle, pGoal]() {
+      IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
+      ida.GetPath(pMnp.get(), *pPuzzle, *pGoal, *pPath);
+    });
+    t.StartTimer();
+    if (fut.wait_for(std::chrono::duration<double>(TIMEOUT_SECONDS)) == std::future_status::timeout) {
+      result.idaTimeout = true;
+      result.idaTime = -1;
+    } else {
+      t.EndTimer();
+      result.idaTime = t.GetElapsedTime();
+    }
+  }
+
+  // Reverse IDA*
+  {
+    auto pMnp = std::make_shared<MNPuzzle<MN_SIZE, MN_SIZE>>(mnp);
+    auto pPath = std::make_shared<std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>>>();
+    auto pPuzzle = std::make_shared<MNPuzzleState<MN_SIZE, MN_SIZE>>(puzzle);
+    auto pGoal = std::make_shared<MNPuzzleState<MN_SIZE, MN_SIZE>>(goal);
+    auto fut = std::async(std::launch::async, [pMnp, pPath, pPuzzle, pGoal]() {
+      IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
+      ida.GetPath(pMnp.get(), *pGoal, *pPuzzle, *pPath);
+    });
+    t.StartTimer();
+    if (fut.wait_for(std::chrono::duration<double>(TIMEOUT_SECONDS)) == std::future_status::timeout) {
+      result.revIdaTimeout = true;
+      result.revIdaTime = -1;
+    } else {
+      t.EndTimer();
+      result.revIdaTime = t.GetElapsedTime();
+      result.solutionLength = static_cast<int>(pPath->size()) - 1;
+    }
+  }
+
+  // BiHS-Bloom — uses cooperative timeout
+  {
+    int size_in_KiB = 4000;
+    int k_hashes = 2;
+    BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes, TIMEOUT_SECONDS);
+    t.StartTimer();
+    std::vector<slideDir> pathBiHS = bihs.GetPath(puzzle, goal);
+    t.EndTimer();
+
+    if (bihs.hasTimedOut()) {
+      result.bihsTimeout = true;
+      result.bihsTime = -1;
+    } else {
+      result.bihsTime = t.GetElapsedTime();
+      result.solutionLength = static_cast<int>(pathBiHS.size());
+    }
+  }
+
+  return result;
+}
+
+void solveSTP(){
   std::ofstream log("benchmark_stp_korf100.csv");
   log << "instance,solution_length,ida_time,rev_ida_time,bihs_bloom_time\n";
 
-  for (int i = 0; i < 100; i++) {
-    // Load Korf's instance
-    puzzle = STP::GetKorfInstance(i);
+  std::mutex logMutex;
+  std::mutex coutMutex;
+  std::atomic<int> nextInstance{0};
+  int totalInstances = 100;
 
-    std::cout << "Korf's Puzzle #" << i << std::endl;
+  auto worker = [&]() {
+    while (true) {
+      int i = nextInstance.fetch_add(1);
+      if (i >= totalInstances) break;
 
-    t.StartTimer();
-    ida.GetPath(&mnp, puzzle, goal, pathIDA);
-    t.EndTimer();
-    double idaTime = t.GetElapsedTime();
+      {
+        std::lock_guard<std::mutex> lk(coutMutex);
+        std::cout << "Starting Korf's Puzzle #" << i << std::endl;
+      }
 
-    std::cout << "IDAStar Solve time: " << idaTime << std::endl;
+      STPResult r = solveOneInstance(i);
 
-    t.StartTimer();
-    ida.GetPath(&mnp, goal, puzzle, pathRevIDA);
-    t.EndTimer();
-    double revIdaTime = t.GetElapsedTime();
+      {
+        std::lock_guard<std::mutex> lk(coutMutex);
+        std::cout << "Puzzle #" << r.instance
+                  << " | IDA*: " << (r.idaTimeout ? "TIMEOUT" : std::to_string(r.idaTime) + "s")
+                  << " | Rev-IDA*: " << (r.revIdaTimeout ? "TIMEOUT" : std::to_string(r.revIdaTime) + "s")
+                  << " | BiHS-Bloom: " << (r.bihsTimeout ? "TIMEOUT" : std::to_string(r.bihsTime) + "s")
+                  << " | Length: " << r.solutionLength
+                  << std::endl;
+      }
 
-    std::cout << "Reverse IDAStar Solve time: " << revIdaTime << std::endl;
-
-    t.StartTimer();
-    pathBiHS = bihs.GetPath(puzzle, goal);
-    t.EndTimer();
-    double bihsTime = t.GetElapsedTime();
-
-    std::cout << "BIHS Bloom Solve time: " << bihsTime << std::endl;
-
-    if (pathRevIDA.size() - 1 != pathBiHS.size()){ // Comparing node vector to action vector
-      std::cout << "[ERROR] Solutions have different Lengths! Puzzle #" << i << std::endl;
+      {
+        std::lock_guard<std::mutex> lk(logMutex);
+        log << r.instance << "," << r.solutionLength << ","
+            << (r.idaTimeout ? -1 : r.idaTime) << ","
+            << (r.revIdaTimeout ? -1 : r.revIdaTime) << ","
+            << (r.bihsTimeout ? -1 : r.bihsTime) << "\n";
+        log.flush();
+      }
     }
+  };
 
-    std::cout << "Soultion Length: " << pathBiHS.size() << "\n" << std::endl;
-
-    log << i << "," << pathBiHS.size() << "," << idaTime << "," << revIdaTime << "," << bihsTime << "\n";
-    log.flush();
-
-    pathIDA.clear();
-    pathRevIDA.clear();
-    pathBiHS.clear();
+  std::vector<std::thread> threads;
+  for (int t = 0; t < NUM_WORKERS; t++) {
+    threads.emplace_back(worker);
   }
+  for (auto &th : threads) {
+    th.join();
+  }
+
   log.close();
   std::cout << "Results written to benchmark_stp_korf100.csv" << std::endl;
 }
