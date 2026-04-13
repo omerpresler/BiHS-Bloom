@@ -804,8 +804,6 @@ int main_old(int argc, char **argv) {
     if (verbose) {
       std::cout << "Loaded " << puzzles.size() << " puzzles. Solving...\n";
     }
-yum check-update &&
-sudo yum install code # or code-insiders
     std::ofstream logFile("bloom_stats.csv");
     if (logFile && benchmarkMode) {
       logFile << "Puzzle,Size_KiB,K_Hashes,Mode,Set_Ratio,Set_Limit,Set_Size,Loop_Count,Final_Inserted,Termination,Inserted\n";
