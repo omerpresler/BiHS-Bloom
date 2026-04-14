@@ -52,11 +52,19 @@ public:
         : size_in_KiB(size_in_KiB),
           k_hashes(k_hashes),
           stab_tail_len(4),
-          min_items(10),
           time_limit(time_limit_seconds),
           timed_out(false),
           env() // default-construct environment
-    {}
+    {
+        if (size_in_KiB <= 0) {
+            throw std::invalid_argument("size_in_KiB must be positive");
+        }
+        if (k_hashes <= 0) {
+            throw std::invalid_argument("k_hashes must be positive");
+        }
+
+        this->min_items = int(size_in_KiB / get_state_size(state{}));
+    }
 
     bool hasTimedOut() const { return timed_out; }
 

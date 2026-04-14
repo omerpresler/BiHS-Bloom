@@ -1,5 +1,8 @@
 #include <array>
 #include <cstddef>
+#include <cmath>
+
+#include "MNPuzzle.h"
 
 template <std::size_t ALT_LEN>
 struct Period2Window {
@@ -53,3 +56,25 @@ struct Period2Window {
         return bad == 0;
     }
 };
+
+template <int W, int H>
+size_t get_state_size(const MNPuzzleState<W, H>&)
+{
+    int n = W * H;
+    double log_fact = 0.0;
+    for(int i = 1; i <= n; i++) {
+        log_fact += std::log2(i);
+    }
+    return static_cast<size_t>(std::ceil(log_fact));
+}
+
+template <int N>
+size_t get_state_size(const PancakePuzzleState<N>&)
+{
+    int n = N;
+    double log_fact = 0.0;
+    for(int i = 1; i <= n; i++) {
+        log_fact += std::log2(i);
+    }
+    return static_cast<size_t>(std::ceil(log_fact));
+}

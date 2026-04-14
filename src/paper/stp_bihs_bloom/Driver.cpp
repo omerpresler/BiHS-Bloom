@@ -530,27 +530,24 @@ void printUsage(const char *progName) {
 struct STPResult {
   int instance;
   int solutionLength;
+  double aStarTime;
   double idaTime;
   double revIdaTime;
   double bihsTime;
-  bool idaTimeout;
-  bool revIdaTimeout;
-  bool bihsTimeout;
 };
 
-static constexpr double TIMEOUT_SECONDS = 120.0;
-static constexpr int NUM_WORKERS = 14;
+static constexpr double TIMEOUT_SECONDS = 1000000000.0;
+static constexpr int NUM_WORKERS = 1;
 
 STPResult solveOneInstance(int i) {
   STPResult result;
   result.instance = i;
-  result.idaTimeout = false;
-  result.revIdaTimeout = false;
-  result.bihsTimeout = false;
   result.solutionLength = -1;
+  result.aStarTime = -1;
   result.idaTime = -1;
   result.revIdaTime = -1;
   result.bihsTime = -1;
+  size_t maxSize = 0;
 
   MNPuzzle<MN_SIZE, MN_SIZE> mnp;
   MNPuzzleState<MN_SIZE, MN_SIZE> goal;
@@ -558,64 +555,53 @@ STPResult solveOneInstance(int i) {
   MNPuzzleState<MN_SIZE, MN_SIZE> puzzle = STP::GetKorfInstance(i);
   Timer t;
 
-  // IDA* — run with timeout
-  // We use shared_ptr to keep data alive even if the thread outlives this scope on timeout
+  //A*
   {
-    auto pMnp = std::make_shared<MNPuzzle<MN_SIZE, MN_SIZE>>(mnp);
-    auto pPath = std::make_shared<std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>>>();
-    auto pPuzzle = std::make_shared<MNPuzzleState<MN_SIZE, MN_SIZE>>(puzzle);
-    auto pGoal = std::make_shared<MNPuzzleState<MN_SIZE, MN_SIZE>>(goal);
-    auto fut = std::async(std::launch::async, [pMnp, pPath, pPuzzle, pGoal]() {
-      IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
-      ida.GetPath(pMnp.get(), *pPuzzle, *pGoal, *pPath);
-    });
+    TemplateAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> astar;
+    std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
     t.StartTimer();
-    if (fut.wait_for(std::chrono::duration<double>(TIMEOUT_SECONDS)) == std::future_status::timeout) {
-      result.idaTimeout = true;
-      result.idaTime = -1;
-    } else {
-      t.EndTimer();
-      result.idaTime = t.GetElapsedTime();
-    }
+    astar.GetPath(&mnp, puzzle, goal, path);
+    t.EndTimer();
+    result.aStarTime = t.GetElapsedTime();
+    result.solutionLength = static_cast<int>(path.size()) - 1;
+    
+    maxSize = astar.GetNumItems();
+    std::cout << "A* max open+closed list size: " << maxSize << std::endl;
+  }
+
+  // IDA*
+  {
+    IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
+    std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+    t.StartTimer();
+    ida.GetPath(&mnp, puzzle, goal, path);
+    t.EndTimer();
+    result.idaTime = t.GetElapsedTime();
+    result.solutionLength = static_cast<int>(path.size()) - 1;
+
   }
 
   // Reverse IDA*
   {
-    auto pMnp = std::make_shared<MNPuzzle<MN_SIZE, MN_SIZE>>(mnp);
-    auto pPath = std::make_shared<std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>>>();
-    auto pPuzzle = std::make_shared<MNPuzzleState<MN_SIZE, MN_SIZE>>(puzzle);
-    auto pGoal = std::make_shared<MNPuzzleState<MN_SIZE, MN_SIZE>>(goal);
-    auto fut = std::async(std::launch::async, [pMnp, pPath, pPuzzle, pGoal]() {
-      IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
-      ida.GetPath(pMnp.get(), *pGoal, *pPuzzle, *pPath);
-    });
+    IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
+    std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
     t.StartTimer();
-    if (fut.wait_for(std::chrono::duration<double>(TIMEOUT_SECONDS)) == std::future_status::timeout) {
-      result.revIdaTimeout = true;
-      result.revIdaTime = -1;
-    } else {
-      t.EndTimer();
-      result.revIdaTime = t.GetElapsedTime();
-      result.solutionLength = static_cast<int>(pPath->size()) - 1;
-    }
+    ida.GetPath(&mnp, goal, puzzle, path);
+    t.EndTimer();
+    result.revIdaTime = t.GetElapsedTime();
+    result.solutionLength = static_cast<int>(path.size()) - 1;
   }
 
-  // BiHS-Bloom — uses cooperative timeout
+  // BiHS-Bloom
   {
-    int size_in_KiB = 4000;
+    int size_in_KiB = maxSize * get_state_size(puzzle) / 8192; // Convert bits to KiB 
     int k_hashes = 2;
-    BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes, TIMEOUT_SECONDS);
+    BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes);
     t.StartTimer();
     std::vector<slideDir> pathBiHS = bihs.GetPath(puzzle, goal);
     t.EndTimer();
-
-    if (bihs.hasTimedOut()) {
-      result.bihsTimeout = true;
-      result.bihsTime = -1;
-    } else {
-      result.bihsTime = t.GetElapsedTime();
-      result.solutionLength = static_cast<int>(pathBiHS.size());
-    }
+    result.bihsTime = t.GetElapsedTime();
+    result.solutionLength = static_cast<int>(pathBiHS.size());
   }
 
   return result;
@@ -623,7 +609,12 @@ STPResult solveOneInstance(int i) {
 
 void solveSTP(){
   std::ofstream log("benchmark_stp_korf100.csv");
-  log << "instance,solution_length,ida_time,rev_ida_time,bihs_bloom_time\n";
+  std::vector<std::string> headers = {"instance", "solution_length", "a_star_time", "ida_time", "rev_ida_time", "bihs_bloom_time"};
+  for(size_t i = 0; i < headers.size(); ++i) {
+    log << headers[i];
+    if (i < headers.size() - 1) log << ",";
+  }
+  log << "\n";
 
   std::mutex logMutex;
   std::mutex coutMutex;
@@ -645,9 +636,10 @@ void solveSTP(){
       {
         std::lock_guard<std::mutex> lk(coutMutex);
         std::cout << "Puzzle #" << r.instance
-                  << " | IDA*: " << (r.idaTimeout ? "TIMEOUT" : std::to_string(r.idaTime) + "s")
-                  << " | Rev-IDA*: " << (r.revIdaTimeout ? "TIMEOUT" : std::to_string(r.revIdaTime) + "s")
-                  << " | BiHS-Bloom: " << (r.bihsTimeout ? "TIMEOUT" : std::to_string(r.bihsTime) + "s")
+                  << " | A*: " << std::to_string(r.aStarTime) + "s"
+                  << " | IDA*: " << std::to_string(r.idaTime) + "s"
+                  << " | Rev-IDA*: " << std::to_string(r.revIdaTime) + "s"
+                  << " | BiHS-Bloom: " << std::to_string(r.bihsTime) + "s"
                   << " | Length: " << r.solutionLength
                   << std::endl;
       }
@@ -655,9 +647,10 @@ void solveSTP(){
       {
         std::lock_guard<std::mutex> lk(logMutex);
         log << r.instance << "," << r.solutionLength << ","
-            << (r.idaTimeout ? -1 : r.idaTime) << ","
-            << (r.revIdaTimeout ? -1 : r.revIdaTime) << ","
-            << (r.bihsTimeout ? -1 : r.bihsTime) << "\n";
+            << r.aStarTime << ","
+            << r.idaTime << ","
+            << r.revIdaTime << ","
+            << r.bihsTime << "\n";
         log.flush();
       }
     }

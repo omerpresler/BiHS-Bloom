@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <set>
+#include <cmath>
 
 #include "MNPuzzle.h"
 #include "PancakePuzzle.h"
