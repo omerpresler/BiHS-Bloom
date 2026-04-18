@@ -413,6 +413,7 @@ public:
         Timer totalTimer;
         totalTimer.StartTimer();
         bool hasLearnedSplit = false;
+        bool dynamicSplitting = false;
 
         
 
@@ -446,42 +447,40 @@ public:
                 totalDepth = forwardDepth + backwardDepth + 2;
             }
 
-            
-
-            double F = std::max(1.0, static_cast<double>(this->firstForwardNodeExpanded));
-            double B = std::max(1.0, static_cast<double>(this->firstBackwardNodeExpanded));
-            
-            double forwardRatio = B / (B + F);
-
-            //std::cout << "fr: " << forwardRatio << std::endl;
-
-            if (!hasLearnedSplit){
-                forwardDepth = static_cast<int>(std::round(totalDepth * forwardRatio));
+            if (!dynamicSplitting) {
+                forwardDepth = (totalDepth + 1) / 2;
                 backwardDepth = totalDepth - forwardDepth;
-                hasLearnedSplit = true;
             } else {
-                // clamp ratio to avoid extreme collapse
-                //this->depthRatio = std::max(0.1, std::min(10.0, this->depthRatio));
+        
+                double F = std::max(1.0, static_cast<double>(this->firstForwardNodeExpanded));
+                double B = std::max(1.0, static_cast<double>(this->firstBackwardNodeExpanded));
+                
+                double forwardRatio = B / (B + F);
 
-                int delta = totalDepth - (forwardDepth + backwardDepth);
+                //std::cout << "fr: " << forwardRatio << std::endl;
 
-                forwardDepth += static_cast<int>(delta * forwardRatio);
-                //forwardDepth = std::max(1, std::min(totalDepth - 1, forwardDepth));
+                if (!hasLearnedSplit){
+                    forwardDepth = static_cast<int>(std::round(totalDepth * forwardRatio));
+                    backwardDepth = totalDepth - forwardDepth;
+                    hasLearnedSplit = true;
+                } else {
+                    // clamp ratio to avoid extreme collapse
+                    //this->depthRatio = std::max(0.1, std::min(10.0, this->depthRatio));
 
-                backwardDepth = totalDepth - forwardDepth;
-                //backwardDepth = std::max(1, backwardDepth);
+                    int delta = totalDepth - (forwardDepth + backwardDepth);
+
+                    forwardDepth += static_cast<int>(delta * forwardRatio);
+                    //forwardDepth = std::max(1, std::min(totalDepth - 1, forwardDepth));
+
+                    backwardDepth = totalDepth - forwardDepth;
+                    //backwardDepth = std::max(1, backwardDepth);
+                }
+
             }
 
             
 
-            /*
-            std::cout << "Test F: " << this->firstForwardNodeExpanded << " B: " << this->firstBackwardNodeExpanded << std::endl;
 
-            if ( this->firstForwardNodeExpanded > this->firstBackwardNodeExpanded)
-                backwardDepth += 2;
-            else
-                forwardDepth += 2;
-            */
             this->min_f_value = -1;
         }
     }

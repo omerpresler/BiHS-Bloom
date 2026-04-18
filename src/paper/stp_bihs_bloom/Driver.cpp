@@ -531,6 +531,7 @@ struct STPResult {
   int instance;
   int solutionLength;
   double aStarTime;
+  double revAStarTime;
   double idaTime;
   double revIdaTime;
   double bihsTime;
@@ -568,6 +569,27 @@ STPResult solveOneInstance(int i) {
     maxSize = astar.GetNumItems();
     std::cout << "A* max open+closed list size: " << maxSize << std::endl;
   }
+
+  // Reverse A*
+  {
+    TemplateAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> astar;
+    std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+    t.StartTimer();
+    astar.GetPath(&mnp, goal, puzzle, path);
+    t.EndTimer();
+    result.revAStarTime = t.GetElapsedTime();
+    result.solutionLength = static_cast<int>(path.size()) - 1;
+
+    if (astar.GetNumItems() > maxSize)
+      maxSize = astar.GetNumItems();
+    std::cout << "Reverse A* max open+closed list size: " << astar.GetNumItems() << std::endl;
+  }
+
+  // BAE*
+  {}
+
+  // MM
+  {}
 
   // IDA*
   {
