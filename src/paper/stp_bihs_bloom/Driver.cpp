@@ -684,7 +684,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
 
     // Let's cheat a little, i hav frontier size from MM so let's calculate optimal k by using opt_k = 9/13 * (m/n)
 
-    int k_hashes = static_cast<int>(std::round((9.0 / 13.0) * (size_in_KiB * 8192.0 / (frontierSize * get_state_size(puzzle)))));
+    int k_hashes = std::max(1, static_cast<int>(std::round((9.0 / 13.0) * (size_in_KiB * 8192.0 / (frontierSize * get_state_size(puzzle))))));
     BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes, bihsTimeLimit);
     t.StartTimer();
     std::vector<slideDir> pathBiHS = bihs.GetPath(puzzle, goal);
