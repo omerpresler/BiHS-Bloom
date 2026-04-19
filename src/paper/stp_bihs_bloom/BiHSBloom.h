@@ -331,7 +331,7 @@ public:
 
     std::vector<action> SolveAtDepth(state start, state &goal, int forwardDepth, int backwardDepth, bool recursive) {
         Period2Window<LOOP_LIMIT> tail;
-        TerminationCondition term = TerminationCondition::MAX_ITERATIONS;
+        TerminationCondition term = TerminationCondition::NOT_TERMINATED;
         std::unique_ptr<BloomFilter<state>> bf;
         std::vector<action> path;
         int upperBound = forwardDepth + backwardDepth; // We know f value from node to goal cant be bigger then Df + Db
@@ -343,7 +343,8 @@ public:
         
         //std::cout << "[PROF] Starting SolveAtDepth fd=" << forwardDepth << " bd=" << backwardDepth << " ub=" << upperBound << std::endl; 
 
-        for(int i = 0; i < LOOP_LIMIT && term == TerminationCondition::MAX_ITERATIONS; i++) {
+        // Keep iterating until we either time out or shrink the bloom to min_items.
+        for(int i = 0; term == TerminationCondition::NOT_TERMINATED; i++) {
             // Check time limit
             if (time_limit > 0) {
                 solveTimer.EndTimer();
@@ -357,11 +358,13 @@ public:
             Timer iterTimer;
             iterTimer.StartTimer();
 
-            if (tail.last_n_period2()){ //Period 2 stabilized, we can stop the algorithm
-                term = TerminationCondition::STABILIZED;
-                //std::cout << "[PROF] Stabilized at iter " << i << std::endl;
-                break;
-            }
+            // Disabled to keep building until min_items is reached instead of
+            // stopping early when the bloom size stabilizes.
+            // if (tail.last_n_period2()){ //Period 2 stabilized, we can stop the algorithm
+            //     term = TerminationCondition::STABILIZED;
+            //     //std::cout << "[PROF] Stabilized at iter " << i << std::endl;
+            //     break;
+            // }
 
             if (i % 2 == 0){
                 bf.reset(GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound, bf.get(), recursive));

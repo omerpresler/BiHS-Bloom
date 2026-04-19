@@ -5,6 +5,8 @@
 #include "STPInstances.h"
 #include "Timer.h"
 #include "BiHSBloom.h"
+#include "BAE.h"
+#include "MM.h"
 #include "IDAStar.h"
 
 #include "PancakeInstances.h"
@@ -532,6 +534,8 @@ struct STPResult {
   int solutionLength;
   double aStarTime;
   double revAStarTime;
+  double baeTime;
+  double mmTime;
   double idaTime;
   double revIdaTime;
   double bihsTime;
@@ -545,6 +549,9 @@ STPResult solveOneInstance(int i) {
   result.instance = i;
   result.solutionLength = -1;
   result.aStarTime = -1;
+  result.revAStarTime = -1;
+  result.baeTime = -1;
+  result.mmTime = -1;
   result.idaTime = -1;
   result.revIdaTime = -1;
   result.bihsTime = -1;
@@ -586,10 +593,37 @@ STPResult solveOneInstance(int i) {
   }
 
   // BAE*
-  {}
+  {
+    BAE<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bae;
+    std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+    t.StartTimer();
+    bae.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
+    t.EndTimer();
+    result.baeTime = t.GetElapsedTime();
+    result.solutionLength = static_cast<int>(path.size()) - 1;
+
+    size_t baeSize = bae.GetNumForwardItems() + bae.GetNumBackwardItems();
+    if (baeSize > maxSize)
+      maxSize = baeSize;
+    std::cout << "BAE* max open+closed list size: " << baeSize << std::endl;
+  }
+  
 
   // MM
-  {}
+  {
+    MM<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> mm;
+    std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+    t.StartTimer();
+    mm.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
+    t.EndTimer();
+    result.mmTime = t.GetElapsedTime();
+    result.solutionLength = static_cast<int>(path.size()) - 1;
+
+    size_t mmSize = mm.GetNumForwardItems() + mm.GetNumBackwardItems();
+    if (mmSize > maxSize)
+      maxSize = mmSize;
+    std::cout << "MM max open+closed list size: " << mmSize << std::endl;
+  }
 
   // IDA*
   {
@@ -631,7 +665,7 @@ STPResult solveOneInstance(int i) {
 
 void solveSTP(){
   std::ofstream log("benchmark_stp_korf100.csv");
-  std::vector<std::string> headers = {"instance", "solution_length", "a_star_time", "ida_time", "rev_ida_time", "bihs_bloom_time"};
+  std::vector<std::string> headers = {"instance", "solution_length", "a_star_time", "rev_a_star_time", "bae_time", "mm_time", "ida_time", "rev_ida_time", "bihs_bloom_time"};
   for(size_t i = 0; i < headers.size(); ++i) {
     log << headers[i];
     if (i < headers.size() - 1) log << ",";
@@ -659,6 +693,9 @@ void solveSTP(){
         std::lock_guard<std::mutex> lk(coutMutex);
         std::cout << "Puzzle #" << r.instance
                   << " | A*: " << std::to_string(r.aStarTime) + "s"
+                  << " | Rev-A*: " << std::to_string(r.revAStarTime) + "s"
+                  << " | BAE*: " << std::to_string(r.baeTime) + "s"
+                  << " | MM: " << std::to_string(r.mmTime) + "s"
                   << " | IDA*: " << std::to_string(r.idaTime) + "s"
                   << " | Rev-IDA*: " << std::to_string(r.revIdaTime) + "s"
                   << " | BiHS-Bloom: " << std::to_string(r.bihsTime) + "s"
@@ -670,6 +707,9 @@ void solveSTP(){
         std::lock_guard<std::mutex> lk(logMutex);
         log << r.instance << "," << r.solutionLength << ","
             << r.aStarTime << ","
+            << r.revAStarTime << ","
+            << r.baeTime << ","
+            << r.mmTime << ","
             << r.idaTime << ","
             << r.revIdaTime << ","
             << r.bihsTime << "\n";
