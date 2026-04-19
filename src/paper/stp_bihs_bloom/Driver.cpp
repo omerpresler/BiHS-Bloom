@@ -538,13 +538,21 @@ struct STPResult {
   double mmTime;
   double idaTime;
   double revIdaTime;
-  double bihsTime;
+  std::array<double, 3> bihsTime;
+
+  size_t aStarNodeExpanded;
+  size_t revAStarNodeExpanded;
+  size_t baeNodeExpanded;
+  size_t mmNodeExpanded;
+  size_t idaNodeExpanded;
+  size_t revIdaNodeExpanded;
+  std::array<size_t, 3> bihsNodeExpanded;
 };
 
 static constexpr double TIMEOUT_SECONDS = 1000000000.0;
 static constexpr int NUM_WORKERS = 1;
 
-STPResult solveOneInstance(int i) {
+STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
   STPResult result;
   result.instance = i;
   result.solutionLength = -1;
@@ -554,8 +562,16 @@ STPResult solveOneInstance(int i) {
   result.mmTime = -1;
   result.idaTime = -1;
   result.revIdaTime = -1;
-  result.bihsTime = -1;
-  size_t maxSize = 0;
+  result.bihsTime.fill(-1);
+  result.bihsNodeExpanded.fill(0);
+  result.aStarNodeExpanded = 0;
+  result.revAStarNodeExpanded = 0;
+  result.baeNodeExpanded = 0;
+  result.mmNodeExpanded = 0;
+  result.idaNodeExpanded = 0;
+  result.revIdaNodeExpanded = 0;
+  size_t minSize = 0;
+  size_t frontierSize = 0;
 
   MNPuzzle<MN_SIZE, MN_SIZE> mnp;
   MNPuzzleState<MN_SIZE, MN_SIZE> goal;
@@ -571,10 +587,11 @@ STPResult solveOneInstance(int i) {
     astar.GetPath(&mnp, puzzle, goal, path);
     t.EndTimer();
     result.aStarTime = t.GetElapsedTime();
+    result.aStarNodeExpanded = astar.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
-    
-    maxSize = astar.GetNumItems();
-    std::cout << "A* max open+closed list size: " << maxSize << std::endl;
+
+    minSize = astar.GetNumItems();
+    std::cout << "A* max open+closed list size: " << minSize << std::endl;
   }
 
   // Reverse A*
@@ -585,10 +602,11 @@ STPResult solveOneInstance(int i) {
     astar.GetPath(&mnp, goal, puzzle, path);
     t.EndTimer();
     result.revAStarTime = t.GetElapsedTime();
+    result.revAStarNodeExpanded = astar.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
 
-    if (astar.GetNumItems() > maxSize)
-      maxSize = astar.GetNumItems();
+    if (astar.GetNumItems() < minSize)
+      minSize = astar.GetNumItems();
     std::cout << "Reverse A* max open+closed list size: " << astar.GetNumItems() << std::endl;
   }
 
@@ -600,11 +618,12 @@ STPResult solveOneInstance(int i) {
     bae.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
     t.EndTimer();
     result.baeTime = t.GetElapsedTime();
+    result.baeNodeExpanded = bae.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
 
     size_t baeSize = bae.GetNumForwardItems() + bae.GetNumBackwardItems();
-    if (baeSize > maxSize)
-      maxSize = baeSize;
+    if (baeSize < minSize)
+      minSize = baeSize;
     std::cout << "BAE* max open+closed list size: " << baeSize << std::endl;
   }
   
@@ -617,12 +636,14 @@ STPResult solveOneInstance(int i) {
     mm.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
     t.EndTimer();
     result.mmTime = t.GetElapsedTime();
+    result.mmNodeExpanded = mm.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
 
     size_t mmSize = mm.GetNumForwardItems() + mm.GetNumBackwardItems();
-    if (mmSize > maxSize)
-      maxSize = mmSize;
+    if (mmSize < minSize)
+      minSize = mmSize;
     std::cout << "MM max open+closed list size: " << mmSize << std::endl;
+    frontierSize = mm.GetNumForwardItems();
   }
 
   // IDA*
@@ -633,8 +654,8 @@ STPResult solveOneInstance(int i) {
     ida.GetPath(&mnp, puzzle, goal, path);
     t.EndTimer();
     result.idaTime = t.GetElapsedTime();
+    result.idaNodeExpanded = ida.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
-
   }
 
   // Reverse IDA*
@@ -645,18 +666,37 @@ STPResult solveOneInstance(int i) {
     ida.GetPath(&mnp, goal, puzzle, path);
     t.EndTimer();
     result.revIdaTime = t.GetElapsedTime();
+    result.revIdaNodeExpanded = ida.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
   }
 
+
+  double maxBaselineTime = std::max({result.aStarTime, result.revAStarTime, result.baeTime,
+                                     result.mmTime, result.idaTime, result.revIdaTime});
+  double bihsTimeLimit = maxBaselineTime * 20.0;
+
+  double percentages[] = {0.5, 0.1, 0.01};
   // BiHS-Bloom
+  for(int pIdx = 0; pIdx < 3; ++pIdx)
   {
-    int size_in_KiB = maxSize * get_state_size(puzzle) / 8192; // Convert bits to KiB 
-    int k_hashes = 2;
-    BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes);
+    double ratio = percentages[pIdx];
+    int size_in_KiB = (minSize * get_state_size(puzzle) / 8192) * ratio ; // Convert bits to KiB
+
+    // Let's cheat a little, i hav frontier size from MM so let's calculate optimal k by using opt_k = 9/13 * (m/n)
+
+    int k_hashes = static_cast<int>(std::round((9.0 / 13.0) * (size_in_KiB * 8192.0 / (frontierSize * get_state_size(puzzle)))));
+    BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes, bihsTimeLimit);
     t.StartTimer();
     std::vector<slideDir> pathBiHS = bihs.GetPath(puzzle, goal);
     t.EndTimer();
-    result.bihsTime = t.GetElapsedTime();
+    result.bihsTime[pIdx] = bihs.hasTimedOut() ? -1.0 : t.GetElapsedTime();
+    result.bihsNodeExpanded[pIdx] = bihs.GetTotalNodesExpanded();
+    {
+      std::lock_guard<std::mutex> lk(logMutex);
+      log << "BIHS_PARAM," << i << "," << ratio << "," << size_in_KiB << "," << k_hashes << ","
+          << result.bihsTime[pIdx] << "," << result.bihsNodeExpanded[pIdx] << "\n";
+    }
+    if (bihs.hasTimedOut()) break;
     result.solutionLength = static_cast<int>(pathBiHS.size());
   }
 
@@ -665,7 +705,11 @@ STPResult solveOneInstance(int i) {
 
 void solveSTP(){
   std::ofstream log("benchmark_stp_korf100.csv");
-  std::vector<std::string> headers = {"instance", "solution_length", "a_star_time", "rev_a_star_time", "bae_time", "mm_time", "ida_time", "rev_ida_time", "bihs_bloom_time"};
+  std::vector<std::string> headers = {"instance", "solution_length",
+      "a_star_time", "rev_a_star_time", "bae_time", "mm_time", "ida_time", "rev_ida_time",
+      "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "mm_nodes", "ida_nodes", "rev_ida_nodes",
+      "bihs_bloom_time_50pct", "bihs_bloom_time_10pct", "bihs_bloom_time_1pct",
+      "bihs_bloom_nodes_50pct", "bihs_bloom_nodes_10pct", "bihs_bloom_nodes_1pct"};
   for(size_t i = 0; i < headers.size(); ++i) {
     log << headers[i];
     if (i < headers.size() - 1) log << ",";
@@ -687,7 +731,7 @@ void solveSTP(){
         std::cout << "Starting Korf's Puzzle #" << i << std::endl;
       }
 
-      STPResult r = solveOneInstance(i);
+      STPResult r = solveOneInstance(i, log, logMutex);
 
       {
         std::lock_guard<std::mutex> lk(coutMutex);
@@ -698,7 +742,9 @@ void solveSTP(){
                   << " | MM: " << std::to_string(r.mmTime) + "s"
                   << " | IDA*: " << std::to_string(r.idaTime) + "s"
                   << " | Rev-IDA*: " << std::to_string(r.revIdaTime) + "s"
-                  << " | BiHS-Bloom: " << std::to_string(r.bihsTime) + "s"
+                  << " | BiHS-Bloom(50%): " << std::to_string(r.bihsTime[0]) + "s/" + std::to_string(r.bihsNodeExpanded[0]) + "n"
+                  << " | BiHS-Bloom(10%): " << std::to_string(r.bihsTime[1]) + "s/" + std::to_string(r.bihsNodeExpanded[1]) + "n"
+                  << " | BiHS-Bloom(1%): " << std::to_string(r.bihsTime[2]) + "s/" + std::to_string(r.bihsNodeExpanded[2]) + "n"
                   << " | Length: " << r.solutionLength
                   << std::endl;
       }
@@ -712,7 +758,11 @@ void solveSTP(){
             << r.mmTime << ","
             << r.idaTime << ","
             << r.revIdaTime << ","
-            << r.bihsTime << "\n";
+            << r.aStarNodeExpanded << "," << r.revAStarNodeExpanded << ","
+            << r.baeNodeExpanded << "," << r.mmNodeExpanded << ","
+            << r.idaNodeExpanded << "," << r.revIdaNodeExpanded << ","
+            << r.bihsTime[0] << "," << r.bihsTime[1] << "," << r.bihsTime[2] << ","
+            << r.bihsNodeExpanded[0] << "," << r.bihsNodeExpanded[1] << "," << r.bihsNodeExpanded[2] << "\n";
         log.flush();
       }
     }

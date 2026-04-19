@@ -67,6 +67,7 @@ public:
     }
 
     bool hasTimedOut() const { return timed_out; }
+    size_t GetTotalNodesExpanded() const { return totalNodesExpanded; }
 
     void InitBloom(BloomFilter<state> *&bf) {
         size_t m_bits = size_in_KiB * 1024 * 8ULL;
@@ -325,6 +326,7 @@ public:
         }
         
 
+        this->totalNodesExpanded += this->nodeExpanded;
         return bf;
     }
 
@@ -377,7 +379,6 @@ public:
                     this->firstBackwardNodeExpanded = this->nodeExpanded;
             }
                 
-
             tail.push(bf->get_n_inserted());
             
             iterTimer.EndTimer();
@@ -404,6 +405,7 @@ public:
 
     std::vector<action> GetPath(state start, state goal, bool recursive=false) {
         timed_out = false;
+        totalNodesExpanded = 0;
         int fh = env.HCost(start, goal);
         int bh = env.HCost(goal, start);
         int distance = std::max(fh, bh);
@@ -497,6 +499,7 @@ private:
     int firstForwardNodeExpanded = 0;
     int firstBackwardNodeExpanded = 0;
     int nodeExpanded;
+    size_t totalNodesExpanded = 0;
     double depthRatio = 1.0;
 
     int min_f_value = -1;
