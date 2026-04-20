@@ -352,7 +352,6 @@ public:
                     timed_out = true;
                     return {};
                 }
-                globalTimer.StartTimer();
             }
 
             Timer iterTimer;
@@ -425,7 +424,6 @@ public:
                     timed_out = true;
                     return {};
                 }
-                globalTimer.StartTimer();
             }
 
             //std::cout << "[PROF] Trying depth: " << forwardDepth << " + " << backwardDepth << " = " << (forwardDepth + backwardDepth) << std::endl;
