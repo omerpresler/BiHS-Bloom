@@ -579,6 +579,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
   MNPuzzleState<MN_SIZE, MN_SIZE> puzzle = STP::GetKorfInstance(i);
   Timer t;
 
+  std::cout << "[" << i << "] Running A*..." << std::flush;
   //A*
   {
     TemplateAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> astar;
@@ -591,9 +592,10 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
     result.solutionLength = static_cast<int>(path.size()) - 1;
 
     minSize = astar.GetNumItems();
-    std::cout << "A* max open+closed list size: " << minSize << std::endl;
+    std::cout << " done (" << result.aStarTime << "s, " << result.aStarNodeExpanded << "n)\n" << std::flush;
   }
 
+  std::cout << "[" << i << "] Running Rev-A*..." << std::flush;
   // Reverse A*
   {
     TemplateAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> astar;
@@ -607,9 +609,10 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
 
     if (astar.GetNumItems() < minSize)
       minSize = astar.GetNumItems();
-    std::cout << "Reverse A* max open+closed list size: " << astar.GetNumItems() << std::endl;
+    std::cout << " done (" << result.revAStarTime << "s, " << result.revAStarNodeExpanded << "n)\n" << std::flush;
   }
 
+  std::cout << "[" << i << "] Running BAE*..." << std::flush;
   // BAE*
   {
     BAE<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bae;
@@ -624,10 +627,10 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
     size_t baeSize = bae.GetNumForwardItems() + bae.GetNumBackwardItems();
     if (baeSize < minSize)
       minSize = baeSize;
-    std::cout << "BAE* max open+closed list size: " << baeSize << std::endl;
+    std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
   }
-  
 
+  std::cout << "[" << i << "] Running MM..." << std::flush;
   // MM
   {
     MM<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> mm;
@@ -642,10 +645,11 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
     size_t mmSize = mm.GetNumForwardItems() + mm.GetNumBackwardItems();
     if (mmSize < minSize)
       minSize = mmSize;
-    std::cout << "MM max open+closed list size: " << mmSize << std::endl;
     frontierSize = mm.GetNumForwardItems();
+    std::cout << " done (" << result.mmTime << "s, " << result.mmNodeExpanded << "n)\n" << std::flush;
   }
 
+  std::cout << "[" << i << "] Running IDA*..." << std::flush;
   // IDA*
   {
     IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
@@ -656,8 +660,10 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
     result.idaTime = t.GetElapsedTime();
     result.idaNodeExpanded = ida.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
+    std::cout << " done (" << result.idaTime << "s, " << result.idaNodeExpanded << "n)\n" << std::flush;
   }
 
+  std::cout << "[" << i << "] Running Rev-IDA*..." << std::flush;
   // Reverse IDA*
   {
     IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
@@ -668,12 +674,13 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
     result.revIdaTime = t.GetElapsedTime();
     result.revIdaNodeExpanded = ida.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
+    std::cout << " done (" << result.revIdaTime << "s, " << result.revIdaNodeExpanded << "n)\n" << std::flush;
   }
-
 
   double maxBaselineTime = std::max({result.aStarTime, result.revAStarTime, result.baeTime,
                                      result.mmTime, result.idaTime, result.revIdaTime});
   double bihsTimeLimit = maxBaselineTime * 20.0;
+  std::cout << "[" << i << "] BiHS-Bloom timeout limit: " << bihsTimeLimit << "s\n" << std::flush;
 
   double percentages[] = {0.5, 0.1, 0.01};
   // BiHS-Bloom
@@ -685,12 +692,17 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
     // Let's cheat a little, i hav frontier size from MM so let's calculate optimal k by using opt_k = 9/13 * (m/n)
 
     int k_hashes = std::max(1, static_cast<int>(std::round((9.0 / 13.0) * (size_in_KiB * 8192.0 / (frontierSize * get_state_size(puzzle))))));
+    std::cout << "[" << i << "] Running BiHS-Bloom(" << (ratio*100) << "%, size=" << size_in_KiB << "KiB, k=" << k_hashes << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
     BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes, bihsTimeLimit);
     t.StartTimer();
     std::vector<slideDir> pathBiHS = bihs.GetPath(puzzle, goal);
     t.EndTimer();
     result.bihsTime[pIdx] = bihs.hasTimedOut() ? -1.0 : t.GetElapsedTime();
     result.bihsNodeExpanded[pIdx] = bihs.GetTotalNodesExpanded();
+    if (bihs.hasTimedOut())
+      std::cout << " TIMED OUT (" << result.bihsNodeExpanded[pIdx] << "n)\n" << std::flush;
+    else
+      std::cout << " done (" << result.bihsTime[pIdx] << "s, " << result.bihsNodeExpanded[pIdx] << "n)\n" << std::flush;
     {
       std::lock_guard<std::mutex> lk(logMutex);
       log << "BIHS_PARAM," << i << "," << ratio << "," << size_in_KiB << "," << k_hashes << ","
@@ -736,15 +748,15 @@ void solveSTP(){
       {
         std::lock_guard<std::mutex> lk(coutMutex);
         std::cout << "Puzzle #" << r.instance
-                  << " | A*: " << std::to_string(r.aStarTime) + "s"
-                  << " | Rev-A*: " << std::to_string(r.revAStarTime) + "s"
-                  << " | BAE*: " << std::to_string(r.baeTime) + "s"
-                  << " | MM: " << std::to_string(r.mmTime) + "s"
-                  << " | IDA*: " << std::to_string(r.idaTime) + "s"
-                  << " | Rev-IDA*: " << std::to_string(r.revIdaTime) + "s"
-                  << " | BiHS-Bloom(50%): " << std::to_string(r.bihsTime[0]) + "s/" + std::to_string(r.bihsNodeExpanded[0]) + "n"
-                  << " | BiHS-Bloom(10%): " << std::to_string(r.bihsTime[1]) + "s/" + std::to_string(r.bihsNodeExpanded[1]) + "n"
-                  << " | BiHS-Bloom(1%): " << std::to_string(r.bihsTime[2]) + "s/" + std::to_string(r.bihsNodeExpanded[2]) + "n"
+                  << " | A*: " << r.aStarTime << "s/" << r.aStarNodeExpanded << "n"
+                  << " | Rev-A*: " << r.revAStarTime << "s/" << r.revAStarNodeExpanded << "n"
+                  << " | BAE*: " << r.baeTime << "s/" << r.baeNodeExpanded << "n"
+                  << " | MM: " << r.mmTime << "s/" << r.mmNodeExpanded << "n"
+                  << " | IDA*: " << r.idaTime << "s/" << r.idaNodeExpanded << "n"
+                  << " | Rev-IDA*: " << r.revIdaTime << "s/" << r.revIdaNodeExpanded << "n"
+                  << " | BiHS-Bloom(50%): " << r.bihsTime[0] << "s/" << r.bihsNodeExpanded[0] << "n"
+                  << " | BiHS-Bloom(10%): " << r.bihsTime[1] << "s/" << r.bihsNodeExpanded[1] << "n"
+                  << " | BiHS-Bloom(1%): " << r.bihsTime[2] << "s/" << r.bihsNodeExpanded[2] << "n"
                   << " | Length: " << r.solutionLength
                   << std::endl;
       }
