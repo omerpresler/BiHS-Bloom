@@ -331,30 +331,28 @@ public:
     }
 
 
-    std::vector<action> SolveAtDepth(state start, state &goal, int forwardDepth, int backwardDepth, bool recursive) {
+    std::vector<action> SolveAtDepth(state start, state &goal, int forwardDepth, int backwardDepth, bool recursive, Timer &globalTimer) {
         Period2Window<LOOP_LIMIT> tail;
         TerminationCondition term = TerminationCondition::NOT_TERMINATED;
         std::unique_ptr<BloomFilter<state>> bf;
         std::vector<action> path;
         int upperBound = forwardDepth + backwardDepth; // We know f value from node to goal cant be bigger then Df + Db
-        Timer solveTimer;
-        solveTimer.StartTimer();
 
         this->firstForwardNodeExpanded = 0;
         this->firstBackwardNodeExpanded = 0;
-        
-        //std::cout << "[PROF] Starting SolveAtDepth fd=" << forwardDepth << " bd=" << backwardDepth << " ub=" << upperBound << std::endl; 
+
+        //std::cout << "[PROF] Starting SolveAtDepth fd=" << forwardDepth << " bd=" << backwardDepth << " ub=" << upperBound << std::endl;
 
         // Keep iterating until we either time out or shrink the bloom to min_items.
         for(int i = 0; term == TerminationCondition::NOT_TERMINATED; i++) {
             // Check time limit
             if (time_limit > 0) {
-                solveTimer.EndTimer();
-                if (solveTimer.GetElapsedTime() > time_limit) {
+                globalTimer.EndTimer();
+                if (globalTimer.GetElapsedTime() > time_limit) {
                     timed_out = true;
                     return {};
                 }
-                solveTimer.StartTimer(); // restart for next check
+                globalTimer.StartTimer();
             }
 
             Timer iterTimer;
@@ -391,8 +389,7 @@ public:
             }
         }
 
-        solveTimer.EndTimer();
-        //std::cout << "[PROF] BuildBloom loop finished in " << solveTimer.GetElapsedTime() << "s. Starting GetPathFromBloom." << std::endl;
+        //std::cout << "[PROF] BuildBloom loop finished. Starting GetPathFromBloom." << std::endl;
 
         Timer pathTimer;
         pathTimer.StartTimer();
@@ -412,29 +409,27 @@ public:
 
         // Lets test it by letting it stabilized from the start
         //distance = 2 + (distance % 2);
-        
+
         int forwardDepth = distance / 2;
         int backwardDepth = distance - forwardDepth;
-        Timer totalTimer;
-        totalTimer.StartTimer();
+        Timer globalTimer;
+        globalTimer.StartTimer();
         bool hasLearnedSplit = false;
         bool dynamicSplitting = false;
-
-        
 
         while(true){
             // Check time limit at each depth iteration
             if (time_limit > 0) {
-                totalTimer.EndTimer();
-                if (totalTimer.GetElapsedTime() > time_limit) {
+                globalTimer.EndTimer();
+                if (globalTimer.GetElapsedTime() > time_limit) {
                     timed_out = true;
                     return {};
                 }
-                totalTimer.StartTimer();
+                globalTimer.StartTimer();
             }
 
             //std::cout << "[PROF] Trying depth: " << forwardDepth << " + " << backwardDepth << " = " << (forwardDepth + backwardDepth) << std::endl;
-            std::vector<action> path = SolveAtDepth(start, goal, forwardDepth, backwardDepth, recursive);
+            std::vector<action> path = SolveAtDepth(start, goal, forwardDepth, backwardDepth, recursive, globalTimer);
 
             if (timed_out) return {};
 
