@@ -552,7 +552,7 @@ struct STPResult {
 static constexpr double TIMEOUT_SECONDS = 1000000000.0;
 static constexpr int NUM_WORKERS = 1;
 
-STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
+STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std::ofstream &convLog, std::mutex &convMutex) {
   STPResult result;
   result.instance = i;
   result.solutionLength = -1;
@@ -624,10 +624,12 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
     result.baeNodeExpanded = bae.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
 
+    /*
     size_t baeSize = bae.GetNumForwardItems() + bae.GetNumBackwardItems();
     if (baeSize < minSize)
       minSize = baeSize;
     std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
+    */
   }
 
   std::cout << "[" << i << "] Running MM..." << std::flush;
@@ -692,21 +694,41 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
     // Let's cheat a little, i hav frontier size from MM so let's calculate optimal k by using opt_k = 9/13 * (m/n)
 
     int k_hashes = std::max(1, static_cast<int>(std::round((9.0 / 13.0) * (size_in_KiB * 8192.0 / (frontierSize * get_state_size(puzzle))))));
-    std::cout << "[" << i << "] Running BiHS-Bloom(" << (ratio*100) << "%, size=" << size_in_KiB << "KiB, k=" << k_hashes << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
+
+    // FP rate: (1 - e^(-k*n/m))^k  where n=frontier items, m=filter bits
+    double fp_rate = std::pow(1.0 - std::exp(-(double)k_hashes * frontierSize / (size_in_KiB * 8192.0 / get_state_size(puzzle))), k_hashes);
+
+    std::cout << "[" << i << "] Running BiHS-Bloom(" << (ratio*100) << "%, size=" << size_in_KiB
+              << "KiB, k=" << k_hashes << ", fp_est=" << fp_rate
+              << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
+
     BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes, bihsTimeLimit);
     t.StartTimer();
     std::vector<slideDir> pathBiHS = bihs.GetPath(puzzle, goal);
     t.EndTimer();
+
     result.bihsTime[pIdx] = bihs.hasTimedOut() ? -1.0 : t.GetElapsedTime();
     result.bihsNodeExpanded[pIdx] = bihs.GetTotalNodesExpanded();
-    if (bihs.hasTimedOut())
+    bool converged = !bihs.hasTimedOut();
+
+    if (!converged)
       std::cout << " TIMED OUT (" << result.bihsNodeExpanded[pIdx] << "n)\n" << std::flush;
     else
       std::cout << " done (" << result.bihsTime[pIdx] << "s, " << result.bihsNodeExpanded[pIdx] << "n)\n" << std::flush;
+
     {
       std::lock_guard<std::mutex> lk(logMutex);
       log << "BIHS_PARAM," << i << "," << ratio << "," << size_in_KiB << "," << k_hashes << ","
-          << result.bihsTime[pIdx] << "," << result.bihsNodeExpanded[pIdx] << "\n";
+          << result.bihsTime[pIdx] << "," << result.bihsNodeExpanded[pIdx] << ","
+          << fp_rate << "," << converged << "\n";
+    }
+    {
+      std::lock_guard<std::mutex> lk(convMutex);
+      for (const auto &s : bihs.GetIterStats())
+        convLog << i << "," << size_in_KiB << "," << ratio << ","
+                << s.totalDepth << "," << s.iteration << ","
+                << s.nInserted << "," << s.estimatedFP << "\n";
+      convLog.flush();
     }
     if (bihs.hasTimedOut()) break;
     result.solutionLength = static_cast<int>(pathBiHS.size());
@@ -728,7 +750,11 @@ void solveSTP(){
   }
   log << "\n";
 
+  std::ofstream convLog("bloom_convergence.csv");
+  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,estimated_fp\n";
+
   std::mutex logMutex;
+  std::mutex convMutex;
   std::mutex coutMutex;
   std::atomic<int> nextInstance{0};
   int totalInstances = 100;
@@ -743,7 +769,7 @@ void solveSTP(){
         std::cout << "Starting Korf's Puzzle #" << i << std::endl;
       }
 
-      STPResult r = solveOneInstance(i, log, logMutex);
+      STPResult r = solveOneInstance(i, log, logMutex, convLog, convMutex);
 
       {
         std::lock_guard<std::mutex> lk(coutMutex);

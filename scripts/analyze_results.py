@@ -21,14 +21,18 @@ def load(path):
                 continue
             if line.startswith("BIHS_PARAM"):
                 parts = line.split(",")
-                rows_param.append({
+                row = {
                     "instance": int(parts[1]),
                     "ratio":    float(parts[2]),
                     "size_kib": int(parts[3]),
                     "k_hashes": int(parts[4]),
                     "time":     float(parts[5]),
                     "nodes":    int(parts[6]),
-                })
+                }
+                if len(parts) > 7:
+                    row["fp_rate"]   = float(parts[7])
+                    row["converged"] = int(parts[8])
+                rows_param.append(row)
             else:
                 vals = line.split(",")
                 rows_main.append(dict(zip(header, vals)))
@@ -235,5 +239,73 @@ if len(params) > 0:
     plt.savefig("plots/bihs_timeout_rate.png", dpi=150)
     plt.close()
     print("Saved plots/bihs_timeout_rate.png")
+
+# --- 7. FP rate vs convergence pattern ---
+if len(params) > 0 and "fp_rate" in params.columns:
+    print("\n=== FP Rate vs Convergence ===")
+
+    for ratio in sorted(params["ratio"].unique()):
+        sub = params[params["ratio"] == ratio].copy()
+        if "converged" not in sub.columns or sub["converged"].isna().all():
+            continue
+
+        pct = int(ratio * 100)
+        converged   = sub[sub["converged"] == 1]
+        not_converged = sub[sub["converged"] == 0]
+
+        print(f"\n  Memory {pct}%  (n={len(sub)}, converged={len(converged)}, timed_out={len(not_converged)})")
+        print(f"    FP rate when converged  : mean={converged['fp_rate'].mean():.4f}  "
+              f"min={converged['fp_rate'].min():.4f}  max={converged['fp_rate'].max():.4f}")
+        print(f"    FP rate when timed out  : mean={not_converged['fp_rate'].mean():.4f}  "
+              f"min={not_converged['fp_rate'].min():.4f}  max={not_converged['fp_rate'].max():.4f}")
+
+    # Scatter: fp_rate vs time, colored by converged
+    fig, axes = plt.subplots(1, len(params["ratio"].unique()), figsize=(14, 5), sharey=False)
+    if not hasattr(axes, "__len__"):
+        axes = [axes]
+
+    for ax, ratio in zip(axes, sorted(params["ratio"].unique())):
+        sub = params[params["ratio"] == ratio].copy()
+        if "converged" not in sub.columns:
+            continue
+
+        conv = sub[sub["converged"] == 1]
+        fail = sub[sub["converged"] == 0]
+
+        ax.scatter(conv["fp_rate"], conv["time"],   color="green", label="converged", alpha=0.7, s=40)
+        ax.scatter(fail["fp_rate"], fail["time"],   color="red",   label="timed out", alpha=0.7, s=40, marker="x")
+        ax.set_xlabel("Estimated FP rate")
+        ax.set_ylabel("Time (s)")
+        ax.set_title(f"Memory {int(ratio*100)}%")
+        ax.legend(fontsize=8)
+
+    plt.suptitle("FP Rate vs Solve Time (green=converged, red=timeout)")
+    plt.tight_layout()
+    plt.savefig("plots/fp_vs_convergence.png", dpi=150)
+    plt.close()
+    print("\nSaved plots/fp_vs_convergence.png")
+
+    # Histogram of fp_rate split by outcome
+    fig, axes = plt.subplots(1, len(params["ratio"].unique()), figsize=(14, 4), sharey=False)
+    if not hasattr(axes, "__len__"):
+        axes = [axes]
+
+    for ax, ratio in zip(axes, sorted(params["ratio"].unique())):
+        sub = params[params["ratio"] == ratio].copy()
+        if "converged" not in sub.columns:
+            continue
+        bins = np.linspace(0, 1, 25)
+        ax.hist(sub[sub["converged"] == 1]["fp_rate"], bins=bins, color="green", alpha=0.6, label="converged")
+        ax.hist(sub[sub["converged"] == 0]["fp_rate"], bins=bins, color="red",   alpha=0.6, label="timed out")
+        ax.set_xlabel("Estimated FP rate")
+        ax.set_ylabel("Count")
+        ax.set_title(f"Memory {int(ratio*100)}%")
+        ax.legend(fontsize=8)
+
+    plt.suptitle("FP Rate Distribution by Outcome")
+    plt.tight_layout()
+    plt.savefig("plots/fp_histogram.png", dpi=150)
+    plt.close()
+    print("Saved plots/fp_histogram.png")
 
 print("\nDone.")
