@@ -71,6 +71,7 @@ public:
         int    iteration;
         size_t nInserted;
         double estimatedFP;
+        size_t bitsSet;
     };
 
     bool hasTimedOut() const { return timed_out; }
@@ -390,7 +391,8 @@ public:
                 forwardDepth + backwardDepth,
                 i,
                 bf->get_n_inserted(),
-                bf->estimate_fp()
+                bf->estimate_fp(),
+                bf->get_bits_set()
             });
 
             iterTimer.EndTimer();

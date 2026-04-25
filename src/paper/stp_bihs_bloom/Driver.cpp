@@ -612,43 +612,52 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     std::cout << " done (" << result.revAStarTime << "s, " << result.revAStarNodeExpanded << "n)\n" << std::flush;
   }
 
-  std::cout << "[" << i << "] Running BAE*..." << std::flush;
-  // BAE*
-  {
-    BAE<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bae;
-    std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-    t.StartTimer();
-    bae.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
-    t.EndTimer();
-    result.baeTime = t.GetElapsedTime();
-    result.baeNodeExpanded = bae.GetNodesExpanded();
-    result.solutionLength = static_cast<int>(path.size()) - 1;
-
-    /*
-    size_t baeSize = bae.GetNumForwardItems() + bae.GetNumBackwardItems();
-    if (baeSize < minSize)
-      minSize = baeSize;
-    std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
-    */
+  // If A* hit its node cap both ways the instance is too large — skip everything
+  if (result.aStarNodeExpanded >= 10000000 && result.revAStarNodeExpanded >= 10000000) {
+    std::cout << "[" << i << "] A* hit node cap both directions — skipping instance\n" << std::flush;
+    return result;
   }
 
-  std::cout << "[" << i << "] Running MM..." << std::flush;
-  // MM
-  {
-    MM<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> mm;
-    std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-    t.StartTimer();
-    mm.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
-    t.EndTimer();
-    result.mmTime = t.GetElapsedTime();
-    result.mmNodeExpanded = mm.GetNodesExpanded();
-    result.solutionLength = static_cast<int>(path.size()) - 1;
+  // If either direction hit cap, BAE*/MM would likely OOM too — skip them and BiHS
+  bool astarHitCap = (result.aStarNodeExpanded >= 10000000 || result.revAStarNodeExpanded >= 10000000);
 
-    size_t mmSize = mm.GetNumForwardItems() + mm.GetNumBackwardItems();
-    if (mmSize < minSize)
-      minSize = mmSize;
-    frontierSize = mm.GetNumForwardItems();
-    std::cout << " done (" << result.mmTime << "s, " << result.mmNodeExpanded << "n)\n" << std::flush;
+  if (!astarHitCap) {
+    std::cout << "[" << i << "] Running BAE*..." << std::flush;
+    // BAE*
+    {
+      BAE<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bae;
+      std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+      t.StartTimer();
+      bae.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
+      t.EndTimer();
+      result.baeTime = t.GetElapsedTime();
+      result.baeNodeExpanded = bae.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+
+      size_t baeSize = bae.GetNumForwardItems() + bae.GetNumBackwardItems();
+      if (baeSize < minSize)
+        minSize = baeSize;
+      std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
+    }
+
+    std::cout << "[" << i << "] Running MM..." << std::flush;
+    // MM
+    {
+      MM<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> mm;
+      std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+      t.StartTimer();
+      mm.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
+      t.EndTimer();
+      result.mmTime = t.GetElapsedTime();
+      result.mmNodeExpanded = mm.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+
+      size_t mmSize = mm.GetNumForwardItems() + mm.GetNumBackwardItems();
+      if (mmSize < minSize)
+        minSize = mmSize;
+      frontierSize = mm.GetNumForwardItems();
+      std::cout << " done (" << result.mmTime << "s, " << result.mmNodeExpanded << "n)\n" << std::flush;
+    }
   }
 
   std::cout << "[" << i << "] Running IDA*..." << std::flush;
@@ -686,7 +695,10 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
 
   double percentages[] = {0.5, 0.1, 0.01};
   // BiHS-Bloom
-  for(int pIdx = 0; pIdx < 3; ++pIdx)
+  if (astarHitCap) {
+    std::cout << "[" << i << "] Skipping BiHS-Bloom (no frontierSize from MM)\n" << std::flush;
+  }
+  for(int pIdx = 0; !astarHitCap && pIdx < 3; ++pIdx)
   {
     double ratio = percentages[pIdx];
     int size_in_KiB = (minSize * get_state_size(puzzle) / 8192) * ratio ; // Convert bits to KiB
@@ -727,7 +739,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       for (const auto &s : bihs.GetIterStats())
         convLog << i << "," << size_in_KiB << "," << ratio << ","
                 << s.totalDepth << "," << s.iteration << ","
-                << s.nInserted << "," << s.estimatedFP << "\n";
+                << s.nInserted << "," << s.estimatedFP << "," << s.bitsSet << "\n";
       convLog.flush();
     }
     if (bihs.hasTimedOut()) break;
@@ -751,7 +763,7 @@ void solveSTP(){
   log << "\n";
 
   std::ofstream convLog("bloom_convergence.csv");
-  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,estimated_fp\n";
+  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,estimated_fp,bits_set\n";
 
   std::mutex logMutex;
   std::mutex convMutex;

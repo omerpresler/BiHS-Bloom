@@ -240,46 +240,57 @@ if len(params) > 0:
     plt.close()
     print("Saved plots/bihs_timeout_rate.png")
 
-# --- 7. FP rate vs convergence pattern ---
-if len(params) > 0 and "fp_rate" in params.columns:
-    print("\n=== FP Rate vs Convergence ===")
+# --- 7. FP rate vs convergence pattern (using actual FP from convergence log) ---
+CONV_FILE = "bloom_convergence.csv"
+if os.path.exists(CONV_FILE) and len(params) > 0 and "converged" in params.columns:
+    conv_df = pd.read_csv(CONV_FILE)
+    conv_df["ratio"] = conv_df["ratio"].round(3)
 
-    for ratio in sorted(params["ratio"].unique()):
+    # For each (instance, ratio): take the FIRST iteration's FP as a predictor
+    last_fp = (conv_df.sort_values("iteration")
+                      .groupby(["instance", "ratio"])
+                      .first()
+                      .reset_index()[["instance", "ratio", "estimated_fp"]]
+                      .rename(columns={"estimated_fp": "actual_fp_at_end"}))
+
+    params = params.copy()
+    params["ratio"] = params["ratio"].round(3)
+    params = params.merge(last_fp, on=["instance", "ratio"], how="left")
+
+    print("\n=== First-Iteration FP Rate as Convergence Predictor ===")
+    for ratio in [0.5, 0.1, 0.01]:
         sub = params[params["ratio"] == ratio].copy()
-        if "converged" not in sub.columns or sub["converged"].isna().all():
+        if sub.empty or "actual_fp_at_end" not in sub.columns:
             continue
-
         pct = int(ratio * 100)
-        converged   = sub[sub["converged"] == 1]
-        not_converged = sub[sub["converged"] == 0]
+        conv      = sub[sub["converged"] == 1]
+        not_conv  = sub[sub["converged"] == 0]
+        print(f"\n  Memory {pct}%  (n={len(sub)}, converged={len(conv)}, timed_out={len(not_conv)})")
+        if len(conv):
+            print(f"    FP at iter 0 when converged : "
+                  f"mean={conv['actual_fp_at_end'].mean():.4f}  "
+                  f"min={conv['actual_fp_at_end'].min():.4f}  "
+                  f"max={conv['actual_fp_at_end'].max():.4f}")
+        if len(not_conv):
+            print(f"    FP at iter 0 when timed out : "
+                  f"mean={not_conv['actual_fp_at_end'].mean():.4f}  "
+                  f"min={not_conv['actual_fp_at_end'].min():.4f}  "
+                  f"max={not_conv['actual_fp_at_end'].max():.4f}")
 
-        print(f"\n  Memory {pct}%  (n={len(sub)}, converged={len(converged)}, timed_out={len(not_converged)})")
-        print(f"    FP rate when converged  : mean={converged['fp_rate'].mean():.4f}  "
-              f"min={converged['fp_rate'].min():.4f}  max={converged['fp_rate'].max():.4f}")
-        print(f"    FP rate when timed out  : mean={not_converged['fp_rate'].mean():.4f}  "
-              f"min={not_converged['fp_rate'].min():.4f}  max={not_converged['fp_rate'].max():.4f}")
-
-    # Scatter: fp_rate vs time, colored by converged
-    fig, axes = plt.subplots(1, len(params["ratio"].unique()), figsize=(14, 5), sharey=False)
-    if not hasattr(axes, "__len__"):
-        axes = [axes]
-
-    for ax, ratio in zip(axes, sorted(params["ratio"].unique())):
-        sub = params[params["ratio"] == ratio].copy()
-        if "converged" not in sub.columns:
-            continue
-
-        conv = sub[sub["converged"] == 1]
-        fail = sub[sub["converged"] == 0]
-
-        ax.scatter(conv["fp_rate"], conv["time"],   color="green", label="converged", alpha=0.7, s=40)
-        ax.scatter(fail["fp_rate"], fail["time"],   color="red",   label="timed out", alpha=0.7, s=40, marker="x")
-        ax.set_xlabel("Estimated FP rate")
+    # Scatter: actual FP at end vs time, colored by outcome
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharey=False)
+    for ax, ratio in zip(axes, [0.5, 0.1, 0.01]):
+        sub = params[params["ratio"] == ratio].copy().dropna(subset=["actual_fp_at_end"])
+        conv     = sub[sub["converged"] == 1]
+        not_conv = sub[sub["converged"] == 0]
+        ax.scatter(conv["actual_fp_at_end"],     conv["time"],     color="green", label="converged", alpha=0.7, s=40)
+        ax.scatter(not_conv["actual_fp_at_end"], not_conv["time"], color="red",   label="timed out", alpha=0.7, s=40, marker="x")
+        ax.set_xlabel("FP rate at iteration 0")
         ax.set_ylabel("Time (s)")
         ax.set_title(f"Memory {int(ratio*100)}%")
         ax.legend(fontsize=8)
 
-    plt.suptitle("FP Rate vs Solve Time (green=converged, red=timeout)")
+    plt.suptitle("First-Iteration FP Rate vs Outcome (predictor)")
     plt.tight_layout()
     plt.savefig("plots/fp_vs_convergence.png", dpi=150)
     plt.close()

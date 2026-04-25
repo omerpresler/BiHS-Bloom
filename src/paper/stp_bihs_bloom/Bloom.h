@@ -110,6 +110,23 @@ public:
 
     size_t get_n_inserted() const { return n_inserted; }
 
+    size_t get_bits_set() const {
+        if (!bits || m_bits == 0) return 0;
+        size_t count = 0;
+        size_t bytes = (m_bits + 7) / 8;
+        // Process 8 bytes at a time for speed
+        size_t i = 0;
+        for (; i + 8 <= bytes; i += 8) {
+            uint64_t word;
+            memcpy(&word, bits + i, 8);
+            count += __builtin_popcountll(word);
+        }
+        for (; i < bytes; i++) {
+            count += __builtin_popcount(bits[i]);
+        }
+        return count;
+    }
+
 protected:
     uint8_t *bits;      /* bit array */
     size_t   m_bits;    /* number of bits */

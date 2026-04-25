@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
+import matplotlib.patches as mpatches
 import numpy as np
 import os
 
@@ -9,11 +9,16 @@ OUT_DIR  = "plots/convergence"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 df = pd.read_csv(CSV_FILE)
-df["ratio"] = df["ratio"].round(3)   # fix float precision (0.01000000001 → 0.01)
+df["ratio"] = df["ratio"].round(3)
 
 RATIOS      = [0.5, 0.1, 0.01]
 RATIO_NAMES = {0.5: "50%", 0.1: "10%", 0.01: "1%"}
-RATIO_COLS  = {0.5: "#b07aa1", 0.1: "#ff9da7", 0.01: "#9c755f"}
+
+C_NINS  = "#4e79a7"   # n_inserted  — blue
+C_FP    = "#e15759"   # fp_rate     — red
+C_BITS  = "#59a14f"   # bits_set    — green
+
+BAR_W   = 0.25        # width of each individual bar
 
 instances = sorted(df["instance"].unique())
 print(f"Generating {len(instances)} convergence plots...")
@@ -21,74 +26,75 @@ print(f"Generating {len(instances)} convergence plots...")
 for puzzle_id in instances:
     pdata = df[df["instance"] == puzzle_id]
 
-    fig, axes = plt.subplots(
-        2, len(RATIOS),
-        figsize=(6 * len(RATIOS), 8),
-        squeeze=False
-    )
+    fig, axes = plt.subplots(1, len(RATIOS), figsize=(8 * len(RATIOS), 6), squeeze=False)
     fig.suptitle(f"Puzzle #{puzzle_id} — Bloom Convergence", fontsize=14, fontweight="bold")
 
     for col, ratio in enumerate(RATIOS):
-        rdata = pdata[pdata["ratio"] == ratio].copy()
-        label = RATIO_NAMES.get(ratio, f"{ratio*100:.0f}%")
-        color = RATIO_COLS.get(ratio, "steelblue")
+        ax  = axes[0][col]
+        ax2 = ax.twinx()
 
-        ax_top = axes[0][col]   # n_inserted
-        ax_bot = axes[1][col]   # estimated_fp
+        rdata = pdata[pdata["ratio"] == ratio].copy()
+        mem_label = RATIO_NAMES.get(ratio, f"{ratio*100:.0f}%")
 
         if rdata.empty:
-            ax_top.set_title(f"Memory {label}", fontsize=11)
-            ax_top.text(0.5, 0.5, "no data", ha="center", va="center", transform=ax_top.transAxes)
-            ax_bot.text(0.5, 0.5, "no data", ha="center", va="center", transform=ax_bot.transAxes)
+            ax.set_title(f"Memory {mem_label}", fontsize=11)
+            ax.text(0.5, 0.5, "no data", ha="center", va="center", transform=ax.transAxes)
             continue
 
         size_kib = rdata["size_kib"].iloc[0]
-        ax_top.set_title(f"Memory {label}  ({size_kib:,} KiB)", fontsize=11)
+        ax.set_title(f"Memory {mem_label}  ({size_kib:,} KiB)", fontsize=11)
 
-        depths = sorted(rdata["total_depth"].unique())
-        depth_colors = cm.viridis(np.linspace(0.2, 0.9, len(depths)))
+        # Sort: depth first, then iteration
+        rdata = rdata.sort_values(["total_depth", "iteration"]).reset_index(drop=True)
 
-        for depth, dcolor in zip(depths, depth_colors):
-            ddata = rdata[rdata["total_depth"] == depth].sort_values("iteration")
-            if ddata.empty:
-                continue
+        # X-axis labels: "depth-iter" (iteration displayed 1-indexed)
+        xlabels = [f"{row.total_depth}-{int(row.iteration)+1}" for _, row in rdata.iterrows()]
+        x = np.arange(len(xlabels))
 
-            xs    = ddata["iteration"].values
-            n_ins = ddata["n_inserted"].values
-            fp    = ddata["estimated_fp"].values
+        n_ins  = rdata["n_inserted"].values.astype(float)
+        fp     = rdata["estimated_fp"].values.astype(float)
+        b_set  = rdata["bits_set"].values.astype(float) if "bits_set" in rdata.columns else np.zeros(len(rdata))
 
-            # converged = last iter is odd (min_items check only runs after backward passes)
-            # if last iter is even, it timed out or moved to next depth mid-cycle
-            last_iter = ddata["iteration"].iloc[-1]
-            converged = (last_iter % 2 == 1)
-            line_style = "-" if converged else "--"
-            depth_label = f"d={depth}" + ("" if converged else " (no conv.)")
+        # --- Left axis: n_inserted and bits_set (counts) ---
+        ax.bar(x - BAR_W, n_ins, BAR_W, color=C_NINS, alpha=0.85,
+               edgecolor="black", linewidth=0.4, label="n_inserted")
+        ax.bar(x + BAR_W, b_set, BAR_W, color=C_BITS, alpha=0.85,
+               edgecolor="black", linewidth=0.4, label="bits_set")
+        ax.set_ylabel("Count (log scale)", fontsize=9)
+        ax.set_yscale("symlog", linthresh=1)
+        ax.yaxis.set_tick_params(labelsize=8)
 
-            ax_top.plot(xs, n_ins, marker="o", ms=3, linestyle=line_style,
-                        color=dcolor, label=depth_label)
-            ax_bot.plot(xs, fp,    marker="o", ms=3, linestyle=line_style,
-                        color=dcolor, label=depth_label)
+        # --- Right axis: fp_rate ---
+        ax2.bar(x, fp, BAR_W, color=C_FP, alpha=0.75,
+                edgecolor="black", linewidth=0.4, label="fp_rate")
+        ax2.set_ylabel("FP rate", fontsize=9, color=C_FP)
+        ax2.tick_params(axis="y", colors=C_FP, labelsize=8)
+        ax2.set_ylim(-0.05, 1.15)
+        ax2.axhline(0.5, color=C_FP, linestyle=":", linewidth=0.9, alpha=0.5)
 
-            # mark the last point
-            ax_top.scatter(xs[-1], n_ins[-1], color=dcolor, s=60,
-                           marker="*" if converged else "x", zorder=5)
-            ax_bot.scatter(xs[-1], fp[-1],    color=dcolor, s=60,
-                           marker="*" if converged else "x", zorder=5)
+        # --- X axis ---
+        ax.set_xticks(x)
+        ax.set_xticklabels(xlabels, rotation=65, ha="right", fontsize=7)
+        ax.set_xlabel("depth-iteration", fontsize=9)
 
-        # formatting top axis
-        ax_top.set_xlabel("Iteration")
-        ax_top.set_ylabel("Items inserted into Bloom")
-        ax_top.set_yscale("log")
-        ax_top.legend(fontsize=7, loc="upper right")
-        ax_top.grid(True, alpha=0.3)
+        # Vertical separators between depth groups
+        depths = rdata["total_depth"].unique()
+        pos = 0
+        for di, depth in enumerate(sorted(depths)):
+            cnt = (rdata["total_depth"] == depth).sum()
+            if di > 0:
+                ax.axvline(pos - 0.5, color="gray", linestyle="--", linewidth=0.8, alpha=0.45)
+            pos += cnt
 
-        # formatting bottom axis
-        ax_bot.set_xlabel("Iteration")
-        ax_bot.set_ylabel("Estimated FP rate")
-        ax_bot.set_ylim(-0.05, 1.05)
-        ax_bot.axhline(0.5, color="red", linestyle=":", linewidth=1, label="FP=0.5")
-        ax_bot.legend(fontsize=7, loc="upper right")
-        ax_bot.grid(True, alpha=0.3)
+        ax.grid(True, axis="y", alpha=0.2)
+
+        # Combined legend from both axes
+        patches = [
+            mpatches.Patch(color=C_NINS, label="n_inserted"),
+            mpatches.Patch(color=C_FP,   label="fp_rate (right axis)"),
+            mpatches.Patch(color=C_BITS, label="bits_set"),
+        ]
+        ax.legend(handles=patches, fontsize=7, loc="upper right")
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     out_path = os.path.join(OUT_DIR, f"puzzle_{puzzle_id:03d}.png")
