@@ -31,7 +31,7 @@ namespace BiHSBloomHelper {
 #include <array>
 #include <unordered_map>
 
-#include "Bloom.hpp"
+#include "Bloom.h"
 #include "BloomUtil.h"
 #include "Timer.h"
 

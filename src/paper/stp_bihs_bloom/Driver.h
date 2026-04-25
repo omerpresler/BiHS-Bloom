@@ -6,7 +6,7 @@
 #include <vector>
 #include <array>
 
-#include "Bloom.hpp"
+#include "Bloom.h"
 #include "MNPuzzle.h"
 
 #define MN_SIZE 4
