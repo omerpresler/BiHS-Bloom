@@ -690,7 +690,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
 
   double maxBaselineTime = std::max({result.aStarTime, result.revAStarTime, result.baeTime,
                                      result.mmTime, result.idaTime, result.revIdaTime});
-  double bihsTimeLimit = std::max(maxBaselineTime * 10.0, 120.0); // Set a minimum time limit of 120 seconds for BiHS-Bloom
+  double bihsTimeLimit = std::max(maxBaselineTime * 20.0, 120.0); // Set a minimum time limit of 120 seconds for BiHS-Bloom
   std::cout << "[" << i << "] BiHS-Bloom timeout limit: " << bihsTimeLimit << "s\n" << std::flush;
 
   double percentages[] = {0.5, 0.1, 0.01};
