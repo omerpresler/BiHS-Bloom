@@ -63,7 +63,9 @@ public:
             throw std::invalid_argument("k_hashes must be positive");
         }
 
-        this->min_items = int(size_in_KiB / get_state_size(state{}));
+        this->min_items = int((long long)size_in_KiB * 1024 * 8 / get_state_size(state{}));
+        //debug
+        std::cout << "Bloom filter size: " << size_in_KiB << " KiB, k_hashes: " << k_hashes << ", min_items: " << this->min_items << std::endl;
     }
 
     struct IterationStat {
