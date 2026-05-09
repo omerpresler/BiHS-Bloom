@@ -619,7 +619,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   }
 
   // If either direction hit cap, BAE*/MM would likely OOM too — skip them and BiHS
-  bool astarHitCap = (result.aStarNodeExpanded >= 10000000 || result.revAStarNodeExpanded >= 10000000);
+  bool astarHitCap = (result.aStarNodeExpanded >= 10000000 && result.revAStarNodeExpanded >= 10000000);
 
   if (!astarHitCap) {
     std::cout << "[" << i << "] Running BAE*..." << std::flush;
@@ -739,7 +739,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       for (const auto &s : bihs.GetIterStats())
         convLog << i << "," << size_in_KiB << "," << ratio << ","
                 << s.totalDepth << "," << s.iteration << ","
-                << s.nInserted << "," << s.estimatedFP << "," << s.bitsSet << "\n";
+                << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << "," << s.bitsSet << "\n";
       convLog.flush();
     }
     if (bihs.hasTimedOut()) break;
@@ -763,7 +763,7 @@ void solveSTP(){
   log << "\n";
 
   std::ofstream convLog("bloom_convergence.csv");
-  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,estimated_fp,bits_set\n";
+  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set\n";
 
   std::mutex logMutex;
   std::mutex convMutex;
@@ -876,6 +876,7 @@ void solvePancake(){
 }
 
 
+#ifndef STP_BIHS_BLOOM_TEST
 int main(int argc, char **argv) {
   bool slidingTilePuzzle = false;
   bool pancake = false;
@@ -902,6 +903,7 @@ int main(int argc, char **argv) {
     solvePancake();
   }
 } 
+#endif
 
 int main_old(int argc, char **argv) {
   bool generate = false;

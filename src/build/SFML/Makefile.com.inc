@@ -148,6 +148,10 @@ clean:
 	@rm -f `find $(DBG_OBJDIR) -name "*.o" -o -name "*.d"`
 	@rm -f `find $(REL_OBJDIR) -name "*.o" -o -name "*.d"`
 	@rm -f $(DBG_BINDIR)/$(DBG_NAME) $(REL_BINDIR)/$(REL_NAME)
+ifneq ($(strip $(TEST_OBJDIR)),)
+	@rm -f `find $(TEST_OBJDIR) -name "*.o" -o -name "*.d"`
+	@rm -f $(TEST_BINDIR)/$(TEST_NAME)
+endif
 
 #-----------------------------------------------------------------------------
 

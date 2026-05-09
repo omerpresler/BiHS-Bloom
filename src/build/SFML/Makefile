@@ -117,6 +117,11 @@ tests: release
 			done
 	@echo ""
 
+test: release
+	@echo -e "\n--------------- paper/stp_bihs_bloom (test)"
+	$(MAKE) -C paper/stp_bihs_bloom test
+	@echo ""
+
 .PHONY: install
 install:
 	@for file in $$(ls -I '*.a' $(BINDIR)); do \

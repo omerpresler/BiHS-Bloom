@@ -72,6 +72,7 @@ public:
         int    totalDepth;
         int    iteration;
         size_t nInserted;
+        size_t nUnique;
         double estimatedFP;
         size_t bitsSet;
     };
@@ -393,12 +394,19 @@ public:
                 forwardDepth + backwardDepth,
                 i,
                 bf->get_n_inserted(),
+                bf->get_n_unique(),
                 bf->estimate_fp(),
                 bf->get_bits_set()
             });
 
+            
             iterTimer.EndTimer();
-            //std::cout << "[PROF] Iter " << i << " items=" << bf->get_n_inserted() << " time=" << iterTimer.GetElapsedTime() << "s" << " fp=" << bf->estimate_fp() << std::endl;
+            {
+                std::ofstream proof_log("proof_unique.csv", std::ios::app);
+                proof_log << (forwardDepth + backwardDepth) << "," << i << ","
+                          << bf->get_n_inserted() << "," << bf->get_n_unique() << ","
+                          << bf->get_bits_set() << "\n";
+            }
 
             if (i % 2 == 1 && bf->get_n_inserted() <= this->min_items){ //Bloom is small enopugh that we can save the states in memory
                 term = TerminationCondition::MIN_ITEMS;

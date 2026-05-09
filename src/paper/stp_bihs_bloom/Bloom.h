@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <set>
+#include <unordered_set>
 #include <cmath>
 
 #include "MNPuzzle.h"
@@ -29,7 +30,6 @@ public:
         size_t bytes = (m_bits + 7) / 8;
         bits = (uint8_t *)calloc(bytes, 1);
         
-        /* Initialize random seed */
         FILE *f = fopen("/dev/urandom", "rb");
         if (f) {
             if (fread(&seed, sizeof(seed), 1, f) != 1) {
@@ -58,9 +58,10 @@ public:
         size_t bytes = (m_bits + 7) / 8;
         memset(bits, 0, bytes);
         n_inserted = 0;
+        unique_set.clear();
     }
 
-    
+
 
     virtual void add(const Key &key)
     {
@@ -75,7 +76,10 @@ public:
             set_bit(bits, idx);
         }
         n_inserted++;
+        unique_set.insert(h1); // h1 is a stable fingerprint of the key
     }
+
+    size_t get_n_unique() const { return unique_set.size(); }
     virtual bool maybe_contains(const Key &key) const
     {
         if (!bits || m_bits == 0 || k_hashes == 0) return false;
@@ -95,17 +99,9 @@ public:
     double estimate_fp() const
     {
         if (m_bits == 0 || k_hashes == 0) return 1.0;
-
-        double m = (double)m_bits;
-        double k = (double)k_hashes;
-        double n = (double)n_inserted;
-
-        /* p ≈ (1 - e^{-k n / m})^k */
-        double exponent = -k * n / m;
-        double p1 = 1.0 - exp(exponent);
-        if (p1 < 0.0) p1 = 0.0;
-        if (p1 > 1.0) p1 = 1.0;
-        return pow(p1, k);
+        /* fp = (bits_set / m)^k  — uses actual fill, not inflated n_inserted */
+        double fill = (double)get_bits_set() / (double)m_bits;
+        return pow(fill, (double)k_hashes);
     }
 
     size_t get_n_inserted() const { return n_inserted; }
@@ -131,8 +127,9 @@ protected:
     uint8_t *bits;      /* bit array */
     size_t   m_bits;    /* number of bits */
     size_t   k_hashes;  /* number of hash functions */
-    size_t   n_inserted; /* number of inserted items */
+    size_t   n_inserted; /* number of inserted items (counts duplicates) */
     uint64_t seed;      /* random seed */
+    std::unordered_set<uint64_t> unique_set; /* exact unique state fingerprints */
 
     static const void* get_data_ptr(const std::array<int, MN_SIZE*MN_SIZE>& key)
     {
