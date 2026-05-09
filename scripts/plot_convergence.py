@@ -32,7 +32,6 @@ ITER_CMAP = plt.get_cmap("tab10")
 
 COLORS = {
     "n_inserted": "#4e79a7",
-    "fp_rate":    "#e15759",
     "bits_set":   "#59a14f",
 }
 
@@ -43,7 +42,7 @@ for puzzle_id in instances:
     pdata = df[df["instance"] == puzzle_id]
 
     # -----------------------------------------------------------------------
-    # Main figure: n_inserted + bits_set (left) and fp_rate (right) per ratio
+    # Main figure: n_inserted (left) and fill percentage (right) per ratio
     # -----------------------------------------------------------------------
     BAR_W = 0.25
     fig, axes = plt.subplots(1, len(RATIOS), figsize=(8 * len(RATIOS), 6), squeeze=False)
@@ -70,7 +69,6 @@ for puzzle_id in instances:
 
         m_bits   = rdata["size_kib"].iloc[0] * 1024 * 8
         n_ins    = rdata["n_inserted"].values.astype(float)
-        fp       = rdata["estimated_fp"].values.astype(float)
         fill_pct = (rdata["bits_set"].values.astype(float) / m_bits * 100) if HAS_BITS else np.zeros(len(rdata))
 
         ax.bar(x, n_ins, BAR_W, color=COLORS["n_inserted"],
@@ -79,14 +77,11 @@ for puzzle_id in instances:
         ax.set_yscale("log")
         ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{int(v):,}"))
 
-        ax2.bar(x - BAR_W, fp * 100, BAR_W, color=COLORS["fp_rate"],
-                edgecolor="black", linewidth=0.6, label="fp rate %")
         ax2.bar(x + BAR_W, fill_pct, BAR_W, color=COLORS["bits_set"],
                 edgecolor="black", linewidth=0.6, label="fill %")
         ax2.set_ylabel("%", color="black")
         ax2.set_ylim(-2, 115)
         ax2.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:.0f}%"))
-        ax2.axhline(50, color=COLORS["fp_rate"], linestyle=":", linewidth=0.9, alpha=0.5)
 
         ax.set_xticks(x)
         ax.set_xticklabels(xlabels, rotation=65, ha="right", fontsize=7)
@@ -101,22 +96,18 @@ for puzzle_id in instances:
             pos += cnt
 
         ax.grid(True, axis="y", alpha=0.2)
-        ax.legend(fontsize=7, loc="upper right")
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax2.get_legend_handles_labels()
+        ax.legend(h1 + h2, l1 + l2, fontsize=7, loc="upper right")
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUT_DIR, f"puzzle_{puzzle_id:03d}.png"), dpi=150)
     plt.close()
 
     # -----------------------------------------------------------------------
-    # Focus figures: one per ratio, 3 subplots (fp / bits_set / n_inserted)
+    # Focus figures: one per ratio, 2 subplots (fill / n_inserted)
     # x-axis = total_depth, one colored line per iteration
     # -----------------------------------------------------------------------
-    METRICS = [
-        ("estimated_fp", "FP rate",      False),
-        ("bits_set",     "Bits set",     True),
-        ("n_inserted",   "n inserted",   True),
-    ]
-
     for ratio in RATIOS:
         rdata = pdata[pdata["ratio"] == ratio].copy()
         mem_label = RATIO_NAMES[ratio]
@@ -129,7 +120,7 @@ for puzzle_id in instances:
         elif conv is False:
             conv_tag = "  ✗ Timed Out"
 
-        fig, axes = plt.subplots(1, 3, figsize=(18, 5), squeeze=False)
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5), squeeze=False)
         fig.suptitle(
             f"Puzzle #{puzzle_id} — Memory {mem_label}  ({rdata['size_kib'].iloc[0]:,} KiB){conv_tag}" if not rdata.empty
             else f"Puzzle #{puzzle_id} — Memory {mem_label}{conv_tag}",
@@ -152,7 +143,6 @@ for puzzle_id in instances:
         depths     = sorted(rdata["total_depth"].unique())
 
         METRICS = [
-            ("estimated_fp", "FP rate",  False),
             ("fill_pct",     "Fill %",   False),
             ("n_inserted",   "n inserted", True),
         ]
@@ -182,8 +172,6 @@ for puzzle_id in instances:
                 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
             elif metric == "fill_pct":
                 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x:.1f}%"))
-            elif metric == "estimated_fp":
-                ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x*100:.1f}%"))
             ax.grid(True, alpha=0.2)
             ax.legend(fontsize=7, loc="upper left", bbox_to_anchor=(1.01, 1), borderaxespad=0)
 
