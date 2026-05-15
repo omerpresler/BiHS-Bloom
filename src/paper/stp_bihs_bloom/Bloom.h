@@ -72,7 +72,7 @@ public:
 
         for (size_t i = 0; i < k_hashes; i++) {
             uint64_t h = h1 + i * h2;
-            size_t idx = (size_t)(h % m_bits);
+            size_t idx = (size_t)(mix64(h) % m_bits);
             set_bit(bits, idx);
         }
         n_inserted++;
@@ -89,7 +89,7 @@ public:
 
         for (size_t i = 0; i < k_hashes; i++) {
             uint64_t h = h1 + i * h2;
-            size_t idx = (size_t)(h % m_bits);
+            size_t idx = (size_t)(mix64(h) % m_bits);
             if (!get_bit(bits, idx)) {
                 return false; /* definitely not present */
             }
@@ -102,6 +102,18 @@ public:
         /* fp = (bits_set / m)^k  — uses actual fill, not inflated n_inserted */
         double fill = (double)get_bits_set() / (double)m_bits;
         return pow(fill, (double)k_hashes);
+    }
+
+    double get_fill_ratio() const
+    {
+        if (m_bits == 0) return 0.0;
+        return (double)get_bits_set() / (double)m_bits;
+    }
+
+    double expected_fill_ratio() const
+    {
+        if (m_bits == 0 || k_hashes == 0) return 0.0;
+        return 1.0 - std::exp(-((double)k_hashes * (double)get_n_unique()) / (double)m_bits);
     }
 
     size_t get_n_inserted() const { return n_inserted; }
@@ -211,6 +223,16 @@ protected:
             hash *= fnv_prime;
         }
         return hash;
+    }
+
+    static uint64_t mix64(uint64_t x)
+    {
+        x ^= x >> 33;
+        x *= 0xff51afd7ed558ccdULL;
+        x ^= x >> 33;
+        x *= 0xc4ceb9fe1a85ec53ULL;
+        x ^= x >> 33;
+        return x;
     }
 
 

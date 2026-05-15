@@ -27,6 +27,7 @@ RATIO_NAMES = {0.5: "50%", 0.1: "10%", 0.01: "1%"}
 RATIO_SLUGS = {0.5: "50pct", 0.1: "10pct", 0.01: "1pct"}
 
 HAS_BITS = "bits_set" in df.columns
+HAS_FILL = "fill_ratio" in df.columns
 
 ITER_CMAP = plt.get_cmap("tab10")
 
@@ -69,7 +70,10 @@ for puzzle_id in instances:
 
         m_bits   = rdata["size_kib"].iloc[0] * 1024 * 8
         n_ins    = rdata["n_inserted"].values.astype(float)
-        fill_pct = (rdata["bits_set"].values.astype(float) / m_bits * 100) if HAS_BITS else np.zeros(len(rdata))
+        if HAS_FILL:
+            fill_pct = rdata["fill_ratio"].values.astype(float) * 100
+        else:
+            fill_pct = (rdata["bits_set"].values.astype(float) / m_bits * 100) if HAS_BITS else np.zeros(len(rdata))
 
         ax.bar(x, n_ins, BAR_W, color=COLORS["n_inserted"],
                edgecolor="black", linewidth=0.6, label="n_inserted")
@@ -136,7 +140,9 @@ for puzzle_id in instances:
             continue
 
         rdata = rdata.sort_values(["total_depth", "iteration"]).reset_index(drop=True)
-        if HAS_BITS:
+        if HAS_FILL:
+            rdata["fill_pct"] = rdata["fill_ratio"] * 100
+        elif HAS_BITS:
             m_bits = rdata["size_kib"].iloc[0] * 1024 * 8
             rdata["fill_pct"] = rdata["bits_set"] / m_bits * 100
         iterations = sorted(rdata["iteration"].unique())

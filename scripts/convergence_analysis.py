@@ -17,9 +17,10 @@ conv["ratio"] = conv["ratio"].round(3)
 iter0 = conv[conv["iteration"] == 0].copy()
 
 HAS_BITS = "bits_set" in iter0.columns
+HAS_FILL = "fill_ratio" in iter0.columns
 m_bits   = iter0["size_kib"] * 1024 * 8
 
-iter0["true_fp"] = (iter0["bits_set"] / m_bits) if HAS_BITS else np.nan
+iter0["true_fp"] = iter0["fill_ratio"] if HAS_FILL else ((iter0["bits_set"] / m_bits) if HAS_BITS else np.nan)
 iter0["fill"]    = iter0["true_fp"]   # same thing for k=1
 
 # ---------------------------------------------------------------------------
@@ -52,7 +53,9 @@ iter0_last = iter0.merge(last_depth, on=["instance", "ratio", "total_depth"])
 df = iter0_last.merge(bench[["instance", "ratio", "k_hashes", "converged"]],
                       on=["instance", "ratio"])
 
-df["true_fp"] = (df["bits_set"] / (df["size_kib"] * 1024 * 8)) ** df["k_hashes"]
+df["true_fp"] = df["fill_ratio"] ** df["k_hashes"] if "fill_ratio" in df.columns else (
+    df["bits_set"] / (df["size_kib"] * 1024 * 8)
+) ** df["k_hashes"]
 
 COLORS = {True: "#4e79a7", False: "#e15759"}
 LABELS = {True: "Converged", False: "Timed Out"}
@@ -116,7 +119,9 @@ print("Saved plots/true_fp_boxplot.png")
 # ---------------------------------------------------------------------------
 # Plot 3: fill % vs n_inserted — shows duplicate inflation per outcome
 # ---------------------------------------------------------------------------
-df["fill_pct"] = df["bits_set"] / (df["size_kib"] * 1024 * 8) * 100
+df["fill_pct"] = df["fill_ratio"] * 100 if "fill_ratio" in df.columns else (
+    df["bits_set"] / (df["size_kib"] * 1024 * 8) * 100
+)
 
 fig, axes = plt.subplots(1, len(RATIOS), figsize=(6 * len(RATIOS), 5))
 

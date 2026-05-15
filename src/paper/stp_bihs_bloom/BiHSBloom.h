@@ -75,6 +75,8 @@ public:
         size_t nUnique;
         double estimatedFP;
         size_t bitsSet;
+        double fillRatio;
+        double expectedFillRatio;
     };
 
     bool hasTimedOut() const { return timed_out; }
@@ -129,6 +131,9 @@ public:
                                                 BloomFilter<state>* bf)
     {
         if (targetDepth == 0) {
+            if (bf && bf->maybe_contains(start) && env.HCost(start, goal) <= upperBound) {
+                return {{start, {}}};
+            }
             return {};
         }
 
@@ -319,6 +324,15 @@ public:
         BloomFilter<state> *bf = nullptr;
         InitBloom(bf);
         this->nodeExpanded = 0;
+
+        if (depth == 0) {
+            this->nodeExpanded++;
+            if (!oldBf || oldBf->maybe_contains(start)) {
+                bf->add(start);
+            }
+            this->totalNodesExpanded += this->nodeExpanded;
+            return bf;
+        }
         
 
         if(recursive){
@@ -369,14 +383,6 @@ public:
             Timer iterTimer;
             iterTimer.StartTimer();
 
-            // Disabled to keep building until min_items is reached instead of
-            // stopping early when the bloom size stabilizes.
-            // if (tail.last_n_period2()){ //Period 2 stabilized, we can stop the algorithm
-            //     term = TerminationCondition::STABILIZED;
-            //     //std::cout << "[PROF] Stabilized at iter " << i << std::endl;
-            //     break;
-            // }
-
             if (i % 2 == 0){
                 bf.reset(GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound, bf.get(), recursive));
                 if(this->firstForwardNodeExpanded == 0)
@@ -396,7 +402,9 @@ public:
                 bf->get_n_inserted(),
                 bf->get_n_unique(),
                 bf->estimate_fp(),
-                bf->get_bits_set()
+                bf->get_bits_set(),
+                bf->get_fill_ratio(),
+                bf->expected_fill_ratio()
             });
 
             
@@ -405,7 +413,8 @@ public:
                 std::ofstream proof_log("proof_unique.csv", std::ios::app);
                 proof_log << (forwardDepth + backwardDepth) << "," << i << ","
                           << bf->get_n_inserted() << "," << bf->get_n_unique() << ","
-                          << bf->get_bits_set() << "\n";
+                          << bf->get_bits_set() << "," << bf->get_fill_ratio() << ","
+                          << bf->expected_fill_ratio() << "\n";
             }
 
             if (i % 2 == 1 && bf->get_n_inserted() <= this->min_items){ //Bloom is small enopugh that we can save the states in memory

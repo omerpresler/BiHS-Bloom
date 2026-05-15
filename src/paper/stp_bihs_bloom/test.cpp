@@ -1,4 +1,5 @@
 #include "Driver.h"
+#include "BiHSBloom.h"
 
 #include <array>
 #include <cstdint>
@@ -125,6 +126,54 @@ void testBloomCapacityTracksFilledBits() {
           "Bloom capacity test has the wrong number of bits on");
 }
 
+void testBiHSBloomCollectsZeroDepthState() {
+  MNPuzzleState<MN_SIZE, MN_SIZE> start;
+  MNPuzzleState<MN_SIZE, MN_SIZE> goal;
+  start.Reset();
+  goal.Reset();
+
+  BloomFilter<MNPuzzleState<MN_SIZE, MN_SIZE>> bloom(1024 * 8, 3);
+  bloom.add(start);
+
+  BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir,
+            MNPuzzle<MN_SIZE, MN_SIZE>>
+      solver(1, 3);
+
+  auto states = solver.GetStatesFromBloom(start, goal, 0, 0, &bloom);
+
+  require(states.size() == 1, "BiHS-Bloom zero-depth collection missed start");
+  require(states.front().first == start,
+          "BiHS-Bloom zero-depth collection returned the wrong state");
+  require(states.front().second.empty(),
+          "BiHS-Bloom zero-depth path should be empty");
+}
+
+void testBiHSBloomSolvesOneMovePuzzle() {
+  MNPuzzleState<MN_SIZE, MN_SIZE> start;
+  MNPuzzleState<MN_SIZE, MN_SIZE> goal;
+  MNPuzzle<MN_SIZE, MN_SIZE> env;
+  start.Reset();
+  goal.Reset();
+
+  std::vector<slideDir> actions;
+  env.GetActions(start, actions);
+  require(!actions.empty(), "goal state unexpectedly has no actions");
+  env.ApplyAction(start, actions.front());
+
+  BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir,
+            MNPuzzle<MN_SIZE, MN_SIZE>>
+      solver(1, 3);
+
+  auto path = solver.GetPath(start, goal);
+  require(path.size() == 1, "BiHS-Bloom failed to solve a one-move puzzle");
+
+  MNPuzzleState<MN_SIZE, MN_SIZE> check = start;
+  for (slideDir action : path) {
+    env.ApplyAction(check, action);
+  }
+  require(check == goal, "BiHS-Bloom one-move solution does not reach goal");
+}
+
 } // namespace
 
 int main() {
@@ -133,6 +182,8 @@ int main() {
       testInitBloomForPuzzleCreatesExpectedFilterTypes,
       testDepthZeroBloomContainsStart,
       testBloomCapacityTracksFilledBits,
+      testBiHSBloomCollectsZeroDepthState,
+      testBiHSBloomSolvesOneMovePuzzle,
   };
 
   int passed = 0;

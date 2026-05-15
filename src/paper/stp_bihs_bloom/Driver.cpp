@@ -739,7 +739,8 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       for (const auto &s : bihs.GetIterStats())
         convLog << i << "," << size_in_KiB << "," << ratio << ","
                 << s.totalDepth << "," << s.iteration << ","
-                << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << "," << s.bitsSet << "\n";
+                << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << ","
+                << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << "\n";
       convLog.flush();
     }
     if (bihs.hasTimedOut()) break;
@@ -763,7 +764,7 @@ void solveSTP(){
   log << "\n";
 
   std::ofstream convLog("bloom_convergence.csv");
-  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set\n";
+  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio\n";
 
   std::mutex logMutex;
   std::mutex convMutex;
