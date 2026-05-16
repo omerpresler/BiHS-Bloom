@@ -2,1456 +2,1659 @@ nohup: ignoring input
 Domain: Sliding Tile Puzzle
 Starting Korf's Puzzle #0
 
-[0] Running A*... done (34.0926s, 10000000n)
-[0] Running Rev-A*... done (9.06575s, 1874136n)
-[0] Running BAE*... done (5.20298s, 1302793n)
-[0] Running MM... done (34.0511s, 9112630n)
-[0] Running IDA*... done (77.3773s, 304003048n)
-[0] Running Rev-IDA*... done (2.87535s, 11590707n)
-[0] BiHS-Bloom timeout limit: 1547.55s
-[0] Running BiHS-Bloom(50%, size=5646KiB, k=1, fp_est=1, limit=1547.55s)...
+[0] Running A*... done (33.8491s, 10000000n)
+[0] Running Rev-A*... done (8.59818s, 1874136n)
+[0] Running BAE*... done (4.8254s, 1302793n)
+[0] Running MM... done (33.0335s, 9112630n)
+[0] Running IDA*... done (78.1909s, 304003048n)
+[0] Running Rev-IDA*... done (2.89395s, 11590707n)
+[0] BiHS-Bloom timeout limit: 1563.82s
+[0] Running BiHS-Bloom(50%, size=5646KiB, k=1, fp_est=1, limit=1563.82s)...
 Bloom filter size: 5646 KiB, k_hashes: 1, min_items: 1027822
- done (86.3994s, 593261050n)
-[0] Running BiHS-Bloom(10%, size=1129KiB, k=1, fp_est=1, limit=1547.55s)...
+ done (83.1321s, 593261050n)
+[0] Running BiHS-Bloom(10%, size=1129KiB, k=1, fp_est=1, limit=1563.82s)...
 Bloom filter size: 1129 KiB, k_hashes: 1, min_items: 205528
- TIMED OUT (18038191183n)
-Puzzle #0 | A*: 34.0926s/10000000n | Rev-A*: 9.06575s/1874136n | BAE*: 5.20298s/1302793n | MM: 34.0511s/9112630n | IDA*: 77.3773s/304003048n | Rev-IDA*: 2.87535s/11590707n | BiHS-Bloom(50%): 86.3994s/593261050n | BiHS-Bloom(10%): -1s/18038191183n | BiHS-Bloom(1%): -1s/0n | Length: 57
+ done (116.481s, 1053075046n)
+[0] Running BiHS-Bloom(1%, size=112KiB, k=1, fp_est=1, limit=1563.82s)...
+Bloom filter size: 112 KiB, k_hashes: 1, min_items: 20388
+ TIMED OUT (19523172943n)
+Puzzle #0 | A*: 33.8491s/10000000n | Rev-A*: 8.59818s/1874136n | BAE*: 4.8254s/1302793n | MM: 33.0335s/9112630n | IDA*: 78.1909s/304003048n | Rev-IDA*: 2.89395s/11590707n | BiHS-Bloom(50%): 83.1321s/593261050n | BiHS-Bloom(10%): 116.481s/1053075046n | BiHS-Bloom(1%): -1s/19523172943n | Length: 57
 Starting Korf's Puzzle #1
 
-[1] Running A*... done (12.8907s, 4469035n)
-[1] Running Rev-A*... done (10.5494s, 3733395n)
-[1] Running BAE*... done (4.10164s, 1319548n)
-[1] Running MM... done (7.66914s, 2526800n)
-[1] Running IDA*... done (2.65252s, 10765455n)
-[1] Running Rev-IDA*... done (14.6743s, 57675697n)
-[1] BiHS-Bloom timeout limit: 293.486s
-[1] Running BiHS-Bloom(50%, size=5137KiB, k=1, fp_est=0.851543, limit=293.486s)...
+[1] Running A*... done (12.4537s, 4469035n)
+[1] Running Rev-A*... done (10.303s, 3733395n)
+[1] Running BAE*... done (3.98022s, 1319548n)
+[1] Running MM... done (7.40734s, 2526800n)
+[1] Running IDA*... done (2.64211s, 10765455n)
+[1] Running Rev-IDA*... done (14.8835s, 57675697n)
+[1] BiHS-Bloom timeout limit: 297.671s
+[1] Running BiHS-Bloom(50%, size=5137KiB, k=1, fp_est=0.851543, limit=297.671s)...
 Bloom filter size: 5137 KiB, k_hashes: 1, min_items: 935162
- done (23.7297s, 203648854n)
-[1] Running BiHS-Bloom(10%, size=1027KiB, k=1, fp_est=0.999928, limit=293.486s)...
+ done (15.4396s, 112954788n)
+[1] Running BiHS-Bloom(10%, size=1027KiB, k=1, fp_est=0.999928, limit=297.671s)...
 Bloom filter size: 1027 KiB, k_hashes: 1, min_items: 186959
- TIMED OUT (3015164900n)
-Puzzle #1 | A*: 12.8907s/4469035n | Rev-A*: 10.5494s/3733395n | BAE*: 4.10164s/1319548n | MM: 7.66914s/2526800n | IDA*: 2.65252s/10765455n | Rev-IDA*: 14.6743s/57675697n | BiHS-Bloom(50%): 23.7297s/203648854n | BiHS-Bloom(10%): -1s/3015164900n | BiHS-Bloom(1%): -1s/0n | Length: 55
+ done (22.1458s, 203648854n)
+[1] Running BiHS-Bloom(1%, size=102KiB, k=1, fp_est=1, limit=297.671s)...
+Bloom filter size: 102 KiB, k_hashes: 1, min_items: 18568
+ TIMED OUT (3487112682n)
+Puzzle #1 | A*: 12.4537s/4469035n | Rev-A*: 10.303s/3733395n | BAE*: 3.98022s/1319548n | MM: 7.40734s/2526800n | IDA*: 2.64211s/10765455n | Rev-IDA*: 14.8835s/57675697n | BiHS-Bloom(50%): 15.4396s/112954788n | BiHS-Bloom(10%): 22.1458s/203648854n | BiHS-Bloom(1%): -1s/3487112682n | Length: 55
 Starting Korf's Puzzle #2
 
-[2] Running A*... done (30.6647s, 10000000n)
-[2] Running Rev-A*... done (33.5673s, 10000000n)
+[2] Running A*... done (30.3873s, 10000000n)
+[2] Running Rev-A*... done (33.0638s, 10000000n)
 [2] A* hit node cap both directions — skipping instance
-Puzzle #2 | A*: 30.6647s/10000000n | Rev-A*: 33.5673s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #2 | A*: 30.3873s/10000000n | Rev-A*: 33.0638s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #3
 
-[3] Running A*... done (17.3838s, 5253694n)
-[3] Running Rev-A*... done (6.44706s, 1982253n)
-[3] Running BAE*... done (5.19711s, 1611600n)
-[3] Running MM... done (12.0799s, 3804237n)
-[3] Running IDA*... done (12.2965s, 49797447n)
-[3] Running Rev-IDA*... done (2.06218s, 7949029n)
-[3] BiHS-Bloom timeout limit: 347.676s
-[3] Running BiHS-Bloom(50%, size=6400KiB, k=1, fp_est=0.987074, limit=347.676s)...
+[3] Running A*... done (17.0368s, 5253694n)
+[3] Running Rev-A*... done (6.46812s, 1982253n)
+[3] Running BAE*... done (5.12297s, 1611600n)
+[3] Running MM... done (11.9144s, 3804237n)
+[3] Running IDA*... done (12.4159s, 49797447n)
+[3] Running Rev-IDA*... done (2.05334s, 7949029n)
+[3] BiHS-Bloom timeout limit: 340.737s
+[3] Running BiHS-Bloom(50%, size=6400KiB, k=1, fp_est=0.987074, limit=340.737s)...
 Bloom filter size: 6400 KiB, k_hashes: 1, min_items: 1165084
- done (27.6807s, 186739148n)
-[3] Running BiHS-Bloom(10%, size=1280KiB, k=1, fp_est=1, limit=347.676s)...
+ done (26.193s, 186739148n)
+[3] Running BiHS-Bloom(10%, size=1280KiB, k=1, fp_est=1, limit=340.737s)...
 Bloom filter size: 1280 KiB, k_hashes: 1, min_items: 233016
- TIMED OUT (3842673679n)
-Puzzle #3 | A*: 17.3838s/5253694n | Rev-A*: 6.44706s/1982253n | BAE*: 5.19711s/1611600n | MM: 12.0799s/3804237n | IDA*: 12.2965s/49797447n | Rev-IDA*: 2.06218s/7949029n | BiHS-Bloom(50%): 27.6807s/186739148n | BiHS-Bloom(10%): -1s/3842673679n | BiHS-Bloom(1%): -1s/0n | Length: 56
+ done (36.8977s, 334614298n)
+[3] Running BiHS-Bloom(1%, size=128KiB, k=1, fp_est=1, limit=340.737s)...
+Bloom filter size: 128 KiB, k_hashes: 1, min_items: 23301
+ TIMED OUT (4170039439n)
+Puzzle #3 | A*: 17.0368s/5253694n | Rev-A*: 6.46812s/1982253n | BAE*: 5.12297s/1611600n | MM: 11.9144s/3804237n | IDA*: 12.4159s/49797447n | Rev-IDA*: 2.05334s/7949029n | BiHS-Bloom(50%): 26.193s/186739148n | BiHS-Bloom(10%): 36.8977s/334614298n | BiHS-Bloom(1%): -1s/4170039439n | Length: 56
 Starting Korf's Puzzle #4
 
-[4] Running A*... done (5.44263s, 2026145n)
-[4] Running Rev-A*... done (5.43364s, 2031500n)
-[4] Running BAE*... done (2.56638s, 811824n)
-[4] Running MM... done (8.3312s, 2633273n)
-[4] Running IDA*... done (2.00051s, 8104910n)
-[4] Running Rev-IDA*... done (7.40318s, 29541832n)
-[4] BiHS-Bloom timeout limit: 166.624s
-[4] Running BiHS-Bloom(50%, size=3651KiB, k=1, fp_est=0.973449, limit=166.624s)...
+[4] Running A*... done (5.47269s, 2026145n)
+[4] Running Rev-A*... done (5.25186s, 2031500n)
+[4] Running BAE*... done (2.47697s, 811824n)
+[4] Running MM... done (7.84023s, 2633273n)
+[4] Running IDA*... done (1.97055s, 8104910n)
+[4] Running Rev-IDA*... done (7.53528s, 29541832n)
+[4] BiHS-Bloom timeout limit: 156.805s
+[4] Running BiHS-Bloom(50%, size=3651KiB, k=1, fp_est=0.973449, limit=156.805s)...
 Bloom filter size: 3651 KiB, k_hashes: 1, min_items: 664644
- done (24.3185s, 225944230n)
-[4] Running BiHS-Bloom(10%, size=730KiB, k=1, fp_est=1, limit=166.624s)...
+ done (15.964s, 125320822n)
+[4] Running BiHS-Bloom(10%, size=730KiB, k=1, fp_est=1, limit=156.805s)...
 Bloom filter size: 730 KiB, k_hashes: 1, min_items: 132892
- TIMED OUT (1985364515n)
-Puzzle #4 | A*: 5.44263s/2026145n | Rev-A*: 5.43364s/2031500n | BAE*: 2.56638s/811824n | MM: 8.3312s/2633273n | IDA*: 2.00051s/8104910n | Rev-IDA*: 7.40318s/29541832n | BiHS-Bloom(50%): 24.3185s/225944230n | BiHS-Bloom(10%): -1s/1985364515n | BiHS-Bloom(1%): -1s/0n | Length: 56
+ done (22.9491s, 225944230n)
+[4] Running BiHS-Bloom(1%, size=73KiB, k=1, fp_est=1, limit=156.805s)...
+Bloom filter size: 73 KiB, k_hashes: 1, min_items: 13289
+ TIMED OUT (2005679935n)
+Puzzle #4 | A*: 5.47269s/2026145n | Rev-A*: 5.25186s/2031500n | BAE*: 2.47697s/811824n | MM: 7.84023s/2633273n | IDA*: 1.97055s/8104910n | Rev-IDA*: 7.53528s/29541832n | BiHS-Bloom(50%): 15.964s/125320822n | BiHS-Bloom(10%): 22.9491s/225944230n | BiHS-Bloom(1%): -1s/2005679935n | Length: 56
 Starting Korf's Puzzle #5
 
-[5] Running A*... done (2.62281s, 970209n)
-[5] Running Rev-A*... done (2.90162s, 1074100n)
-[5] Running BAE*... done (1.08673s, 387233n)
-[5] Running MM... done (3.11424s, 1055016n)
-[5] Running IDA*... done (1.00624s, 3899943n)
-[5] Running Rev-IDA*... done (0.906742s, 3524872n)
+[5] Running A*... done (2.54317s, 970209n)
+[5] Running Rev-A*... done (2.85509s, 1074100n)
+[5] Running BAE*... done (1.02471s, 387233n)
+[5] Running MM... done (2.96785s, 1055016n)
+[5] Running IDA*... done (1.00011s, 3899943n)
+[5] Running Rev-IDA*... done (0.91829s, 3524872n)
 [5] BiHS-Bloom timeout limit: 120s
 [5] Running BiHS-Bloom(50%, size=1510KiB, k=1, fp_est=0.992799, limit=120s)...
 Bloom filter size: 1510 KiB, k_hashes: 1, min_items: 274887
- done (6.74662s, 49469070n)
+ done (6.34311s, 49469070n)
 [5] Running BiHS-Bloom(10%, size=302KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 302 KiB, k_hashes: 1, min_items: 54977
- TIMED OUT (1444269861n)
-Puzzle #5 | A*: 2.62281s/970209n | Rev-A*: 2.90162s/1074100n | BAE*: 1.08673s/387233n | MM: 3.11424s/1055016n | IDA*: 1.00624s/3899943n | Rev-IDA*: 0.906742s/3524872n | BiHS-Bloom(50%): 6.74662s/49469070n | BiHS-Bloom(10%): -1s/1444269861n | BiHS-Bloom(1%): -1s/0n | Length: 52
+ done (9.16382s, 88571206n)
+[5] Running BiHS-Bloom(1%, size=30KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 30 KiB, k_hashes: 1, min_items: 5461
+ TIMED OUT (1543753138n)
+Puzzle #5 | A*: 2.54317s/970209n | Rev-A*: 2.85509s/1074100n | BAE*: 1.02471s/387233n | MM: 2.96785s/1055016n | IDA*: 1.00011s/3899943n | Rev-IDA*: 0.91829s/3524872n | BiHS-Bloom(50%): 6.34311s/49469070n | BiHS-Bloom(10%): 9.16382s/88571206n | BiHS-Bloom(1%): -1s/1543753138n | Length: 52
 Starting Korf's Puzzle #6
 
-[6] Running A*... done (22.1235s, 7150651n)
-[6] Running Rev-A*... done (27.0927s, 8511886n)
-[6] Running BAE*... done (6.68643s, 1406962n)
-[6] Running MM... done (19.5984s, 5816055n)
-[6] Running IDA*... done (19.8608s, 77566293n)
-[6] Running Rev-IDA*... done (20.2997s, 76631287n)
-[6] BiHS-Bloom timeout limit: 541.854s
-[6] Running BiHS-Bloom(50%, size=7347KiB, k=1, fp_est=0.989453, limit=541.854s)...
+[6] Running A*... done (21.1795s, 7150651n)
+[6] Running Rev-A*... done (26.2125s, 8511886n)
+[6] Running BAE*... done (6.48376s, 1406962n)
+[6] Running MM... done (18.9552s, 5816055n)
+[6] Running IDA*... done (19.7677s, 77566293n)
+[6] Running Rev-IDA*... done (19.8955s, 76631287n)
+[6] BiHS-Bloom timeout limit: 524.25s
+[6] Running BiHS-Bloom(50%, size=7347KiB, k=1, fp_est=0.989453, limit=524.25s)...
 Bloom filter size: 7347 KiB, k_hashes: 1, min_items: 1337480
- done (85.8837s, 752441416n)
-[6] Running BiHS-Bloom(10%, size=1469KiB, k=1, fp_est=1, limit=541.854s)...
+ done (44.2015s, 306537016n)
+[6] Running BiHS-Bloom(10%, size=1469KiB, k=1, fp_est=1, limit=524.25s)...
 Bloom filter size: 1469 KiB, k_hashes: 1, min_items: 267423
- TIMED OUT (5231447293n)
-Puzzle #6 | A*: 22.1235s/7150651n | Rev-A*: 27.0927s/8511886n | BAE*: 6.68643s/1406962n | MM: 19.5984s/5816055n | IDA*: 19.8608s/77566293n | Rev-IDA*: 20.2997s/76631287n | BiHS-Bloom(50%): 85.8837s/752441416n | BiHS-Bloom(10%): -1s/5231447293n | BiHS-Bloom(1%): -1s/0n | Length: 52
+ done (61.2407s, 529489216n)
+[6] Running BiHS-Bloom(1%, size=146KiB, k=1, fp_est=1, limit=524.25s)...
+Bloom filter size: 146 KiB, k_hashes: 1, min_items: 26578
+ TIMED OUT (5414559378n)
+Puzzle #6 | A*: 21.1795s/7150651n | Rev-A*: 26.2125s/8511886n | BAE*: 6.48376s/1406962n | MM: 18.9552s/5816055n | IDA*: 19.7677s/77566293n | Rev-IDA*: 19.8955s/76631287n | BiHS-Bloom(50%): 44.2015s/306537016n | BiHS-Bloom(10%): 61.2407s/529489216n | BiHS-Bloom(1%): -1s/5414559378n | Length: 52
 Starting Korf's Puzzle #7
 
-[7] Running A*... done (7.709s, 2667826n)
-[7] Running Rev-A*... done (2.63559s, 972737n)
-[7] Running BAE*... done (3.33923s, 915333n)
-[7] Running MM... done (7.28702s, 2259375n)
-[7] Running IDA*... done (7.0747s, 27825822n)
-[7] Running Rev-IDA*... done (3.53724s, 13816152n)
-[7] BiHS-Bloom timeout limit: 154.18s
-[7] Running BiHS-Bloom(50%, size=4619KiB, k=1, fp_est=0.971774, limit=154.18s)...
+[7] Running A*... done (7.578s, 2667826n)
+[7] Running Rev-A*... done (2.58601s, 972737n)
+[7] Running BAE*... done (3.28145s, 915333n)
+[7] Running MM... done (7.27871s, 2259375n)
+[7] Running IDA*... done (7.34339s, 27825822n)
+[7] Running Rev-IDA*... done (3.59281s, 13816152n)
+[7] BiHS-Bloom timeout limit: 151.56s
+[7] Running BiHS-Bloom(50%, size=4619KiB, k=1, fp_est=0.971774, limit=151.56s)...
 Bloom filter size: 4619 KiB, k_hashes: 1, min_items: 840863
- done (14.8354s, 106371862n)
-[7] Running BiHS-Bloom(10%, size=923KiB, k=1, fp_est=1, limit=154.18s)...
+ done (14.1957s, 106371862n)
+[7] Running BiHS-Bloom(10%, size=923KiB, k=1, fp_est=1, limit=151.56s)...
 Bloom filter size: 923 KiB, k_hashes: 1, min_items: 168027
- TIMED OUT (1921968199n)
-Puzzle #7 | A*: 7.709s/2667826n | Rev-A*: 2.63559s/972737n | BAE*: 3.33923s/915333n | MM: 7.28702s/2259375n | IDA*: 7.0747s/27825822n | Rev-IDA*: 3.53724s/13816152n | BiHS-Bloom(50%): 14.8354s/106371862n | BiHS-Bloom(10%): -1s/1921968199n | BiHS-Bloom(1%): -1s/0n | Length: 50
+ done (14.1402s, 106371862n)
+[7] Running BiHS-Bloom(1%, size=92KiB, k=1, fp_est=1, limit=151.56s)...
+Bloom filter size: 92 KiB, k_hashes: 1, min_items: 16748
+ done (63.2222s, 765413416n)
+Puzzle #7 | A*: 7.578s/2667826n | Rev-A*: 2.58601s/972737n | BAE*: 3.28145s/915333n | MM: 7.27871s/2259375n | IDA*: 7.34339s/27825822n | Rev-IDA*: 3.59281s/13816152n | BiHS-Bloom(50%): 14.1957s/106371862n | BiHS-Bloom(10%): 14.1402s/106371862n | BiHS-Bloom(1%): 63.2222s/765413416n | Length: 50
 Starting Korf's Puzzle #8
 
-[8] Running A*... done (0.815579s, 330770n)
-[8] Running Rev-A*... done (0.59563s, 262425n)
-[8] Running BAE*... done (0.46666s, 178596n)
-[8] Running MM... done (0.860038s, 340901n)
-[8] Running IDA*... done (0.43457s, 1693833n)
-[8] Running Rev-IDA*... done (0.343989s, 1428899n)
+[8] Running A*... done (0.797458s, 330770n)
+[8] Running Rev-A*... done (0.576516s, 262425n)
+[8] Running BAE*... done (0.462856s, 178596n)
+[8] Running MM... done (0.860641s, 340901n)
+[8] Running IDA*... done (0.436073s, 1693833n)
+[8] Running Rev-IDA*... done (0.350339s, 1428899n)
 [8] BiHS-Bloom timeout limit: 120s
 [8] Running BiHS-Bloom(50%, size=835KiB, k=1, fp_est=0.876287, limit=120s)...
 Bloom filter size: 835 KiB, k_hashes: 1, min_items: 152007
- done (1.70774s, 12475366n)
+ done (1.60681s, 12475366n)
 [8] Running BiHS-Bloom(10%, size=167KiB, k=1, fp_est=0.999971, limit=120s)...
 Bloom filter size: 167 KiB, k_hashes: 1, min_items: 30401
- TIMED OUT (1466921233n)
-Puzzle #8 | A*: 0.815579s/330770n | Rev-A*: 0.59563s/262425n | BAE*: 0.46666s/178596n | MM: 0.860038s/340901n | IDA*: 0.43457s/1693833n | Rev-IDA*: 0.343989s/1428899n | BiHS-Bloom(50%): 1.70774s/12475366n | BiHS-Bloom(10%): -1s/1466921233n | BiHS-Bloom(1%): -1s/0n | Length: 46
+ done (1.6083s, 12475366n)
+[8] Running BiHS-Bloom(1%, size=16KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 16 KiB, k_hashes: 1, min_items: 2912
+ done (11.8407s, 146686448n)
+Puzzle #8 | A*: 0.797458s/330770n | Rev-A*: 0.576516s/262425n | BAE*: 0.462856s/178596n | MM: 0.860641s/340901n | IDA*: 0.436073s/1693833n | Rev-IDA*: 0.350339s/1428899n | BiHS-Bloom(50%): 1.60681s/12475366n | BiHS-Bloom(10%): 1.6083s/12475366n | BiHS-Bloom(1%): 11.8407s/146686448n | Length: 46
 Starting Korf's Puzzle #9
 
-[9] Running A*... done (30.3258s, 10000000n)
-[9] Running Rev-A*... done (21.6977s, 6950463n)
-[9] Running BAE*... done (13.9572s, 3581617n)
-[9] Running MM... done (42.9717s, 12399526n)
-[9] Running IDA*... done (61.6059s, 236596537n)
-[9] Running Rev-IDA*... done (17.217s, 69627205n)
-[9] BiHS-Bloom timeout limit: 1232.12s
-[9] Running BiHS-Bloom(50%, size=15134KiB, k=1, fp_est=0.996404, limit=1232.12s)...
+[9] Running A*... done (31.4313s, 10000000n)
+[9] Running Rev-A*... done (21.8461s, 6950463n)
+[9] Running BAE*... done (14.0956s, 3581617n)
+[9] Running MM... done (42.3117s, 12399526n)
+[9] Running IDA*... done (62.4407s, 236596537n)
+[9] Running Rev-IDA*... done (17.5873s, 69627205n)
+[9] BiHS-Bloom timeout limit: 1248.81s
+[9] Running BiHS-Bloom(50%, size=15134KiB, k=1, fp_est=0.996404, limit=1248.81s)...
 Bloom filter size: 15134 KiB, k_hashes: 1, min_items: 2755060
- done (160.13s, 1345019298n)
-[9] Running BiHS-Bloom(10%, size=3026KiB, k=1, fp_est=1, limit=1232.12s)...
+ done (105.928s, 747106596n)
+[9] Running BiHS-Bloom(10%, size=3026KiB, k=1, fp_est=1, limit=1248.81s)...
 Bloom filter size: 3026 KiB, k_hashes: 1, min_items: 550866
- TIMED OUT (12828106928n)
-Puzzle #9 | A*: 30.3258s/10000000n | Rev-A*: 21.6977s/6950463n | BAE*: 13.9572s/3581617n | MM: 42.9717s/12399526n | IDA*: 61.6059s/236596537n | Rev-IDA*: 17.217s/69627205n | BiHS-Bloom(50%): 160.13s/1345019298n | BiHS-Bloom(10%): -1s/12828106928n | BiHS-Bloom(1%): -1s/0n | Length: 59
+ done (150.144s, 1345019298n)
+[9] Running BiHS-Bloom(1%, size=302KiB, k=1, fp_est=1, limit=1248.81s)...
+Bloom filter size: 302 KiB, k_hashes: 1, min_items: 54977
+ TIMED OUT (13984825219n)
+Puzzle #9 | A*: 31.4313s/10000000n | Rev-A*: 21.8461s/6950463n | BAE*: 14.0956s/3581617n | MM: 42.3117s/12399526n | IDA*: 62.4407s/236596537n | Rev-IDA*: 17.5873s/69627205n | BiHS-Bloom(50%): 105.928s/747106596n | BiHS-Bloom(10%): 150.144s/1345019298n | BiHS-Bloom(1%): -1s/13984825219n | Length: 59
 Starting Korf's Puzzle #10
 
-[10] Running A*... done (10.2123s, 3520146n)
-[10] Running Rev-A*... done (3.26597s, 1238012n)
-[10] Running BAE*... done (4.06932s, 1233052n)
-[10] Running MM... done (9.85436s, 3162192n)
-[10] Running IDA*... done (4.34881s, 17489371n)
-[10] Running Rev-IDA*... done (2.9426s, 11272675n)
-[10] BiHS-Bloom timeout limit: 204.246s
-[10] Running BiHS-Bloom(50%, size=5243KiB, k=1, fp_est=0.989317, limit=204.246s)...
+[10] Running A*... done (10.07s, 3520146n)
+[10] Running Rev-A*... done (3.19268s, 1238012n)
+[10] Running BAE*... done (4.04001s, 1233052n)
+[10] Running MM... done (9.86513s, 3162192n)
+[10] Running IDA*... done (4.50874s, 17489371n)
+[10] Running Rev-IDA*... done (2.93057s, 11272675n)
+[10] BiHS-Bloom timeout limit: 201.4s
+[10] Running BiHS-Bloom(50%, size=5243KiB, k=1, fp_est=0.989317, limit=201.4s)...
 Bloom filter size: 5243 KiB, k_hashes: 1, min_items: 954459
- done (25.0178s, 182641830n)
-[10] Running BiHS-Bloom(10%, size=1048KiB, k=1, fp_est=1, limit=204.246s)...
+ done (24.071s, 182641830n)
+[10] Running BiHS-Bloom(10%, size=1048KiB, k=1, fp_est=1, limit=201.4s)...
 Bloom filter size: 1048 KiB, k_hashes: 1, min_items: 190782
- TIMED OUT (2494421379n)
-Puzzle #10 | A*: 10.2123s/3520146n | Rev-A*: 3.26597s/1238012n | BAE*: 4.06932s/1233052n | MM: 9.85436s/3162192n | IDA*: 4.34881s/17489371n | Rev-IDA*: 2.9426s/11272675n | BiHS-Bloom(50%): 25.0178s/182641830n | BiHS-Bloom(10%): -1s/2494421379n | BiHS-Bloom(1%): -1s/0n | Length: 57
+ done (34.5532s, 329194732n)
+[10] Running BiHS-Bloom(1%, size=104KiB, k=1, fp_est=1, limit=201.4s)...
+Bloom filter size: 104 KiB, k_hashes: 1, min_items: 18932
+ TIMED OUT (2817135045n)
+Puzzle #10 | A*: 10.07s/3520146n | Rev-A*: 3.19268s/1238012n | BAE*: 4.04001s/1233052n | MM: 9.86513s/3162192n | IDA*: 4.50874s/17489371n | Rev-IDA*: 2.93057s/11272675n | BiHS-Bloom(50%): 24.071s/182641830n | BiHS-Bloom(10%): 34.5532s/329194732n | BiHS-Bloom(1%): -1s/2817135045n | Length: 57
 Starting Korf's Puzzle #11
 
-[11] Running A*... done (0.0553469s, 32376n)
-[11] Running Rev-A*... done (0.0610981s, 34350n)
-[11] Running BAE*... done (0.0589674s, 29065n)
-[11] Running MM... done (0.0993338s, 52892n)
-[11] Running IDA*... done (0.0190506s, 74424n)
-[11] Running Rev-IDA*... done (0.0408458s, 152156n)
+[11] Running A*... done (0.0582185s, 32376n)
+[11] Running Rev-A*... done (0.0586483s, 34350n)
+[11] Running BAE*... done (0.0579388s, 29065n)
+[11] Running MM... done (0.0944979s, 52892n)
+[11] Running IDA*... done (0.0191245s, 74424n)
+[11] Running Rev-IDA*... done (0.0407408s, 152156n)
 [11] BiHS-Bloom timeout limit: 120s
 [11] Running BiHS-Bloom(50%, size=144KiB, k=1, fp_est=0.895691, limit=120s)...
 Bloom filter size: 144 KiB, k_hashes: 1, min_items: 26214
- done (0.209167s, 1680272n)
+ done (0.200852s, 1680272n)
 [11] Running BiHS-Bloom(10%, size=28KiB, k=1, fp_est=0.999991, limit=120s)...
 Bloom filter size: 28 KiB, k_hashes: 1, min_items: 5097
- done (0.409618s, 4399704n)
+ done (0.201102s, 1680272n)
 [11] Running BiHS-Bloom(1%, size=2KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 2 KiB, k_hashes: 1, min_items: 364
- TIMED OUT (1628856667n)
-Puzzle #11 | A*: 0.0553469s/32376n | Rev-A*: 0.0610981s/34350n | BAE*: 0.0589674s/29065n | MM: 0.0993338s/52892n | IDA*: 0.0190506s/74424n | Rev-IDA*: 0.0408458s/152156n | BiHS-Bloom(50%): 0.209167s/1680272n | BiHS-Bloom(10%): 0.409618s/4399704n | BiHS-Bloom(1%): -1s/1628856667n | Length: 45
+ done (0.776943s, 9838568n)
+Puzzle #11 | A*: 0.0582185s/32376n | Rev-A*: 0.0586483s/34350n | BAE*: 0.0579388s/29065n | MM: 0.0944979s/52892n | IDA*: 0.0191245s/74424n | Rev-IDA*: 0.0407408s/152156n | BiHS-Bloom(50%): 0.200852s/1680272n | BiHS-Bloom(10%): 0.201102s/1680272n | BiHS-Bloom(1%): 0.776943s/9838568n | Length: 45
 Starting Korf's Puzzle #12
 
-[12] Running A*... done (2.22337s, 817719n)
-[12] Running Rev-A*... done (0.339567s, 169342n)
-[12] Running BAE*... done (0.817296s, 303858n)
-[12] Running MM... done (0.94194s, 384933n)
-[12] Running IDA*... done (0.826653s, 3330458n)
-[12] Running Rev-IDA*... done (0.590239s, 2352911n)
+[12] Running A*... done (2.17432s, 817719n)
+[12] Running Rev-A*... done (0.332485s, 169342n)
+[12] Running BAE*... done (0.808945s, 303858n)
+[12] Running MM... done (0.959621s, 384933n)
+[12] Running IDA*... done (0.842846s, 3330458n)
+[12] Running Rev-IDA*... done (0.610951s, 2352911n)
 [12] BiHS-Bloom timeout limit: 120s
 [12] Running BiHS-Bloom(50%, size=881KiB, k=1, fp_est=0.964535, limit=120s)...
 Bloom filter size: 881 KiB, k_hashes: 1, min_items: 160381
- done (1.93094s, 13588856n)
+ done (1.85212s, 13588856n)
 [12] Running BiHS-Bloom(10%, size=176KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 176 KiB, k_hashes: 1, min_items: 32039
- TIMED OUT (1406770327n)
-Puzzle #12 | A*: 2.22337s/817719n | Rev-A*: 0.339567s/169342n | BAE*: 0.817296s/303858n | MM: 0.94194s/384933n | IDA*: 0.826653s/3330458n | Rev-IDA*: 0.590239s/2352911n | BiHS-Bloom(50%): 1.93094s/13588856n | BiHS-Bloom(10%): -1s/1406770327n | BiHS-Bloom(1%): -1s/0n | Length: 46
+ done (1.87734s, 13588856n)
+[12] Running BiHS-Bloom(1%, size=17KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 17 KiB, k_hashes: 1, min_items: 3094
+ done (19.3824s, 243636448n)
+Puzzle #12 | A*: 2.17432s/817719n | Rev-A*: 0.332485s/169342n | BAE*: 0.808945s/303858n | MM: 0.959621s/384933n | IDA*: 0.842846s/3330458n | Rev-IDA*: 0.610951s/2352911n | BiHS-Bloom(50%): 1.85212s/13588856n | BiHS-Bloom(10%): 1.87734s/13588856n | BiHS-Bloom(1%): 19.3824s/243636448n | Length: 46
 Starting Korf's Puzzle #13
 
-[13] Running A*... done (30.2424s, 10000000n)
-[13] Running Rev-A*... done (31.3101s, 10000000n)
+[13] Running A*... done (30.2916s, 10000000n)
+[13] Running Rev-A*... done (32.1489s, 10000000n)
 [13] A* hit node cap both directions — skipping instance
-Puzzle #13 | A*: 30.2424s/10000000n | Rev-A*: 31.3101s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #13 | A*: 30.2916s/10000000n | Rev-A*: 32.1489s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #14
 
-[14] Running A*... done (31.0059s, 10000000n)
-[14] Running Rev-A*... done (31.1203s, 10000000n)
+[14] Running A*... done (31.8058s, 10000000n)
+[14] Running Rev-A*... done (31.4578s, 10000000n)
 [14] A* hit node cap both directions — skipping instance
-Puzzle #14 | A*: 31.0059s/10000000n | Rev-A*: 31.1203s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #14 | A*: 31.8058s/10000000n | Rev-A*: 31.4578s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #15
 
-[15] Running A*... done (4.08942s, 919939n)
-[15] Running Rev-A*... done (1.73774s, 650552n)
-[15] Running BAE*... done (1.2035s, 369492n)
-[15] Running MM... done (1.89326s, 645358n)
-[15] Running IDA*... done (0.984671s, 3832208n)
-[15] Running Rev-IDA*... done (0.857076s, 3151474n)
+[15] Running A*... done (4.37111s, 919939n)
+[15] Running Rev-A*... done (1.73567s, 650552n)
+[15] Running BAE*... done (1.23058s, 369492n)
+[15] Running MM... done (1.91647s, 645358n)
+[15] Running IDA*... done (0.977137s, 3832208n)
+[15] Running Rev-IDA*... done (0.829437s, 3151474n)
 [15] BiHS-Bloom timeout limit: 120s
 [15] Running BiHS-Bloom(50%, size=1855KiB, k=1, fp_est=0.839796, limit=120s)...
 Bloom filter size: 1855 KiB, k_hashes: 1, min_items: 337692
- done (3.02945s, 19861792n)
+ done (2.84232s, 19861792n)
 [15] Running BiHS-Bloom(10%, size=371KiB, k=1, fp_est=0.999894, limit=120s)...
 Bloom filter size: 371 KiB, k_hashes: 1, min_items: 67538
- TIMED OUT (1302140128n)
-Puzzle #15 | A*: 4.08942s/919939n | Rev-A*: 1.73774s/650552n | BAE*: 1.2035s/369492n | MM: 1.89326s/645358n | IDA*: 0.984671s/3832208n | Rev-IDA*: 0.857076s/3151474n | BiHS-Bloom(50%): 3.02945s/19861792n | BiHS-Bloom(10%): -1s/1302140128n | BiHS-Bloom(1%): -1s/0n | Length: 42
+ done (2.81179s, 19861792n)
+[15] Running BiHS-Bloom(1%, size=37KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 37 KiB, k_hashes: 1, min_items: 6735
+ done (13.9994s, 157903044n)
+Puzzle #15 | A*: 4.37111s/919939n | Rev-A*: 1.73567s/650552n | BAE*: 1.23058s/369492n | MM: 1.91647s/645358n | IDA*: 0.977137s/3832208n | Rev-IDA*: 0.829437s/3151474n | BiHS-Bloom(50%): 2.84232s/19861792n | BiHS-Bloom(10%): 2.81179s/19861792n | BiHS-Bloom(1%): 13.9994s/157903044n | Length: 42
 Starting Korf's Puzzle #16
 
-[16] Running A*... done (27.6756s, 10000000n)
-[16] Running Rev-A*... done (29.5243s, 10000000n)
+[16] Running A*... done (27.5226s, 10000000n)
+[16] Running Rev-A*... done (29.9853s, 10000000n)
 [16] A* hit node cap both directions — skipping instance
-Puzzle #16 | A*: 27.6756s/10000000n | Rev-A*: 29.5243s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #16 | A*: 27.5226s/10000000n | Rev-A*: 29.9853s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #17
 
-[17] Running A*... done (4.68732s, 1262646n)
-[17] Running Rev-A*... done (1.18333s, 512118n)
-[17] Running BAE*... done (1.65468s, 557081n)
-[17] Running MM... done (3.31928s, 1178403n)
-[17] Running IDA*... done (1.32756s, 5447597n)
-[17] Running Rev-IDA*... done (0.772121s, 3027316n)
+[17] Running A*... done (5.01266s, 1262646n)
+[17] Running Rev-A*... done (1.20651s, 512118n)
+[17] Running BAE*... done (1.68729s, 557081n)
+[17] Running MM... done (3.36465s, 1178403n)
+[17] Running IDA*... done (1.3373s, 5447597n)
+[17] Running Rev-IDA*... done (0.783309s, 3027316n)
 [17] BiHS-Bloom timeout limit: 120s
 [17] Running BiHS-Bloom(50%, size=2436KiB, k=1, fp_est=0.968601, limit=120s)...
 Bloom filter size: 2436 KiB, k_hashes: 1, min_items: 443460
- done (6.98677s, 52058070n)
+ done (6.70069s, 52058070n)
 [17] Running BiHS-Bloom(10%, size=487KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 487 KiB, k_hashes: 1, min_items: 88655
- TIMED OUT (1537321175n)
-Puzzle #17 | A*: 4.68732s/1262646n | Rev-A*: 1.18333s/512118n | BAE*: 1.65468s/557081n | MM: 3.31928s/1178403n | IDA*: 1.32756s/5447597n | Rev-IDA*: 0.772121s/3027316n | BiHS-Bloom(50%): 6.98677s/52058070n | BiHS-Bloom(10%): -1s/1537321175n | BiHS-Bloom(1%): -1s/0n | Length: 55
+ done (6.62428s, 52058070n)
+[17] Running BiHS-Bloom(1%, size=48KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 48 KiB, k_hashes: 1, min_items: 8738
+ done (38.3283s, 487426140n)
+Puzzle #17 | A*: 5.01266s/1262646n | Rev-A*: 1.20651s/512118n | BAE*: 1.68729s/557081n | MM: 3.36465s/1178403n | IDA*: 1.3373s/5447597n | Rev-IDA*: 0.783309s/3027316n | BiHS-Bloom(50%): 6.70069s/52058070n | BiHS-Bloom(10%): 6.62428s/52058070n | BiHS-Bloom(1%): 38.3283s/487426140n | Length: 55
 Starting Korf's Puzzle #18
 
-[18] Running A*... done (0.320656s, 154119n)
-[18] Running Rev-A*... done (0.0536508s, 31897n)
-[18] Running BAE*... done (0.095504s, 45382n)
-[18] Running MM... done (0.825423s, 335039n)
-[18] Running IDA*... done (0.274643s, 1082031n)
-[18] Running Rev-IDA*... done (0.0350629s, 132937n)
+[18] Running A*... done (0.31048s, 154119n)
+[18] Running Rev-A*... done (0.052733s, 31897n)
+[18] Running BAE*... done (0.0976945s, 45382n)
+[18] Running MM... done (0.836507s, 335039n)
+[18] Running IDA*... done (0.274593s, 1082031n)
+[18] Running Rev-IDA*... done (0.0342394s, 132937n)
 [18] BiHS-Bloom timeout limit: 120s
 [18] Running BiHS-Bloom(50%, size=172KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 172 KiB, k_hashes: 1, min_items: 31311
- done (0.528411s, 4040190n)
+ done (0.507345s, 4040190n)
 [18] Running BiHS-Bloom(10%, size=34KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 34 KiB, k_hashes: 1, min_items: 6189
- done (1.0073s, 10389586n)
+ done (0.513788s, 4040190n)
 [18] Running BiHS-Bloom(1%, size=3KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 3 KiB, k_hashes: 1, min_items: 546
- TIMED OUT (1532814655n)
-Puzzle #18 | A*: 0.320656s/154119n | Rev-A*: 0.0536508s/31897n | BAE*: 0.095504s/45382n | MM: 0.825423s/335039n | IDA*: 0.274643s/1082031n | Rev-IDA*: 0.0350629s/132937n | BiHS-Bloom(50%): 0.528411s/4040190n | BiHS-Bloom(10%): 1.0073s/10389586n | BiHS-Bloom(1%): -1s/1532814655n | Length: 46
+ done (1.71851s, 20608474n)
+Puzzle #18 | A*: 0.31048s/154119n | Rev-A*: 0.052733s/31897n | BAE*: 0.0976945s/45382n | MM: 0.836507s/335039n | IDA*: 0.274593s/1082031n | Rev-IDA*: 0.0342394s/132937n | BiHS-Bloom(50%): 0.507345s/4040190n | BiHS-Bloom(10%): 0.513788s/4040190n | BiHS-Bloom(1%): 1.71851s/20608474n | Length: 46
 Starting Korf's Puzzle #19
 
-[19] Running A*... done (5.94794s, 2053071n)
-[19] Running Rev-A*... done (10.8806s, 3577230n)
-[19] Running BAE*... done (3.87097s, 1135288n)
-[19] Running MM... done (8.38509s, 2640926n)
-[19] Running IDA*... done (3.71447s, 14866300n)
-[19] Running Rev-IDA*... done (8.09619s, 30897908n)
-[19] BiHS-Bloom timeout limit: 217.612s
-[19] Running BiHS-Bloom(50%, size=4683KiB, k=1, fp_est=0.906754, limit=217.612s)...
+[19] Running A*... done (5.71777s, 2053071n)
+[19] Running Rev-A*... done (10.6125s, 3577230n)
+[19] Running BAE*... done (3.71178s, 1135288n)
+[19] Running MM... done (8.31917s, 2640926n)
+[19] Running IDA*... done (3.79505s, 14866300n)
+[19] Running Rev-IDA*... done (8.3874s, 30897908n)
+[19] BiHS-Bloom timeout limit: 212.25s
+[19] Running BiHS-Bloom(50%, size=4683KiB, k=1, fp_est=0.906754, limit=212.25s)...
 Bloom filter size: 4683 KiB, k_hashes: 1, min_items: 852514
- done (23.5013s, 199923130n)
-[19] Running BiHS-Bloom(10%, size=936KiB, k=1, fp_est=0.999993, limit=217.612s)...
+ done (15.8657s, 113764718n)
+[19] Running BiHS-Bloom(10%, size=936KiB, k=1, fp_est=0.999993, limit=212.25s)...
 Bloom filter size: 936 KiB, k_hashes: 1, min_items: 170393
- TIMED OUT (2203051416n)
-Puzzle #19 | A*: 5.94794s/2053071n | Rev-A*: 10.8806s/3577230n | BAE*: 3.87097s/1135288n | MM: 8.38509s/2640926n | IDA*: 3.71447s/14866300n | Rev-IDA*: 8.09619s/30897908n | BiHS-Bloom(50%): 23.5013s/199923130n | BiHS-Bloom(10%): -1s/2203051416n | BiHS-Bloom(1%): -1s/0n | Length: 52
+ done (21.9251s, 199923130n)
+[19] Running BiHS-Bloom(1%, size=93KiB, k=1, fp_est=1, limit=212.25s)...
+Bloom filter size: 93 KiB, k_hashes: 1, min_items: 16930
+ TIMED OUT (2409317543n)
+Puzzle #19 | A*: 5.71777s/2053071n | Rev-A*: 10.6125s/3577230n | BAE*: 3.71178s/1135288n | MM: 8.31917s/2640926n | IDA*: 3.79505s/14866300n | Rev-IDA*: 8.3874s/30897908n | BiHS-Bloom(50%): 15.8657s/113764718n | BiHS-Bloom(10%): 21.9251s/199923130n | BiHS-Bloom(1%): -1s/2409317543n | Length: 52
 Starting Korf's Puzzle #20
 
-[20] Running A*... done (15.991s, 5601901n)
-[20] Running Rev-A*... done (15.6789s, 5174073n)
-[20] Running BAE*... done (5.58047s, 1501003n)
-[20] Running MM... done (20.8431s, 6437736n)
-[20] Running IDA*... done (29.546s, 119812991n)
-[20] Running Rev-IDA*... done (30.4553s, 122053847n)
-[20] BiHS-Bloom timeout limit: 609.106s
-[20] Running BiHS-Bloom(50%, size=7812KiB, k=1, fp_est=0.988769, limit=609.106s)...
+[20] Running A*... done (15.8109s, 5601901n)
+[20] Running Rev-A*... done (15.7846s, 5174073n)
+[20] Running BAE*... done (5.6639s, 1501003n)
+[20] Running MM... done (21.2367s, 6437736n)
+[20] Running IDA*... done (29.7982s, 119812991n)
+[20] Running Rev-IDA*... done (30.9036s, 122053847n)
+[20] BiHS-Bloom timeout limit: 618.072s
+[20] Running BiHS-Bloom(50%, size=7812KiB, k=1, fp_est=0.988769, limit=618.072s)...
 Bloom filter size: 7812 KiB, k_hashes: 1, min_items: 1422131
- done (75.3628s, 644117462n)
-[20] Running BiHS-Bloom(10%, size=1562KiB, k=1, fp_est=1, limit=609.106s)...
+ done (50.2747s, 368787196n)
+[20] Running BiHS-Bloom(10%, size=1562KiB, k=1, fp_est=1, limit=618.072s)...
 Bloom filter size: 1562 KiB, k_hashes: 1, min_items: 284353
- TIMED OUT (6374657951n)
-Puzzle #20 | A*: 15.991s/5601901n | Rev-A*: 15.6789s/5174073n | BAE*: 5.58047s/1501003n | MM: 20.8431s/6437736n | IDA*: 29.546s/119812991n | Rev-IDA*: 30.4553s/122053847n | BiHS-Bloom(50%): 75.3628s/644117462n | BiHS-Bloom(10%): -1s/6374657951n | BiHS-Bloom(1%): -1s/0n | Length: 54
+ done (70.9664s, 644117462n)
+[20] Running BiHS-Bloom(1%, size=156KiB, k=1, fp_est=1, limit=618.072s)...
+Bloom filter size: 156 KiB, k_hashes: 1, min_items: 28398
+ TIMED OUT (6996830917n)
+Puzzle #20 | A*: 15.8109s/5601901n | Rev-A*: 15.7846s/5174073n | BAE*: 5.6639s/1501003n | MM: 21.2367s/6437736n | IDA*: 29.7982s/119812991n | Rev-IDA*: 30.9036s/122053847n | BiHS-Bloom(50%): 50.2747s/368787196n | BiHS-Bloom(10%): 70.9664s/644117462n | BiHS-Bloom(1%): -1s/6996830917n | Length: 54
 Starting Korf's Puzzle #21
 
-[21] Running A*... done (29.7962s, 10000000n)
-[21] Running Rev-A*... done (30.7056s, 10000000n)
+[21] Running A*... done (30.0657s, 10000000n)
+[21] Running Rev-A*... done (31.2477s, 10000000n)
 [21] A* hit node cap both directions — skipping instance
-Puzzle #21 | A*: 29.7962s/10000000n | Rev-A*: 30.7056s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #21 | A*: 30.0657s/10000000n | Rev-A*: 31.2477s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #22
 
-[22] Running A*... done (5.4417s, 1401954n)
-[22] Running Rev-A*... done (2.55294s, 881973n)
-[22] Running BAE*... done (1.94241s, 592377n)
-[22] Running MM... done (4.18276s, 1389634n)
-[22] Running IDA*... done (1.75276s, 7047471n)
-[22] Running Rev-IDA*... done (2.0088s, 7588483n)
+[22] Running A*... done (5.6815s, 1401954n)
+[22] Running Rev-A*... done (2.41279s, 881973n)
+[22] Running BAE*... done (1.91196s, 592377n)
+[22] Running MM... done (4.14383s, 1389634n)
+[22] Running IDA*... done (1.79615s, 7047471n)
+[22] Running Rev-IDA*... done (2.01951s, 7588483n)
 [22] BiHS-Bloom timeout limit: 120s
 [22] Running BiHS-Bloom(50%, size=2668KiB, k=1, fp_est=0.96594, limit=120s)...
 Bloom filter size: 2668 KiB, k_hashes: 1, min_items: 485694
- done (8.46129s, 59033240n)
+ done (8.09898s, 59033240n)
 [22] Running BiHS-Bloom(10%, size=533KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 533 KiB, k_hashes: 1, min_items: 97029
- TIMED OUT (1347437062n)
-Puzzle #22 | A*: 5.4417s/1401954n | Rev-A*: 2.55294s/881973n | BAE*: 1.94241s/592377n | MM: 4.18276s/1389634n | IDA*: 1.75276s/7047471n | Rev-IDA*: 2.0088s/7588483n | BiHS-Bloom(50%): 8.46129s/59033240n | BiHS-Bloom(10%): -1s/1347437062n | BiHS-Bloom(1%): -1s/0n | Length: 49
+ done (11.6764s, 103460958n)
+[22] Running BiHS-Bloom(1%, size=53KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 53 KiB, k_hashes: 1, min_items: 9648
+ TIMED OUT (1522426223n)
+Puzzle #22 | A*: 5.6815s/1401954n | Rev-A*: 2.41279s/881973n | BAE*: 1.91196s/592377n | MM: 4.14383s/1389634n | IDA*: 1.79615s/7047471n | Rev-IDA*: 2.01951s/7588483n | BiHS-Bloom(50%): 8.09898s/59033240n | BiHS-Bloom(10%): 11.6764s/103460958n | BiHS-Bloom(1%): -1s/1522426223n | Length: 49
 Starting Korf's Puzzle #23
 
-[23] Running A*... done (13.9318s, 4690597n)
-[23] Running Rev-A*... done (20.4285s, 6796314n)
-[23] Running BAE*... done (6.65511s, 1575582n)
-[23] Running MM... done (22.084s, 6418275n)
-[23] Running IDA*... done (5.72008s, 22659912n)
-[23] Running Rev-IDA*... done (22.1593s, 90328608n)
-[23] BiHS-Bloom timeout limit: 443.187s
-[23] Running BiHS-Bloom(50%, size=6993KiB, k=1, fp_est=0.983252, limit=443.187s)...
+[23] Running A*... done (13.8868s, 4690597n)
+[23] Running Rev-A*... done (20.1081s, 6796314n)
+[23] Running BAE*... done (6.56126s, 1575582n)
+[23] Running MM... done (21.3994s, 6418275n)
+[23] Running IDA*... done (5.66817s, 22659912n)
+[23] Running Rev-IDA*... done (22.4861s, 90328608n)
+[23] BiHS-Bloom timeout limit: 449.722s
+[23] Running BiHS-Bloom(50%, size=6993KiB, k=1, fp_est=0.983252, limit=449.722s)...
 Bloom filter size: 6993 KiB, k_hashes: 1, min_items: 1273036
- done (68.7099s, 579076280n)
-[23] Running BiHS-Bloom(10%, size=1398KiB, k=1, fp_est=1, limit=443.187s)...
+ done (44.9642s, 330814352n)
+[23] Running BiHS-Bloom(10%, size=1398KiB, k=1, fp_est=1, limit=449.722s)...
 Bloom filter size: 1398 KiB, k_hashes: 1, min_items: 254498
- TIMED OUT (4535985353n)
-Puzzle #23 | A*: 13.9318s/4690597n | Rev-A*: 20.4285s/6796314n | BAE*: 6.65511s/1575582n | MM: 22.084s/6418275n | IDA*: 5.72008s/22659912n | Rev-IDA*: 22.1593s/90328608n | BiHS-Bloom(50%): 68.7099s/579076280n | BiHS-Bloom(10%): -1s/4535985353n | BiHS-Bloom(1%): -1s/0n | Length: 54
+ done (63.6962s, 579076280n)
+[23] Running BiHS-Bloom(1%, size=139KiB, k=1, fp_est=1, limit=449.722s)...
+Bloom filter size: 139 KiB, k_hashes: 1, min_items: 25304
+ TIMED OUT (4989543806n)
+Puzzle #23 | A*: 13.8868s/4690597n | Rev-A*: 20.1081s/6796314n | BAE*: 6.56126s/1575582n | MM: 21.3994s/6418275n | IDA*: 5.66817s/22659912n | Rev-IDA*: 22.4861s/90328608n | BiHS-Bloom(50%): 44.9642s/330814352n | BiHS-Bloom(10%): 63.6962s/579076280n | BiHS-Bloom(1%): -1s/4989543806n | Length: 54
 Starting Korf's Puzzle #24
 
-[24] Running A*... done (18.104s, 6227145n)
-[24] Running Rev-A*... done (11.0811s, 3417467n)
-[24] Running BAE*... done (6.44303s, 1803567n)
-[24] Running MM... done (18.5077s, 5451657n)
-[24] Running IDA*... done (16.7425s, 68451145n)
-[24] Running Rev-IDA*... done (4.24407s, 16762636n)
-[24] BiHS-Bloom timeout limit: 370.154s
-[24] Running BiHS-Bloom(50%, size=7623KiB, k=1, fp_est=0.989392, limit=370.154s)...
+[24] Running A*... done (17.6005s, 6227145n)
+[24] Running Rev-A*... done (11.1231s, 3417467n)
+[24] Running BAE*... done (6.3551s, 1803567n)
+[24] Running MM... done (18.6225s, 5451657n)
+[24] Running IDA*... done (16.8292s, 68451145n)
+[24] Running Rev-IDA*... done (4.3005s, 16762636n)
+[24] BiHS-Bloom timeout limit: 372.45s
+[24] Running BiHS-Bloom(50%, size=7623KiB, k=1, fp_est=0.989392, limit=372.45s)...
 Bloom filter size: 7623 KiB, k_hashes: 1, min_items: 1387724
- done (63.3964s, 527938606n)
-[24] Running BiHS-Bloom(10%, size=1524KiB, k=1, fp_est=1, limit=370.154s)...
+ done (43.2403s, 306021622n)
+[24] Running BiHS-Bloom(10%, size=1524KiB, k=1, fp_est=1, limit=372.45s)...
 Bloom filter size: 1524 KiB, k_hashes: 1, min_items: 277435
- TIMED OUT (3841456893n)
-Puzzle #24 | A*: 18.104s/6227145n | Rev-A*: 11.0811s/3417467n | BAE*: 6.44303s/1803567n | MM: 18.5077s/5451657n | IDA*: 16.7425s/68451145n | Rev-IDA*: 4.24407s/16762636n | BiHS-Bloom(50%): 63.3964s/527938606n | BiHS-Bloom(10%): -1s/3841456893n | BiHS-Bloom(1%): -1s/0n | Length: 52
+ done (59.6692s, 527938606n)
+[24] Running BiHS-Bloom(1%, size=152KiB, k=1, fp_est=1, limit=372.45s)...
+Bloom filter size: 152 KiB, k_hashes: 1, min_items: 27670
+ TIMED OUT (4203254542n)
+Puzzle #24 | A*: 17.6005s/6227145n | Rev-A*: 11.1231s/3417467n | BAE*: 6.3551s/1803567n | MM: 18.6225s/5451657n | IDA*: 16.8292s/68451145n | Rev-IDA*: 4.3005s/16762636n | BiHS-Bloom(50%): 43.2403s/306021622n | BiHS-Bloom(10%): 59.6692s/527938606n | BiHS-Bloom(1%): -1s/4203254542n | Length: 52
 Starting Korf's Puzzle #25
 
-[25] Running A*... done (29.5489s, 10000000n)
-[25] Running Rev-A*... done (31.082s, 10000000n)
+[25] Running A*... done (29.7291s, 10000000n)
+[25] Running Rev-A*... done (31.9665s, 10000000n)
 [25] A* hit node cap both directions — skipping instance
-Puzzle #25 | A*: 29.5489s/10000000n | Rev-A*: 31.082s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #25 | A*: 29.7291s/10000000n | Rev-A*: 31.9665s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #26
 
-[26] Running A*... done (31.8662s, 10000000n)
-[26] Running Rev-A*... done (20.0712s, 6478155n)
-[26] Running BAE*... done (11.6512s, 2892765n)
-[26] Running MM... done (33.07s, 9832370n)
-[26] Running IDA*... done (22.9908s, 86984780n)
-[26] Running Rev-IDA*... done (16.5755s, 64059009n)
-[26] BiHS-Bloom timeout limit: 661.4s
-[26] Running BiHS-Bloom(50%, size=12857KiB, k=1, fp_est=0.993925, limit=661.4s)...
+[26] Running A*... done (32.6392s, 10000000n)
+[26] Running Rev-A*... done (20.4488s, 6478155n)
+[26] Running BAE*... done (11.7342s, 2892765n)
+[26] Running MM... done (32.4223s, 9832370n)
+[26] Running IDA*... done (24.2943s, 86984780n)
+[26] Running Rev-IDA*... done (16.5493s, 64059009n)
+[26] BiHS-Bloom timeout limit: 652.785s
+[26] Running BiHS-Bloom(50%, size=12857KiB, k=1, fp_est=0.993925, limit=652.785s)...
 Bloom filter size: 12857 KiB, k_hashes: 1, min_items: 2340545
- done (134.625s, 1076522842n)
-[26] Running BiHS-Bloom(10%, size=2571KiB, k=1, fp_est=1, limit=661.4s)...
+ done (91.3555s, 621304446n)
+[26] Running BiHS-Bloom(10%, size=2571KiB, k=1, fp_est=1, limit=652.785s)...
 Bloom filter size: 2571 KiB, k_hashes: 1, min_items: 468036
- TIMED OUT (6673537881n)
-Puzzle #26 | A*: 31.8662s/10000000n | Rev-A*: 20.0712s/6478155n | BAE*: 11.6512s/2892765n | MM: 33.07s/9832370n | IDA*: 22.9908s/86984780n | Rev-IDA*: 16.5755s/64059009n | BiHS-Bloom(50%): 134.625s/1076522842n | BiHS-Bloom(10%): -1s/6673537881n | BiHS-Bloom(1%): -1s/0n | Length: 53
+ done (125.367s, 1076522842n)
+[26] Running BiHS-Bloom(1%, size=257KiB, k=1, fp_est=1, limit=652.785s)...
+Bloom filter size: 257 KiB, k_hashes: 1, min_items: 46785
+ TIMED OUT (6820778148n)
+Puzzle #26 | A*: 32.6392s/10000000n | Rev-A*: 20.4488s/6478155n | BAE*: 11.7342s/2892765n | MM: 32.4223s/9832370n | IDA*: 24.2943s/86984780n | Rev-IDA*: 16.5493s/64059009n | BiHS-Bloom(50%): 91.3555s/621304446n | BiHS-Bloom(10%): 125.367s/1076522842n | BiHS-Bloom(1%): -1s/6820778148n | Length: 53
 Starting Korf's Puzzle #27
 
-[27] Running A*... done (2.30214s, 909444n)
-[27] Running Rev-A*... done (1.20927s, 501653n)
-[27] Running BAE*... done (1.06542s, 372891n)
-[27] Running MM... done (2.85877s, 999245n)
-[27] Running IDA*... done (1.16061s, 4377686n)
-[27] Running Rev-IDA*... done (1.12468s, 4359495n)
+[27] Running A*... done (2.26193s, 909444n)
+[27] Running Rev-A*... done (1.16593s, 501653n)
+[27] Running BAE*... done (1.00056s, 372891n)
+[27] Running MM... done (2.69209s, 999245n)
+[27] Running IDA*... done (1.06158s, 4377686n)
+[27] Running Rev-IDA*... done (1.09935s, 4359495n)
 [27] BiHS-Bloom timeout limit: 120s
 [27] Running BiHS-Bloom(50%, size=1495KiB, k=1, fp_est=0.990896, limit=120s)...
 Bloom filter size: 1495 KiB, k_hashes: 1, min_items: 272156
- done (6.24832s, 45330380n)
+ done (5.74421s, 45330380n)
 [27] Running BiHS-Bloom(10%, size=299KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 299 KiB, k_hashes: 1, min_items: 54431
- TIMED OUT (1467699347n)
-Puzzle #27 | A*: 2.30214s/909444n | Rev-A*: 1.20927s/501653n | BAE*: 1.06542s/372891n | MM: 2.85877s/999245n | IDA*: 1.16061s/4377686n | Rev-IDA*: 1.12468s/4359495n | BiHS-Bloom(50%): 6.24832s/45330380n | BiHS-Bloom(10%): -1s/1467699347n | BiHS-Bloom(1%): -1s/0n | Length: 52
+ done (8.22658s, 81147168n)
+[27] Running BiHS-Bloom(1%, size=29KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 29 KiB, k_hashes: 1, min_items: 5279
+ TIMED OUT (1618678799n)
+Puzzle #27 | A*: 2.26193s/909444n | Rev-A*: 1.16593s/501653n | BAE*: 1.00056s/372891n | MM: 2.69209s/999245n | IDA*: 1.06158s/4377686n | Rev-IDA*: 1.09935s/4359495n | BiHS-Bloom(50%): 5.74421s/45330380n | BiHS-Bloom(10%): 8.22658s/81147168n | BiHS-Bloom(1%): -1s/1618678799n | Length: 52
 Starting Korf's Puzzle #28
 
-[28] Running A*... done (11.0105s, 3934892n)
-[28] Running Rev-A*... done (6.24015s, 2307359n)
-[28] Running BAE*... done (3.95989s, 1229803n)
-[28] Running MM... done (10.773s, 3477011n)
-[28] Running IDA*... done (17.069s, 68822465n)
-[28] Running Rev-IDA*... done (7.71524s, 29835673n)
-[28] BiHS-Bloom timeout limit: 341.379s
-[28] Running BiHS-Bloom(50%, size=5116KiB, k=1, fp_est=0.988311, limit=341.379s)...
+[28] Running A*... done (10.6509s, 3934892n)
+[28] Running Rev-A*... done (6.14198s, 2307359n)
+[28] Running BAE*... done (3.87652s, 1229803n)
+[28] Running MM... done (10.5376s, 3477011n)
+[28] Running IDA*... done (16.9301s, 68822465n)
+[28] Running Rev-IDA*... done (7.6386s, 29835673n)
+[28] BiHS-Bloom timeout limit: 338.602s
+[28] Running BiHS-Bloom(50%, size=5116KiB, k=1, fp_est=0.988311, limit=338.602s)...
 Bloom filter size: 5116 KiB, k_hashes: 1, min_items: 931339
- done (39.7936s, 335751326n)
-[28] Running BiHS-Bloom(10%, size=1023KiB, k=1, fp_est=1, limit=341.379s)...
+ done (26.754s, 191342300n)
+[28] Running BiHS-Bloom(10%, size=1023KiB, k=1, fp_est=1, limit=338.602s)...
 Bloom filter size: 1023 KiB, k_hashes: 1, min_items: 186231
- TIMED OUT (3498047853n)
-Puzzle #28 | A*: 11.0105s/3934892n | Rev-A*: 6.24015s/2307359n | BAE*: 3.95989s/1229803n | MM: 10.773s/3477011n | IDA*: 17.069s/68822465n | Rev-IDA*: 7.71524s/29835673n | BiHS-Bloom(50%): 39.7936s/335751326n | BiHS-Bloom(10%): -1s/3498047853n | BiHS-Bloom(1%): -1s/0n | Length: 54
+ done (37.3689s, 335751326n)
+[28] Running BiHS-Bloom(1%, size=102KiB, k=1, fp_est=1, limit=338.602s)...
+Bloom filter size: 102 KiB, k_hashes: 1, min_items: 18568
+ TIMED OUT (3823192127n)
+Puzzle #28 | A*: 10.6509s/3934892n | Rev-A*: 6.14198s/2307359n | BAE*: 3.87652s/1229803n | MM: 10.5376s/3477011n | IDA*: 16.9301s/68822465n | Rev-IDA*: 7.6386s/29835673n | BiHS-Bloom(50%): 26.754s/191342300n | BiHS-Bloom(10%): 37.3689s/335751326n | BiHS-Bloom(1%): -1s/3823192127n | Length: 54
 Starting Korf's Puzzle #29
 
-[29] Running A*... done (0.501671s, 219399n)
-[29] Running Rev-A*... done (0.201983s, 104816n)
-[29] Running BAE*... done (0.329194s, 139089n)
-[29] Running MM... done (0.512328s, 233125n)
-[29] Running IDA*... done (0.314979s, 1208603n)
-[29] Running Rev-IDA*... done (0.373402s, 1276757n)
+[29] Running A*... done (0.487823s, 219399n)
+[29] Running Rev-A*... done (0.209762s, 104816n)
+[29] Running BAE*... done (0.315537s, 139089n)
+[29] Running MM... done (0.509355s, 233125n)
+[29] Running IDA*... done (0.298523s, 1208603n)
+[29] Running Rev-IDA*... done (0.338503s, 1276757n)
 [29] BiHS-Bloom timeout limit: 120s
 [29] Running BiHS-Bloom(50%, size=550KiB, k=1, fp_est=0.950737, limit=120s)...
 Bloom filter size: 550 KiB, k_hashes: 1, min_items: 100124
- done (1.18667s, 9030312n)
+ done (1.12083s, 9030312n)
 [29] Running BiHS-Bloom(10%, size=110KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 110 KiB, k_hashes: 1, min_items: 20024
- TIMED OUT (1597774952n)
-Puzzle #29 | A*: 0.501671s/219399n | Rev-A*: 0.201983s/104816n | BAE*: 0.329194s/139089n | MM: 0.512328s/233125n | IDA*: 0.314979s/1208603n | Rev-IDA*: 0.373402s/1276757n | BiHS-Bloom(50%): 1.18667s/9030312n | BiHS-Bloom(10%): -1s/1597774952n | BiHS-Bloom(1%): -1s/0n | Length: 47
+ done (1.12901s, 9030312n)
+[29] Running BiHS-Bloom(1%, size=11KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 11 KiB, k_hashes: 1, min_items: 2002
+ done (3.67732s, 44493362n)
+Puzzle #29 | A*: 0.487823s/219399n | Rev-A*: 0.209762s/104816n | BAE*: 0.315537s/139089n | MM: 0.509355s/233125n | IDA*: 0.298523s/1208603n | Rev-IDA*: 0.338503s/1276757n | BiHS-Bloom(50%): 1.12083s/9030312n | BiHS-Bloom(10%): 1.12901s/9030312n | BiHS-Bloom(1%): 3.67732s/44493362n | Length: 47
 Starting Korf's Puzzle #30
 
-[30] Running A*... done (0.429876s, 192385n)
-[30] Running Rev-A*... done (0.0848091s, 47284n)
-[30] Running BAE*... done (0.166772s, 81614n)
-[30] Running MM... done (0.44688s, 205335n)
-[30] Running IDA*... done (0.433617s, 1762998n)
-[30] Running Rev-IDA*... done (0.0383578s, 155608n)
+[30] Running A*... done (0.41038s, 192385n)
+[30] Running Rev-A*... done (0.0828252s, 47284n)
+[30] Running BAE*... done (0.166369s, 81614n)
+[30] Running MM... done (0.437017s, 205335n)
+[30] Running IDA*... done (0.429775s, 1762998n)
+[30] Running Rev-IDA*... done (0.0382955s, 155608n)
 [30] BiHS-Bloom timeout limit: 120s
 [30] Running BiHS-Bloom(50%, size=243KiB, k=1, fp_est=0.998783, limit=120s)...
 Bloom filter size: 243 KiB, k_hashes: 1, min_items: 44236
- done (1.08427s, 8808606n)
+ done (1.04713s, 8808606n)
 [30] Running BiHS-Bloom(10%, size=48KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 48 KiB, k_hashes: 1, min_items: 8738
- TIMED OUT (1654195469n)
-Puzzle #30 | A*: 0.429876s/192385n | Rev-A*: 0.0848091s/47284n | BAE*: 0.166772s/81614n | MM: 0.44688s/205335n | IDA*: 0.433617s/1762998n | Rev-IDA*: 0.0383578s/155608n | BiHS-Bloom(50%): 1.08427s/8808606n | BiHS-Bloom(10%): -1s/1654195469n | BiHS-Bloom(1%): -1s/0n | Length: 50
+ done (1.03922s, 8808606n)
+[30] Running BiHS-Bloom(1%, size=4KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 4 KiB, k_hashes: 1, min_items: 728
+ done (14.9768s, 209296838n)
+Puzzle #30 | A*: 0.41038s/192385n | Rev-A*: 0.0828252s/47284n | BAE*: 0.166369s/81614n | MM: 0.437017s/205335n | IDA*: 0.429775s/1762998n | Rev-IDA*: 0.0382955s/155608n | BiHS-Bloom(50%): 1.04713s/8808606n | BiHS-Bloom(10%): 1.03922s/8808606n | BiHS-Bloom(1%): 14.9768s/209296838n | Length: 50
 Starting Korf's Puzzle #31
 
-[31] Running A*... done (30.3169s, 10000000n)
-[31] Running Rev-A*... done (32.1702s, 10000000n)
+[31] Running A*... done (29.9252s, 10000000n)
+[31] Running Rev-A*... done (32.7477s, 10000000n)
 [31] A* hit node cap both directions — skipping instance
-Puzzle #31 | A*: 30.3169s/10000000n | Rev-A*: 32.1702s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #31 | A*: 29.9252s/10000000n | Rev-A*: 32.7477s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #32
 
-[32] Running A*... done (31.4408s, 10000000n)
-[32] Running Rev-A*... done (31.3435s, 10000000n)
+[32] Running A*... done (32.271s, 10000000n)
+[32] Running Rev-A*... done (31.5234s, 10000000n)
 [32] A* hit node cap both directions — skipping instance
-Puzzle #32 | A*: 31.4408s/10000000n | Rev-A*: 31.3435s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #32 | A*: 32.271s/10000000n | Rev-A*: 31.5234s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #33
 
-[33] Running A*... done (7.39073s, 2063072n)
-[33] Running Rev-A*... done (8.82648s, 3047931n)
-[33] Running BAE*... done (3.33743s, 954164n)
-[33] Running MM... done (9.41356s, 2898197n)
-[33] Running IDA*... done (5.98305s, 23936150n)
-[33] Running Rev-IDA*... done (4.74357s, 18070598n)
-[33] BiHS-Bloom timeout limit: 188.271s
-[33] Running BiHS-Bloom(50%, size=4196KiB, k=1, fp_est=0.960122, limit=188.271s)...
+[33] Running A*... done (7.63204s, 2063072n)
+[33] Running Rev-A*... done (8.78019s, 3047931n)
+[33] Running BAE*... done (3.15725s, 954164n)
+[33] Running MM... done (9.06153s, 2898197n)
+[33] Running IDA*... done (5.98217s, 23936150n)
+[33] Running Rev-IDA*... done (4.74347s, 18070598n)
+[33] BiHS-Bloom timeout limit: 181.231s
+[33] Running BiHS-Bloom(50%, size=4196KiB, k=1, fp_est=0.960122, limit=181.231s)...
 Bloom filter size: 4196 KiB, k_hashes: 1, min_items: 763858
- done (28.7779s, 246299916n)
-[33] Running BiHS-Bloom(10%, size=839KiB, k=1, fp_est=1, limit=188.271s)...
+ done (18.698s, 139224962n)
+[33] Running BiHS-Bloom(10%, size=839KiB, k=1, fp_est=1, limit=181.231s)...
 Bloom filter size: 839 KiB, k_hashes: 1, min_items: 152735
- TIMED OUT (2029766865n)
-Puzzle #33 | A*: 7.39073s/2063072n | Rev-A*: 8.82648s/3047931n | BAE*: 3.33743s/954164n | MM: 9.41356s/2898197n | IDA*: 5.98305s/23936150n | Rev-IDA*: 4.74357s/18070598n | BiHS-Bloom(50%): 28.7779s/246299916n | BiHS-Bloom(10%): -1s/2029766865n | BiHS-Bloom(1%): -1s/0n | Length: 52
+ done (26.3446s, 246299916n)
+[33] Running BiHS-Bloom(1%, size=83KiB, k=1, fp_est=1, limit=181.231s)...
+Bloom filter size: 83 KiB, k_hashes: 1, min_items: 15109
+ TIMED OUT (2117348714n)
+Puzzle #33 | A*: 7.63204s/2063072n | Rev-A*: 8.78019s/3047931n | BAE*: 3.15725s/954164n | MM: 9.06153s/2898197n | IDA*: 5.98217s/23936150n | Rev-IDA*: 4.74347s/18070598n | BiHS-Bloom(50%): 18.698s/139224962n | BiHS-Bloom(10%): 26.3446s/246299916n | BiHS-Bloom(1%): -1s/2117348714n | Length: 52
 Starting Korf's Puzzle #34
 
-[34] Running A*... done (12.6713s, 4626675n)
-[34] Running Rev-A*... done (18.3135s, 6448018n)
-[34] Running BAE*... done (7.30207s, 1921544n)
-[34] Running MM... done (20.2278s, 6256541n)
-[34] Running IDA*... done (7.6848s, 31702742n)
-[34] Running Rev-IDA*... done (14.7847s, 57650733n)
-[34] BiHS-Bloom timeout limit: 404.556s
-[34] Running BiHS-Bloom(50%, size=8110KiB, k=1, fp_est=0.965766, limit=404.556s)...
+[34] Running A*... done (12.6412s, 4626675n)
+[34] Running Rev-A*... done (17.6687s, 6448018n)
+[34] Running BAE*... done (7.11266s, 1921544n)
+[34] Running MM... done (20.0094s, 6256541n)
+[34] Running IDA*... done (7.79987s, 31702742n)
+[34] Running Rev-IDA*... done (14.8457s, 57650733n)
+[34] BiHS-Bloom timeout limit: 400.188s
+[34] Running BiHS-Bloom(50%, size=8110KiB, k=1, fp_est=0.965766, limit=400.188s)...
 Bloom filter size: 8110 KiB, k_hashes: 1, min_items: 1476380
- done (65.1509s, 537768282n)
-[34] Running BiHS-Bloom(10%, size=1622KiB, k=1, fp_est=1, limit=404.556s)...
+ done (42.8356s, 304939604n)
+[34] Running BiHS-Bloom(10%, size=1622KiB, k=1, fp_est=1, limit=400.188s)...
 Bloom filter size: 1622 KiB, k_hashes: 1, min_items: 295276
- TIMED OUT (3961746671n)
-Puzzle #34 | A*: 12.6713s/4626675n | Rev-A*: 18.3135s/6448018n | BAE*: 7.30207s/1921544n | MM: 20.2278s/6256541n | IDA*: 7.6848s/31702742n | Rev-IDA*: 14.7847s/57650733n | BiHS-Bloom(50%): 65.1509s/537768282n | BiHS-Bloom(10%): -1s/3961746671n | BiHS-Bloom(1%): -1s/0n | Length: 55
+ done (60.9473s, 537768282n)
+[34] Running BiHS-Bloom(1%, size=162KiB, k=1, fp_est=1, limit=400.188s)...
+Bloom filter size: 162 KiB, k_hashes: 1, min_items: 29491
+ TIMED OUT (4251076839n)
+Puzzle #34 | A*: 12.6412s/4626675n | Rev-A*: 17.6687s/6448018n | BAE*: 7.11266s/1921544n | MM: 20.0094s/6256541n | IDA*: 7.79987s/31702742n | Rev-IDA*: 14.8457s/57650733n | BiHS-Bloom(50%): 42.8356s/304939604n | BiHS-Bloom(10%): 60.9473s/537768282n | BiHS-Bloom(1%): -1s/4251076839n | Length: 55
 Starting Korf's Puzzle #35
 
-[35] Running A*... done (6.4488s, 2309713n)
-[35] Running Rev-A*... done (5.03014s, 1747601n)
-[35] Running BAE*... done (2.87663s, 901571n)
-[35] Running MM... done (7.89845s, 2464817n)
-[35] Running IDA*... done (2.44656s, 9970167n)
-[35] Running Rev-IDA*... done (5.57919s, 21921132n)
-[35] BiHS-Bloom timeout limit: 157.969s
-[35] Running BiHS-Bloom(50%, size=3681KiB, k=1, fp_est=0.982229, limit=157.969s)...
+[35] Running A*... done (6.42488s, 2309713n)
+[35] Running Rev-A*... done (5.02537s, 1747601n)
+[35] Running BAE*... done (2.91551s, 901571n)
+[35] Running MM... done (7.82605s, 2464817n)
+[35] Running IDA*... done (2.45754s, 9970167n)
+[35] Running Rev-IDA*... done (5.51578s, 21921132n)
+[35] BiHS-Bloom timeout limit: 156.521s
+[35] Running BiHS-Bloom(50%, size=3681KiB, k=1, fp_est=0.982229, limit=156.521s)...
 Bloom filter size: 3681 KiB, k_hashes: 1, min_items: 670105
- done (24.4731s, 213021610n)
-[35] Running BiHS-Bloom(10%, size=736KiB, k=1, fp_est=1, limit=157.969s)...
+ done (16.6709s, 121776960n)
+[35] Running BiHS-Bloom(10%, size=736KiB, k=1, fp_est=1, limit=156.521s)...
 Bloom filter size: 736 KiB, k_hashes: 1, min_items: 133984
- TIMED OUT (1696378194n)
-Puzzle #35 | A*: 6.4488s/2309713n | Rev-A*: 5.03014s/1747601n | BAE*: 2.87663s/901571n | MM: 7.89845s/2464817n | IDA*: 2.44656s/9970167n | Rev-IDA*: 5.57919s/21921132n | BiHS-Bloom(50%): 24.4731s/213021610n | BiHS-Bloom(10%): -1s/1696378194n | BiHS-Bloom(1%): -1s/0n | Length: 52
+ done (23.4395s, 213021610n)
+[35] Running BiHS-Bloom(1%, size=73KiB, k=1, fp_est=1, limit=156.521s)...
+Bloom filter size: 73 KiB, k_hashes: 1, min_items: 13289
+ TIMED OUT (1811065028n)
+Puzzle #35 | A*: 6.42488s/2309713n | Rev-A*: 5.02537s/1747601n | BAE*: 2.91551s/901571n | MM: 7.82605s/2464817n | IDA*: 2.45754s/9970167n | Rev-IDA*: 5.51578s/21921132n | BiHS-Bloom(50%): 16.6709s/121776960n | BiHS-Bloom(10%): 23.4395s/213021610n | BiHS-Bloom(1%): -1s/1811065028n | Length: 52
 Starting Korf's Puzzle #36
 
-[36] Running A*... done (30.5815s, 10000000n)
-[36] Running Rev-A*... done (16.7144s, 5319727n)
-[36] Running BAE*... done (10.5506s, 2763292n)
-[36] Running MM... done (48.9108s, 14349755n)
-[36] Running IDA*... done (46.0411s, 178103450n)
-[36] Running Rev-IDA*... done (12.3616s, 47465941n)
-[36] BiHS-Bloom timeout limit: 978.215s
-[36] Running BiHS-Bloom(50%, size=12054KiB, k=1, fp_est=0.999902, limit=978.215s)...
+[36] Running A*... done (30.5321s, 10000000n)
+[36] Running Rev-A*... done (16.9895s, 5319727n)
+[36] Running BAE*... done (10.5376s, 2763292n)
+[36] Running MM... done (49.0781s, 14349755n)
+[36] Running IDA*... done (46.8674s, 178103450n)
+[36] Running Rev-IDA*... done (12.4137s, 47465941n)
+[36] BiHS-Bloom timeout limit: 981.562s
+[36] Running BiHS-Bloom(50%, size=12054KiB, k=1, fp_est=0.999902, limit=981.562s)...
 Bloom filter size: 12054 KiB, k_hashes: 1, min_items: 2194363
- done (206.244s, 1692045272n)
-[36] Running BiHS-Bloom(10%, size=2410KiB, k=1, fp_est=1, limit=978.215s)...
+ done (136.944s, 958044470n)
+[36] Running BiHS-Bloom(10%, size=2410KiB, k=1, fp_est=1, limit=981.562s)...
 Bloom filter size: 2410 KiB, k_hashes: 1, min_items: 438727
- TIMED OUT (9970001295n)
-Puzzle #36 | A*: 30.5815s/10000000n | Rev-A*: 16.7144s/5319727n | BAE*: 10.5506s/2763292n | MM: 48.9108s/14349755n | IDA*: 46.0411s/178103450n | Rev-IDA*: 12.3616s/47465941n | BiHS-Bloom(50%): 206.244s/1692045272n | BiHS-Bloom(10%): -1s/9970001295n | BiHS-Bloom(1%): -1s/0n | Length: 58
+ done (192.243s, 1692045272n)
+[36] Running BiHS-Bloom(1%, size=241KiB, k=1, fp_est=1, limit=981.562s)...
+Bloom filter size: 241 KiB, k_hashes: 1, min_items: 43872
+ TIMED OUT (10704002097n)
+Puzzle #36 | A*: 30.5321s/10000000n | Rev-A*: 16.9895s/5319727n | BAE*: 10.5376s/2763292n | MM: 49.0781s/14349755n | IDA*: 46.8674s/178103450n | Rev-IDA*: 12.4137s/47465941n | BiHS-Bloom(50%): 136.944s/958044470n | BiHS-Bloom(10%): 192.243s/1692045272n | BiHS-Bloom(1%): -1s/10704002097n | Length: 58
 Starting Korf's Puzzle #37
 
-[37] Running A*... done (2.65583s, 824930n)
-[37] Running Rev-A*... done (0.32041s, 150011n)
-[37] Running BAE*... done (0.531273s, 201076n)
-[37] Running MM... done (1.99975s, 763603n)
-[37] Running IDA*... done (1.12347s, 4681522n)
-[37] Running Rev-IDA*... done (0.321098s, 1229150n)
+[37] Running A*... done (2.10712s, 824930n)
+[37] Running Rev-A*... done (0.307183s, 150011n)
+[37] Running BAE*... done (0.47922s, 201076n)
+[37] Running MM... done (1.95623s, 763603n)
+[37] Running IDA*... done (1.14179s, 4681522n)
+[37] Running Rev-IDA*... done (0.327208s, 1229150n)
 [37] BiHS-Bloom timeout limit: 120s
 [37] Running BiHS-Bloom(50%, size=779KiB, k=1, fp_est=0.999796, limit=120s)...
 Bloom filter size: 779 KiB, k_hashes: 1, min_items: 141812
- done (4.92876s, 38097600n)
+ done (4.77869s, 38097600n)
 [37] Running BiHS-Bloom(10%, size=155KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 155 KiB, k_hashes: 1, min_items: 28216
- TIMED OUT (1557865927n)
-Puzzle #37 | A*: 2.65583s/824930n | Rev-A*: 0.32041s/150011n | BAE*: 0.531273s/201076n | MM: 1.99975s/763603n | IDA*: 1.12347s/4681522n | Rev-IDA*: 0.321098s/1229150n | BiHS-Bloom(50%): 4.92876s/38097600n | BiHS-Bloom(10%): -1s/1557865927n | BiHS-Bloom(1%): -1s/0n | Length: 53
+ done (7.00742s, 69188914n)
+[37] Running BiHS-Bloom(1%, size=15KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 15 KiB, k_hashes: 1, min_items: 2730
+ TIMED OUT (1625905179n)
+Puzzle #37 | A*: 2.10712s/824930n | Rev-A*: 0.307183s/150011n | BAE*: 0.47922s/201076n | MM: 1.95623s/763603n | IDA*: 1.14179s/4681522n | Rev-IDA*: 0.327208s/1229150n | BiHS-Bloom(50%): 4.77869s/38097600n | BiHS-Bloom(10%): 7.00742s/69188914n | BiHS-Bloom(1%): -1s/1625905179n | Length: 53
 Starting Korf's Puzzle #38
 
-[38] Running A*... done (2.94159s, 1117803n)
-[38] Running Rev-A*... done (3.62509s, 1330419n)
-[38] Running BAE*... done (2.03457s, 610960n)
-[38] Running MM... done (4.29314s, 1460636n)
-[38] Running IDA*... done (1.45261s, 5837381n)
-[38] Running Rev-IDA*... done (4.86746s, 18484365n)
+[38] Running A*... done (2.88245s, 1117803n)
+[38] Running Rev-A*... done (3.57895s, 1330419n)
+[38] Running BAE*... done (2.03701s, 610960n)
+[38] Running MM... done (4.34614s, 1460636n)
+[38] Running IDA*... done (1.47706s, 5837381n)
+[38] Running Rev-IDA*... done (4.93526s, 18484365n)
 [38] BiHS-Bloom timeout limit: 120s
 [38] Running BiHS-Bloom(50%, size=3149KiB, k=1, fp_est=0.911429, limit=120s)...
 Bloom filter size: 3149 KiB, k_hashes: 1, min_items: 573257
- done (8.96935s, 62032310n)
+ done (8.66114s, 62032310n)
 [38] Running BiHS-Bloom(10%, size=629KiB, k=1, fp_est=0.999995, limit=120s)...
 Bloom filter size: 629 KiB, k_hashes: 1, min_items: 114505
- TIMED OUT (1286421657n)
-Puzzle #38 | A*: 2.94159s/1117803n | Rev-A*: 3.62509s/1330419n | BAE*: 2.03457s/610960n | MM: 4.29314s/1460636n | IDA*: 1.45261s/5837381n | Rev-IDA*: 4.86746s/18484365n | BiHS-Bloom(50%): 8.96935s/62032310n | BiHS-Bloom(10%): -1s/1286421657n | BiHS-Bloom(1%): -1s/0n | Length: 49
+ done (11.9881s, 108093420n)
+[38] Running BiHS-Bloom(1%, size=62KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 62 KiB, k_hashes: 1, min_items: 11286
+ TIMED OUT (1502085674n)
+Puzzle #38 | A*: 2.88245s/1117803n | Rev-A*: 3.57895s/1330419n | BAE*: 2.03701s/610960n | MM: 4.34614s/1460636n | IDA*: 1.47706s/5837381n | Rev-IDA*: 4.93526s/18484365n | BiHS-Bloom(50%): 8.66114s/62032310n | BiHS-Bloom(10%): 11.9881s/108093420n | BiHS-Bloom(1%): -1s/1502085674n | Length: 49
 Starting Korf's Puzzle #39
 
-[39] Running A*... done (19.3996s, 6540772n)
-[39] Running Rev-A*... done (13.8032s, 4429387n)
-[39] Running BAE*... done (6.26346s, 1747715n)
-[39] Running MM... done (20.5548s, 6232634n)
-[39] Running IDA*... done (17.1875s, 67191286n)
-[39] Running Rev-IDA*... done (5.22578s, 20243533n)
-[39] BiHS-Bloom timeout limit: 411.095s
-[39] Running BiHS-Bloom(50%, size=7701KiB, k=1, fp_est=0.994231, limit=411.095s)...
+[39] Running A*... done (18.913s, 6540772n)
+[39] Running Rev-A*... done (13.4225s, 4429387n)
+[39] Running BAE*... done (6.22787s, 1747715n)
+[39] Running MM... done (20.6436s, 6232634n)
+[39] Running IDA*... done (16.8449s, 67191286n)
+[39] Running Rev-IDA*... done (5.29723s, 20243533n)
+[39] BiHS-Bloom timeout limit: 412.872s
+[39] Running BiHS-Bloom(50%, size=7701KiB, k=1, fp_est=0.994231, limit=412.872s)...
 Bloom filter size: 7701 KiB, k_hashes: 1, min_items: 1401924
- done (67.8311s, 569702554n)
-[39] Running BiHS-Bloom(10%, size=1540KiB, k=1, fp_est=1, limit=411.095s)...
+ done (45.6239s, 323795686n)
+[39] Running BiHS-Bloom(10%, size=1540KiB, k=1, fp_est=1, limit=412.872s)...
 Bloom filter size: 1540 KiB, k_hashes: 1, min_items: 280348
- TIMED OUT (4226746077n)
-Puzzle #39 | A*: 19.3996s/6540772n | Rev-A*: 13.8032s/4429387n | BAE*: 6.26346s/1747715n | MM: 20.5548s/6232634n | IDA*: 17.1875s/67191286n | Rev-IDA*: 5.22578s/20243533n | BiHS-Bloom(50%): 67.8311s/569702554n | BiHS-Bloom(10%): -1s/4226746077n | BiHS-Bloom(1%): -1s/0n | Length: 54
+ done (63.8984s, 569702554n)
+[39] Running BiHS-Bloom(1%, size=154KiB, k=1, fp_est=1, limit=412.872s)...
+Bloom filter size: 154 KiB, k_hashes: 1, min_items: 28034
+ TIMED OUT (4533234111n)
+Puzzle #39 | A*: 18.913s/6540772n | Rev-A*: 13.4225s/4429387n | BAE*: 6.22787s/1747715n | MM: 20.6436s/6232634n | IDA*: 16.8449s/67191286n | Rev-IDA*: 5.29723s/20243533n | BiHS-Bloom(50%): 45.6239s/323795686n | BiHS-Bloom(10%): 63.8984s/569702554n | BiHS-Bloom(1%): -1s/4533234111n | Length: 54
 Starting Korf's Puzzle #40
 
-[40] Running A*... done (16.8492s, 5727416n)
-[40] Running Rev-A*... done (8.37847s, 2694606n)
-[40] Running BAE*... done (4.86522s, 1467589n)
-[40] Running MM... done (15.5077s, 4820021n)
-[40] Running IDA*... done (11.0017s, 42816704n)
-[40] Running Rev-IDA*... done (5.10001s, 19498454n)
-[40] BiHS-Bloom timeout limit: 336.983s
-[40] Running BiHS-Bloom(50%, size=6155KiB, k=1, fp_est=0.995893, limit=336.983s)...
+[40] Running A*... done (16.817s, 5727416n)
+[40] Running Rev-A*... done (8.41343s, 2694606n)
+[40] Running BAE*... done (5.05128s, 1467589n)
+[40] Running MM... done (15.838s, 4820021n)
+[40] Running IDA*... done (11.0102s, 42816704n)
+[40] Running Rev-IDA*... done (5.13052s, 19498454n)
+[40] BiHS-Bloom timeout limit: 336.34s
+[40] Running BiHS-Bloom(50%, size=6155KiB, k=1, fp_est=0.995893, limit=336.34s)...
 Bloom filter size: 6155 KiB, k_hashes: 1, min_items: 1120483
- done (48.3209s, 417251122n)
-[40] Running BiHS-Bloom(10%, size=1231KiB, k=1, fp_est=1, limit=336.983s)...
+ done (32.4s, 235281348n)
+[40] Running BiHS-Bloom(10%, size=1231KiB, k=1, fp_est=1, limit=336.34s)...
 Bloom filter size: 1231 KiB, k_hashes: 1, min_items: 224096
- TIMED OUT (3674021699n)
-Puzzle #40 | A*: 16.8492s/5727416n | Rev-A*: 8.37847s/2694606n | BAE*: 4.86522s/1467589n | MM: 15.5077s/4820021n | IDA*: 11.0017s/42816704n | Rev-IDA*: 5.10001s/19498454n | BiHS-Bloom(50%): 48.3209s/417251122n | BiHS-Bloom(10%): -1s/3674021699n | BiHS-Bloom(1%): -1s/0n | Length: 54
+ done (45.8233s, 417251122n)
+[40] Running BiHS-Bloom(1%, size=123KiB, k=1, fp_est=1, limit=336.34s)...
+Bloom filter size: 123 KiB, k_hashes: 1, min_items: 22391
+ TIMED OUT (3898231093n)
+Puzzle #40 | A*: 16.817s/5727416n | Rev-A*: 8.41343s/2694606n | BAE*: 5.05128s/1467589n | MM: 15.838s/4820021n | IDA*: 11.0102s/42816704n | Rev-IDA*: 5.13052s/19498454n | BiHS-Bloom(50%): 32.4s/235281348n | BiHS-Bloom(10%): 45.8233s/417251122n | BiHS-Bloom(1%): -1s/3898231093n | Length: 54
 Starting Korf's Puzzle #41
 
-[41] Running A*... done (0.08689s, 48458n)
-[41] Running Rev-A*... done (0.0934753s, 50666n)
-[41] Running BAE*... done (0.0883425s, 39046n)
-[41] Running MM... done (0.142888s, 73102n)
-[41] Running IDA*... done (0.0311457s, 125489n)
-[41] Running Rev-IDA*... done (0.0421119s, 157590n)
+[41] Running A*... done (0.0931329s, 48458n)
+[41] Running Rev-A*... done (0.103179s, 50666n)
+[41] Running BAE*... done (0.0913276s, 39046n)
+[41] Running MM... done (0.148463s, 73102n)
+[41] Running IDA*... done (0.0307256s, 125489n)
+[41] Running Rev-IDA*... done (0.0532838s, 157590n)
 [41] BiHS-Bloom timeout limit: 120s
 [41] Running BiHS-Bloom(50%, size=211KiB, k=1, fp_est=0.863081, limit=120s)...
 Bloom filter size: 211 KiB, k_hashes: 1, min_items: 38411
- done (0.318093s, 2474554n)
+ done (0.304458s, 2474554n)
 [41] Running BiHS-Bloom(10%, size=42KiB, k=1, fp_est=0.999954, limit=120s)...
 Bloom filter size: 42 KiB, k_hashes: 1, min_items: 7645
- done (1.16483s, 13867306n)
+ done (0.304121s, 2474554n)
 [41] Running BiHS-Bloom(1%, size=4KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 4 KiB, k_hashes: 1, min_items: 728
- TIMED OUT (1575619512n)
-Puzzle #41 | A*: 0.08689s/48458n | Rev-A*: 0.0934753s/50666n | BAE*: 0.0883425s/39046n | MM: 0.142888s/73102n | IDA*: 0.0311457s/125489n | Rev-IDA*: 0.0421119s/157590n | BiHS-Bloom(50%): 0.318093s/2474554n | BiHS-Bloom(10%): 1.16483s/13867306n | BiHS-Bloom(1%): -1s/1575619512n | Length: 42
+ done (0.754965s, 8624180n)
+Puzzle #41 | A*: 0.0931329s/48458n | Rev-A*: 0.103179s/50666n | BAE*: 0.0913276s/39046n | MM: 0.148463s/73102n | IDA*: 0.0307256s/125489n | Rev-IDA*: 0.0532838s/157590n | BiHS-Bloom(50%): 0.304458s/2474554n | BiHS-Bloom(10%): 0.304121s/2474554n | BiHS-Bloom(1%): 0.754965s/8624180n | Length: 42
 Starting Korf's Puzzle #42
 
-[42] Running A*... done (19.9779s, 7332465n)
-[42] Running Rev-A*... done (22.0174s, 7873286n)
-[42] Running BAE*... done (8.04175s, 2123949n)
-[42] Running MM... done (30.2158s, 9813084n)
-[42] Running IDA*... done (7.94878s, 33669090n)
-[42] Running Rev-IDA*... done (8.22493s, 34346083n)
-[42] BiHS-Bloom timeout limit: 604.316s
-[42] Running BiHS-Bloom(50%, size=8909KiB, k=1, fp_est=0.995407, limit=604.316s)...
+[42] Running A*... done (19.7319s, 7332465n)
+[42] Running Rev-A*... done (22.0284s, 7873286n)
+[42] Running BAE*... done (8.0596s, 2123949n)
+[42] Running MM... done (30.73s, 9813084n)
+[42] Running IDA*... done (8.06576s, 33669090n)
+[42] Running Rev-IDA*... done (8.37834s, 34346083n)
+[42] BiHS-Bloom timeout limit: 614.6s
+[42] Running BiHS-Bloom(50%, size=8909KiB, k=1, fp_est=0.995407, limit=614.6s)...
 Bloom filter size: 8909 KiB, k_hashes: 1, min_items: 1621833
- done (148.065s, 1499228566n)
-[42] Running BiHS-Bloom(10%, size=1781KiB, k=1, fp_est=1, limit=604.316s)...
+ done (71.8681s, 557205426n)
+[42] Running BiHS-Bloom(10%, size=1781KiB, k=1, fp_est=1, limit=614.6s)...
 Bloom filter size: 1781 KiB, k_hashes: 1, min_items: 324221
- TIMED OUT (6985611671n)
-Puzzle #42 | A*: 19.9779s/7332465n | Rev-A*: 22.0174s/7873286n | BAE*: 8.04175s/2123949n | MM: 30.2158s/9813084n | IDA*: 7.94878s/33669090n | Rev-IDA*: 8.22493s/34346083n | BiHS-Bloom(50%): 148.065s/1499228566n | BiHS-Bloom(10%): -1s/6985611671n | BiHS-Bloom(1%): -1s/0n | Length: 64
+ done (105.209s, 1028216996n)
+[42] Running BiHS-Bloom(1%, size=178KiB, k=1, fp_est=1, limit=614.6s)...
+Bloom filter size: 178 KiB, k_hashes: 1, min_items: 32403
+ TIMED OUT (7225941458n)
+Puzzle #42 | A*: 19.7319s/7332465n | Rev-A*: 22.0284s/7873286n | BAE*: 8.0596s/2123949n | MM: 30.73s/9813084n | IDA*: 8.06576s/33669090n | Rev-IDA*: 8.37834s/34346083n | BiHS-Bloom(50%): 71.8681s/557205426n | BiHS-Bloom(10%): 105.209s/1028216996n | BiHS-Bloom(1%): -1s/7225941458n | Length: 64
 Starting Korf's Puzzle #43
 
-[43] Running A*... done (7.71881s, 2727229n)
-[43] Running Rev-A*... done (7.22431s, 2563423n)
-[43] Running BAE*... done (3.53858s, 1040633n)
-[43] Running MM... done (9.77804s, 3050061n)
-[43] Running IDA*... done (13.8233s, 54383373n)
-[43] Running Rev-IDA*... done (15.0832s, 59517297n)
-[43] BiHS-Bloom timeout limit: 301.664s
-[43] Running BiHS-Bloom(50%, size=4452KiB, k=1, fp_est=0.981654, limit=301.664s)...
+[43] Running A*... done (8.53905s, 2727229n)
+[43] Running Rev-A*... done (7.18712s, 2563423n)
+[43] Running BAE*... done (3.51751s, 1040633n)
+[43] Running MM... done (9.80036s, 3050061n)
+[43] Running IDA*... done (13.9289s, 54383373n)
+[43] Running Rev-IDA*... done (15.333s, 59517297n)
+[43] BiHS-Bloom timeout limit: 306.66s
+[43] Running BiHS-Bloom(50%, size=4452KiB, k=1, fp_est=0.981654, limit=306.66s)...
 Bloom filter size: 4452 KiB, k_hashes: 1, min_items: 810461
- done (32.8367s, 267960618n)
-[43] Running BiHS-Bloom(10%, size=890KiB, k=1, fp_est=1, limit=301.664s)...
+ done (22.3414s, 155761144n)
+[43] Running BiHS-Bloom(10%, size=890KiB, k=1, fp_est=1, limit=306.66s)...
 Bloom filter size: 890 KiB, k_hashes: 1, min_items: 162019
- TIMED OUT (2978132299n)
-Puzzle #43 | A*: 7.71881s/2727229n | Rev-A*: 7.22431s/2563423n | BAE*: 3.53858s/1040633n | MM: 9.77804s/3050061n | IDA*: 13.8233s/54383373n | Rev-IDA*: 15.0832s/59517297n | BiHS-Bloom(50%): 32.8367s/267960618n | BiHS-Bloom(10%): -1s/2978132299n | BiHS-Bloom(1%): -1s/0n | Length: 50
+ done (30.8753s, 267960618n)
+[43] Running BiHS-Bloom(1%, size=89KiB, k=1, fp_est=1, limit=306.66s)...
+Bloom filter size: 89 KiB, k_hashes: 1, min_items: 16201
+ TIMED OUT (3257958950n)
+Puzzle #43 | A*: 8.53905s/2727229n | Rev-A*: 7.18712s/2563423n | BAE*: 3.51751s/1040633n | MM: 9.80036s/3050061n | IDA*: 13.9289s/54383373n | Rev-IDA*: 15.333s/59517297n | BiHS-Bloom(50%): 22.3414s/155761144n | BiHS-Bloom(10%): 30.8753s/267960618n | BiHS-Bloom(1%): -1s/3257958950n | Length: 50
 Starting Korf's Puzzle #44
 
-[44] Running A*... done (1.28579s, 539296n)
-[44] Running Rev-A*... done (0.547144s, 246065n)
-[44] Running BAE*... done (0.734107s, 297732n)
-[44] Running MM... done (1.48845s, 570135n)
-[44] Running IDA*... done (0.584835s, 2397270n)
-[44] Running Rev-IDA*... done (0.331881s, 1270517n)
+[44] Running A*... done (1.33349s, 539296n)
+[44] Running Rev-A*... done (0.549119s, 246065n)
+[44] Running BAE*... done (0.781409s, 297732n)
+[44] Running MM... done (1.49517s, 570135n)
+[44] Running IDA*... done (0.597284s, 2397270n)
+[44] Running Rev-IDA*... done (0.337011s, 1270517n)
 [44] BiHS-Bloom timeout limit: 120s
 [44] Running BiHS-Bloom(50%, size=1111KiB, k=1, fp_est=0.97849, limit=120s)...
 Bloom filter size: 1111 KiB, k_hashes: 1, min_items: 202251
- done (3.10472s, 24252338n)
+ done (2.99762s, 24252338n)
 [44] Running BiHS-Bloom(10%, size=222KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 222 KiB, k_hashes: 1, min_items: 40413
- TIMED OUT (1586223399n)
-Puzzle #44 | A*: 1.28579s/539296n | Rev-A*: 0.547144s/246065n | BAE*: 0.734107s/297732n | MM: 1.48845s/570135n | IDA*: 0.584835s/2397270n | Rev-IDA*: 0.331881s/1270517n | BiHS-Bloom(50%): 3.10472s/24252338n | BiHS-Bloom(10%): -1s/1586223399n | BiHS-Bloom(1%): -1s/0n | Length: 51
+ done (3.07068s, 24252338n)
+[44] Running BiHS-Bloom(1%, size=22KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 22 KiB, k_hashes: 1, min_items: 4004
+ done (13.1977s, 163659306n)
+Puzzle #44 | A*: 1.33349s/539296n | Rev-A*: 0.549119s/246065n | BAE*: 0.781409s/297732n | MM: 1.49517s/570135n | IDA*: 0.597284s/2397270n | Rev-IDA*: 0.337011s/1270517n | BiHS-Bloom(50%): 2.99762s/24252338n | BiHS-Bloom(10%): 3.07068s/24252338n | BiHS-Bloom(1%): 13.1977s/163659306n | Length: 51
 Starting Korf's Puzzle #45
 
-[45] Running A*... done (3.89243s, 1416262n)
-[45] Running Rev-A*... done (0.770572s, 324070n)
-[45] Running BAE*... done (1.16936s, 406966n)
-[45] Running MM... done (2.653s, 950679n)
-[45] Running IDA*... done (1.36172s, 5405819n)
-[45] Running Rev-IDA*... done (0.374642s, 1404512n)
+[45] Running A*... done (3.85188s, 1416262n)
+[45] Running Rev-A*... done (0.740792s, 324070n)
+[45] Running BAE*... done (1.14962s, 406966n)
+[45] Running MM... done (2.64536s, 950679n)
+[45] Running IDA*... done (1.38838s, 5405819n)
+[45] Running Rev-IDA*... done (0.372543s, 1404512n)
 [45] BiHS-Bloom timeout limit: 120s
 [45] Running BiHS-Bloom(50%, size=1628KiB, k=1, fp_est=0.99159, limit=120s)...
 Bloom filter size: 1628 KiB, k_hashes: 1, min_items: 296368
- done (5.44453s, 37473000n)
+ done (5.1467s, 37473000n)
 [45] Running BiHS-Bloom(10%, size=325KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 325 KiB, k_hashes: 1, min_items: 59164
- TIMED OUT (1382920192n)
-Puzzle #45 | A*: 3.89243s/1416262n | Rev-A*: 0.770572s/324070n | BAE*: 1.16936s/406966n | MM: 2.653s/950679n | IDA*: 1.36172s/5405819n | Rev-IDA*: 0.374642s/1404512n | BiHS-Bloom(50%): 5.44453s/37473000n | BiHS-Bloom(10%): -1s/1382920192n | BiHS-Bloom(1%): -1s/0n | Length: 49
+ done (5.13566s, 37473000n)
+[45] Running BiHS-Bloom(1%, size=32KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 32 KiB, k_hashes: 1, min_items: 5825
+ TIMED OUT (1556641085n)
+Puzzle #45 | A*: 3.85188s/1416262n | Rev-A*: 0.740792s/324070n | BAE*: 1.14962s/406966n | MM: 2.64536s/950679n | IDA*: 1.38838s/5405819n | Rev-IDA*: 0.372543s/1404512n | BiHS-Bloom(50%): 5.1467s/37473000n | BiHS-Bloom(10%): 5.13566s/37473000n | BiHS-Bloom(1%): -1s/1556641085n | Length: 49
 Starting Korf's Puzzle #46
 
-[46] Running A*... done (0.365001s, 179296n)
-[46] Running Rev-A*... done (0.110195s, 64730n)
-[46] Running BAE*... done (0.295996s, 124888n)
-[46] Running MM... done (0.454948s, 207140n)
-[46] Running IDA*... done (0.495336s, 1958425n)
-[46] Running Rev-IDA*... done (0.0916189s, 357734n)
+[46] Running A*... done (0.374371s, 179296n)
+[46] Running Rev-A*... done (0.11015s, 64730n)
+[46] Running BAE*... done (0.281947s, 124888n)
+[46] Running MM... done (0.441484s, 207140n)
+[46] Running IDA*... done (0.494833s, 1958425n)
+[46] Running Rev-IDA*... done (0.0929821s, 357734n)
 [46] BiHS-Bloom timeout limit: 120s
 [46] Running BiHS-Bloom(50%, size=332KiB, k=1, fp_est=0.992535, limit=120s)...
 Bloom filter size: 332 KiB, k_hashes: 1, min_items: 60438
- done (1.05352s, 8239766n)
+ done (0.997271s, 8239766n)
 [46] Running BiHS-Bloom(10%, size=66KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 66 KiB, k_hashes: 1, min_items: 12014
- TIMED OUT (1608719495n)
-Puzzle #46 | A*: 0.365001s/179296n | Rev-A*: 0.110195s/64730n | BAE*: 0.295996s/124888n | MM: 0.454948s/207140n | IDA*: 0.495336s/1958425n | Rev-IDA*: 0.0916189s/357734n | BiHS-Bloom(50%): 1.05352s/8239766n | BiHS-Bloom(10%): -1s/1608719495n | BiHS-Bloom(1%): -1s/0n | Length: 47
+ done (0.994049s, 8239766n)
+[46] Running BiHS-Bloom(1%, size=6KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 6 KiB, k_hashes: 1, min_items: 1092
+ done (5.69888s, 74512274n)
+Puzzle #46 | A*: 0.374371s/179296n | Rev-A*: 0.11015s/64730n | BAE*: 0.281947s/124888n | MM: 0.441484s/207140n | IDA*: 0.494833s/1958425n | Rev-IDA*: 0.0929821s/357734n | BiHS-Bloom(50%): 0.997271s/8239766n | BiHS-Bloom(10%): 0.994049s/8239766n | BiHS-Bloom(1%): 5.69888s/74512274n | Length: 47
 Starting Korf's Puzzle #47
 
-[47] Running A*... done (0.239682s, 119463n)
-[47] Running Rev-A*... done (0.37242s, 182317n)
-[47] Running BAE*... done (0.215584s, 95367n)
-[47] Running MM... done (0.333568s, 161363n)
-[47] Running IDA*... done (0.211587s, 838258n)
-[47] Running Rev-IDA*... done (0.380885s, 1487873n)
+[47] Running A*... done (0.23642s, 119463n)
+[47] Running Rev-A*... done (0.371774s, 182317n)
+[47] Running BAE*... done (0.211535s, 95367n)
+[47] Running MM... done (0.329239s, 161363n)
+[47] Running IDA*... done (0.212635s, 838258n)
+[47] Running Rev-IDA*... done (0.383914s, 1487873n)
 [47] BiHS-Bloom timeout limit: 120s
 [47] Running BiHS-Bloom(50%, size=457KiB, k=1, fp_est=0.839085, limit=120s)...
 Bloom filter size: 457 KiB, k_hashes: 1, min_items: 83194
- done (0.772684s, 5869916n)
+ done (0.729894s, 5869916n)
 [47] Running BiHS-Bloom(10%, size=91KiB, k=1, fp_est=0.999896, limit=120s)...
 Bloom filter size: 91 KiB, k_hashes: 1, min_items: 16566
- TIMED OUT (1540045118n)
-Puzzle #47 | A*: 0.239682s/119463n | Rev-A*: 0.37242s/182317n | BAE*: 0.215584s/95367n | MM: 0.333568s/161363n | IDA*: 0.211587s/838258n | Rev-IDA*: 0.380885s/1487873n | BiHS-Bloom(50%): 0.772684s/5869916n | BiHS-Bloom(10%): -1s/1540045118n | BiHS-Bloom(1%): -1s/0n | Length: 49
+ done (0.742264s, 5869916n)
+[47] Running BiHS-Bloom(1%, size=9KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 9 KiB, k_hashes: 1, min_items: 1638
+ done (3.31215s, 40244230n)
+Puzzle #47 | A*: 0.23642s/119463n | Rev-A*: 0.371774s/182317n | BAE*: 0.211535s/95367n | MM: 0.329239s/161363n | IDA*: 0.212635s/838258n | Rev-IDA*: 0.383914s/1487873n | BiHS-Bloom(50%): 0.729894s/5869916n | BiHS-Bloom(10%): 0.742264s/5869916n | BiHS-Bloom(1%): 3.31215s/40244230n | Length: 49
 Starting Korf's Puzzle #48
 
-[48] Running A*... done (29.5164s, 10000000n)
-[48] Running Rev-A*... done (31.3882s, 10000000n)
+[48] Running A*... done (29.7049s, 10000000n)
+[48] Running Rev-A*... done (32.2203s, 10000000n)
 [48] A* hit node cap both directions — skipping instance
-Puzzle #48 | A*: 29.5164s/10000000n | Rev-A*: 31.3882s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #48 | A*: 29.7049s/10000000n | Rev-A*: 32.2203s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #49
 
-[49] Running A*... done (14.7708s, 4389916n)
-[49] Running Rev-A*... done (2.51457s, 928856n)
-[49] Running BAE*... done (2.62729s, 776279n)
-[49] Running MM... done (7.7668s, 2459500n)
-[49] Running IDA*... done (6.04764s, 23633812n)
-[49] Running Rev-IDA*... done (2.47913s, 9894282n)
-[49] BiHS-Bloom timeout limit: 295.416s
-[49] Running BiHS-Bloom(50%, size=3733KiB, k=1, fp_est=0.995503, limit=295.416s)...
+[49] Running A*... done (15.1116s, 4389916n)
+[49] Running Rev-A*... done (2.46684s, 928856n)
+[49] Running BAE*... done (2.63302s, 776279n)
+[49] Running MM... done (7.79606s, 2459500n)
+[49] Running IDA*... done (5.96696s, 23633812n)
+[49] Running Rev-IDA*... done (2.48503s, 9894282n)
+[49] BiHS-Bloom timeout limit: 302.232s
+[49] Running BiHS-Bloom(50%, size=3733KiB, k=1, fp_est=0.995503, limit=302.232s)...
 Bloom filter size: 3733 KiB, k_hashes: 1, min_items: 679571
- done (11.7722s, 86792898n)
-[49] Running BiHS-Bloom(10%, size=746KiB, k=1, fp_est=1, limit=295.416s)...
+ done (11.2618s, 86792898n)
+[49] Running BiHS-Bloom(10%, size=746KiB, k=1, fp_est=1, limit=302.232s)...
 Bloom filter size: 746 KiB, k_hashes: 1, min_items: 135805
- TIMED OUT (3768263085n)
-Puzzle #49 | A*: 14.7708s/4389916n | Rev-A*: 2.51457s/928856n | BAE*: 2.62729s/776279n | MM: 7.7668s/2459500n | IDA*: 6.04764s/23633812n | Rev-IDA*: 2.47913s/9894282n | BiHS-Bloom(50%): 11.7722s/86792898n | BiHS-Bloom(10%): -1s/3768263085n | BiHS-Bloom(1%): -1s/0n | Length: 53
+ done (11.3625s, 86792898n)
+[49] Running BiHS-Bloom(1%, size=74KiB, k=1, fp_est=1, limit=302.232s)...
+Bloom filter size: 74 KiB, k_hashes: 1, min_items: 13471
+ done (52.4147s, 649574998n)
+Puzzle #49 | A*: 15.1116s/4389916n | Rev-A*: 2.46684s/928856n | BAE*: 2.63302s/776279n | MM: 7.79606s/2459500n | IDA*: 5.96696s/23633812n | Rev-IDA*: 2.48503s/9894282n | BiHS-Bloom(50%): 11.2618s/86792898n | BiHS-Bloom(10%): 11.3625s/86792898n | BiHS-Bloom(1%): 52.4147s/649574998n | Length: 53
 Starting Korf's Puzzle #50
 
-[50] Running A*... done (7.95902s, 3031917n)
-[50] Running Rev-A*... done (5.89839s, 2178811n)
-[50] Running BAE*... done (4.13672s, 1370393n)
-[50] Running MM... done (9.17791s, 2987373n)
-[50] Running IDA*... done (4.16344s, 16957246n)
-[50] Running Rev-IDA*... done (2.02041s, 7810177n)
-[50] BiHS-Bloom timeout limit: 183.558s
-[50] Running BiHS-Bloom(50%, size=5326KiB, k=1, fp_est=0.974107, limit=183.558s)...
+[50] Running A*... done (7.94462s, 3031917n)
+[50] Running Rev-A*... done (5.94677s, 2178811n)
+[50] Running BAE*... done (4.18162s, 1370393n)
+[50] Running MM... done (9.41851s, 2987373n)
+[50] Running IDA*... done (4.21928s, 16957246n)
+[50] Running Rev-IDA*... done (2.03306s, 7810177n)
+[50] BiHS-Bloom timeout limit: 188.37s
+[50] Running BiHS-Bloom(50%, size=5326KiB, k=1, fp_est=0.974107, limit=188.37s)...
 Bloom filter size: 5326 KiB, k_hashes: 1, min_items: 969568
- done (34.0645s, 302823710n)
-[50] Running BiHS-Bloom(10%, size=1065KiB, k=1, fp_est=1, limit=183.558s)...
+ done (22.7425s, 168736988n)
+[50] Running BiHS-Bloom(10%, size=1065KiB, k=1, fp_est=1, limit=188.37s)...
 Bloom filter size: 1065 KiB, k_hashes: 1, min_items: 193877
- TIMED OUT (2003823707n)
-Puzzle #50 | A*: 7.95902s/3031917n | Rev-A*: 5.89839s/2178811n | BAE*: 4.13672s/1370393n | MM: 9.17791s/2987373n | IDA*: 4.16344s/16957246n | Rev-IDA*: 2.02041s/7810177n | BiHS-Bloom(50%): 34.0645s/302823710n | BiHS-Bloom(10%): -1s/2003823707n | BiHS-Bloom(1%): -1s/0n | Length: 56
+ done (32.4968s, 302823710n)
+[50] Running BiHS-Bloom(1%, size=106KiB, k=1, fp_est=1, limit=188.37s)...
+Bloom filter size: 106 KiB, k_hashes: 1, min_items: 19296
+ TIMED OUT (2342395688n)
+Puzzle #50 | A*: 7.94462s/3031917n | Rev-A*: 5.94677s/2178811n | BAE*: 4.18162s/1370393n | MM: 9.41851s/2987373n | IDA*: 4.21928s/16957246n | Rev-IDA*: 2.03306s/7810177n | BiHS-Bloom(50%): 22.7425s/168736988n | BiHS-Bloom(10%): 32.4968s/302823710n | BiHS-Bloom(1%): -1s/2342395688n | Length: 56
 Starting Korf's Puzzle #51
 
-[51] Running A*... done (30.7387s, 10000000n)
-[51] Running Rev-A*... done (19.6788s, 6258623n)
-[51] Running BAE*... done (11.3334s, 2890923n)
-[51] Running MM... done (32.6926s, 9807207n)
-[51] Running IDA*... done (19.8461s, 75667032n)
-[51] Running Rev-IDA*... done (8.9863s, 35589310n)
-[51] BiHS-Bloom timeout limit: 653.851s
-[51] Running BiHS-Bloom(50%, size=12423KiB, k=1, fp_est=0.994141, limit=653.851s)...
+[51] Running A*... done (30.224s, 10000000n)
+[51] Running Rev-A*... done (20.0518s, 6258623n)
+[51] Running BAE*... done (11.4267s, 2890923n)
+[51] Running MM... done (33.1114s, 9807207n)
+[51] Running IDA*... done (20.6402s, 75667032n)
+[51] Running Rev-IDA*... done (8.9931s, 35589310n)
+[51] BiHS-Bloom timeout limit: 662.228s
+[51] Running BiHS-Bloom(50%, size=12423KiB, k=1, fp_est=0.994141, limit=662.228s)...
 Bloom filter size: 12423 KiB, k_hashes: 1, min_items: 2261538
- done (129.897s, 1066780484n)
-[51] Running BiHS-Bloom(10%, size=2484KiB, k=1, fp_est=1, limit=653.851s)...
+ done (87.1172s, 607943866n)
+[51] Running BiHS-Bloom(10%, size=2484KiB, k=1, fp_est=1, limit=662.228s)...
 Bloom filter size: 2484 KiB, k_hashes: 1, min_items: 452198
- TIMED OUT (6525650499n)
-Puzzle #51 | A*: 30.7387s/10000000n | Rev-A*: 19.6788s/6258623n | BAE*: 11.3334s/2890923n | MM: 32.6926s/9807207n | IDA*: 19.8461s/75667032n | Rev-IDA*: 8.9863s/35589310n | BiHS-Bloom(50%): 129.897s/1066780484n | BiHS-Bloom(10%): -1s/6525650499n | BiHS-Bloom(1%): -1s/0n | Length: 56
+ done (122.502s, 1066780484n)
+[51] Running BiHS-Bloom(1%, size=248KiB, k=1, fp_est=1, limit=662.228s)...
+Bloom filter size: 248 KiB, k_hashes: 1, min_items: 45147
+ TIMED OUT (7099998967n)
+Puzzle #51 | A*: 30.224s/10000000n | Rev-A*: 20.0518s/6258623n | BAE*: 11.4267s/2890923n | MM: 33.1114s/9807207n | IDA*: 20.6402s/75667032n | Rev-IDA*: 8.9931s/35589310n | BiHS-Bloom(50%): 87.1172s/607943866n | BiHS-Bloom(10%): 122.502s/1066780484n | BiHS-Bloom(1%): -1s/7099998967n | Length: 56
 Starting Korf's Puzzle #52
 
-[52] Running A*... done (29.0779s, 10000000n)
-[52] Running Rev-A*... done (30.0824s, 10000000n)
+[52] Running A*... done (28.3926s, 10000000n)
+[52] Running Rev-A*... done (31.0272s, 10000000n)
 [52] A* hit node cap both directions — skipping instance
-Puzzle #52 | A*: 29.0779s/10000000n | Rev-A*: 30.0824s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #52 | A*: 28.3926s/10000000n | Rev-A*: 31.0272s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #53
 
-[53] Running A*... done (23.407s, 7228216n)
-[53] Running Rev-A*... done (22.099s, 7116907n)
-[53] Running BAE*... done (9.40147s, 2313979n)
-[53] Running MM... done (27.8873s, 8417082n)
-[53] Running IDA*... done (25.2081s, 101763100n)
-[53] Running Rev-IDA*... done (39.8523s, 156785393n)
-[53] BiHS-Bloom timeout limit: 797.046s
-[53] Running BiHS-Bloom(50%, size=10624KiB, k=1, fp_est=0.987682, limit=797.046s)...
+[53] Running A*... done (23.8107s, 7228216n)
+[53] Running Rev-A*... done (23.1435s, 7116907n)
+[53] Running BAE*... done (9.74784s, 2313979n)
+[53] Running MM... done (28.5335s, 8417082n)
+[53] Running IDA*... done (25.524s, 101763100n)
+[53] Running Rev-IDA*... done (40.3127s, 156785393n)
+[53] BiHS-Bloom timeout limit: 806.253s
+[53] Running BiHS-Bloom(50%, size=10624KiB, k=1, fp_est=0.987682, limit=806.253s)...
 Bloom filter size: 10624 KiB, k_hashes: 1, min_items: 1934040
- done (103.783s, 866731134n)
-[53] Running BiHS-Bloom(10%, size=2124KiB, k=1, fp_est=1, limit=797.046s)...
+ done (68.1884s, 491953254n)
+[53] Running BiHS-Bloom(10%, size=2124KiB, k=1, fp_est=1, limit=806.253s)...
 Bloom filter size: 2124 KiB, k_hashes: 1, min_items: 386662
- TIMED OUT (8305797985n)
-Puzzle #53 | A*: 23.407s/7228216n | Rev-A*: 22.099s/7116907n | BAE*: 9.40147s/2313979n | MM: 27.8873s/8417082n | IDA*: 25.2081s/101763100n | Rev-IDA*: 39.8523s/156785393n | BiHS-Bloom(50%): 103.783s/866731134n | BiHS-Bloom(10%): -1s/8305797985n | BiHS-Bloom(1%): -1s/0n | Length: 56
+ done (96.4862s, 866731134n)
+[53] Running BiHS-Bloom(1%, size=212KiB, k=1, fp_est=1, limit=806.253s)...
+Bloom filter size: 212 KiB, k_hashes: 1, min_items: 38593
+ TIMED OUT (8919940274n)
+Puzzle #53 | A*: 23.8107s/7228216n | Rev-A*: 23.1435s/7116907n | BAE*: 9.74784s/2313979n | MM: 28.5335s/8417082n | IDA*: 25.524s/101763100n | Rev-IDA*: 40.3127s/156785393n | BiHS-Bloom(50%): 68.1884s/491953254n | BiHS-Bloom(10%): 96.4862s/866731134n | BiHS-Bloom(1%): -1s/8919940274n | Length: 56
 Starting Korf's Puzzle #54
 
-[54] Running A*... done (0.329785s, 152503n)
-[54] Running Rev-A*... done (0.0335389s, 20417n)
-[54] Running BAE*... done (0.0490054s, 26938n)
-[54] Running MM... done (0.187375s, 93004n)
-[54] Running IDA*... done (0.0948205s, 372516n)
-[54] Running Rev-IDA*... done (0.0275748s, 103870n)
+[54] Running A*... done (0.312296s, 152503n)
+[54] Running Rev-A*... done (0.0332402s, 20417n)
+[54] Running BAE*... done (0.0485265s, 26938n)
+[54] Running MM... done (0.20707s, 93004n)
+[54] Running IDA*... done (0.0956777s, 372516n)
+[54] Running Rev-IDA*... done (0.0278101s, 103870n)
 [54] BiHS-Bloom timeout limit: 120s
 [54] Running BiHS-Bloom(50%, size=101KiB, k=1, fp_est=0.999847, limit=120s)...
 Bloom filter size: 101 KiB, k_hashes: 1, min_items: 18386
- done (0.202555s, 1583558n)
+ done (0.1965s, 1583558n)
 [54] Running BiHS-Bloom(10%, size=20KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 20 KiB, k_hashes: 1, min_items: 3640
- done (0.38159s, 3974742n)
+ done (0.196399s, 1583558n)
 [54] Running BiHS-Bloom(1%, size=2KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 2 KiB, k_hashes: 1, min_items: 364
- TIMED OUT (1646165246n)
-Puzzle #54 | A*: 0.329785s/152503n | Rev-A*: 0.0335389s/20417n | BAE*: 0.0490054s/26938n | MM: 0.187375s/93004n | IDA*: 0.0948205s/372516n | Rev-IDA*: 0.0275748s/103870n | BiHS-Bloom(50%): 0.202555s/1583558n | BiHS-Bloom(10%): 0.38159s/3974742n | BiHS-Bloom(1%): -1s/1646165246n | Length: 41
+ done (0.53718s, 6365926n)
+Puzzle #54 | A*: 0.312296s/152503n | Rev-A*: 0.0332402s/20417n | BAE*: 0.0485265s/26938n | MM: 0.20707s/93004n | IDA*: 0.0956777s/372516n | Rev-IDA*: 0.0278101s/103870n | BiHS-Bloom(50%): 0.1965s/1583558n | BiHS-Bloom(10%): 0.196399s/1583558n | BiHS-Bloom(1%): 0.53718s/6365926n | Length: 41
 Starting Korf's Puzzle #55
 
-[55] Running A*... done (30.4193s, 10000000n)
-[55] Running Rev-A*... done (32.3981s, 10000000n)
+[55] Running A*... done (30.5563s, 10000000n)
+[55] Running Rev-A*... done (33.2397s, 10000000n)
 [55] A* hit node cap both directions — skipping instance
-Puzzle #55 | A*: 30.4193s/10000000n | Rev-A*: 32.3981s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #55 | A*: 30.5563s/10000000n | Rev-A*: 33.2397s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #56
 
-[56] Running A*... done (2.68998s, 484136n)
-[56] Running Rev-A*... done (1.93444s, 739509n)
-[56] Running BAE*... done (1.002s, 333256n)
-[56] Running MM... done (2.3724s, 815787n)
-[56] Running IDA*... done (0.755753s, 3100958n)
-[56] Running Rev-IDA*... done (2.00032s, 7642969n)
+[56] Running A*... done (2.99391s, 484136n)
+[56] Running Rev-A*... done (1.94087s, 739509n)
+[56] Running BAE*... done (1.00344s, 333256n)
+[56] Running MM... done (2.36648s, 815787n)
+[56] Running IDA*... done (0.774692s, 3100958n)
+[56] Running Rev-IDA*... done (2.02757s, 7642969n)
 [56] BiHS-Bloom timeout limit: 120s
 [56] Running BiHS-Bloom(50%, size=1607KiB, k=1, fp_est=0.890116, limit=120s)...
 Bloom filter size: 1607 KiB, k_hashes: 1, min_items: 292545
- done (4.96225s, 36682452n)
+ done (4.80915s, 36682452n)
 [56] Running BiHS-Bloom(10%, size=321KiB, k=1, fp_est=0.999984, limit=120s)...
 Bloom filter size: 321 KiB, k_hashes: 1, min_items: 58436
- TIMED OUT (1431323211n)
-Puzzle #56 | A*: 2.68998s/484136n | Rev-A*: 1.93444s/739509n | BAE*: 1.002s/333256n | MM: 2.3724s/815787n | IDA*: 0.755753s/3100958n | Rev-IDA*: 2.00032s/7642969n | BiHS-Bloom(50%): 4.96225s/36682452n | BiHS-Bloom(10%): -1s/1431323211n | BiHS-Bloom(1%): -1s/0n | Length: 50
+ done (6.78488s, 64909176n)
+[56] Running BiHS-Bloom(1%, size=32KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 32 KiB, k_hashes: 1, min_items: 5825
+ TIMED OUT (1607365729n)
+Puzzle #56 | A*: 2.99391s/484136n | Rev-A*: 1.94087s/739509n | BAE*: 1.00344s/333256n | MM: 2.36648s/815787n | IDA*: 0.774692s/3100958n | Rev-IDA*: 2.02757s/7642969n | BiHS-Bloom(50%): 4.80915s/36682452n | BiHS-Bloom(10%): 6.78488s/64909176n | BiHS-Bloom(1%): -1s/1607365729n | Length: 50
 Starting Korf's Puzzle #57
 
-[57] Running A*... done (1.23647s, 511613n)
-[57] Running Rev-A*... done (0.489869s, 238099n)
-[57] Running BAE*... done (0.635449s, 231485n)
-[57] Running MM... done (1.18336s, 477806n)
-[57] Running IDA*... done (1.31359s, 5219252n)
-[57] Running Rev-IDA*... done (0.108003s, 420959n)
+[57] Running A*... done (1.19379s, 511613n)
+[57] Running Rev-A*... done (0.496041s, 238099n)
+[57] Running BAE*... done (0.639553s, 231485n)
+[57] Running MM... done (1.15014s, 477806n)
+[57] Running IDA*... done (1.32174s, 5219252n)
+[57] Running Rev-IDA*... done (0.104533s, 420959n)
 [57] BiHS-Bloom timeout limit: 120s
 [57] Running BiHS-Bloom(50%, size=1213KiB, k=1, fp_est=0.928097, limit=120s)...
 Bloom filter size: 1213 KiB, k_hashes: 1, min_items: 220819
- done (2.8714s, 21913074n)
+ done (2.73948s, 21913074n)
 [57] Running BiHS-Bloom(10%, size=242KiB, k=1, fp_est=0.999998, limit=120s)...
 Bloom filter size: 242 KiB, k_hashes: 1, min_items: 44054
- done (10.7176s, 126615258n)
+ done (2.74319s, 21913074n)
 [57] Running BiHS-Bloom(1%, size=24KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 24 KiB, k_hashes: 1, min_items: 4369
- TIMED OUT (1584817947n)
-Puzzle #57 | A*: 1.23647s/511613n | Rev-A*: 0.489869s/238099n | BAE*: 0.635449s/231485n | MM: 1.18336s/477806n | IDA*: 1.31359s/5219252n | Rev-IDA*: 0.108003s/420959n | BiHS-Bloom(50%): 2.8714s/21913074n | BiHS-Bloom(10%): 10.7176s/126615258n | BiHS-Bloom(1%): -1s/1584817947n | Length: 51
+ done (7.78066s, 91714530n)
+Puzzle #57 | A*: 1.19379s/511613n | Rev-A*: 0.496041s/238099n | BAE*: 0.639553s/231485n | MM: 1.15014s/477806n | IDA*: 1.32174s/5219252n | Rev-IDA*: 0.104533s/420959n | BiHS-Bloom(50%): 2.73948s/21913074n | BiHS-Bloom(10%): 2.74319s/21913074n | BiHS-Bloom(1%): 7.78066s/91714530n | Length: 51
 Starting Korf's Puzzle #58
 
-[58] Running A*... done (30.7365s, 10000000n)
-[58] Running Rev-A*... done (32.2848s, 10000000n)
+[58] Running A*... done (30.7941s, 10000000n)
+[58] Running Rev-A*... done (32.1573s, 10000000n)
 [58] A* hit node cap both directions — skipping instance
-Puzzle #58 | A*: 30.7365s/10000000n | Rev-A*: 32.2848s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #58 | A*: 30.7941s/10000000n | Rev-A*: 32.1573s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #59
 
-[59] Running A*... done (30.3424s, 10000000n)
-[59] Running Rev-A*... done (30.208s, 10000000n)
+[59] Running A*... done (30.2138s, 10000000n)
+[59] Running Rev-A*... done (30.6732s, 10000000n)
 [59] A* hit node cap both directions — skipping instance
-Puzzle #59 | A*: 30.3424s/10000000n | Rev-A*: 30.208s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #59 | A*: 30.2138s/10000000n | Rev-A*: 30.6732s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #60
 
-[60] Running A*... done (2.82761s, 508041n)
-[60] Running Rev-A*... done (0.675795s, 280627n)
-[60] Running BAE*... done (0.861847s, 317279n)
-[60] Running MM... done (1.23761s, 440448n)
-[60] Running IDA*... done (0.807703s, 3032730n)
-[60] Running Rev-IDA*... done (0.541577s, 2067297n)
+[60] Running A*... done (3.15006s, 508041n)
+[60] Running Rev-A*... done (0.645459s, 280627n)
+[60] Running BAE*... done (0.870066s, 317279n)
+[60] Running MM... done (1.16337s, 440448n)
+[60] Running IDA*... done (0.768122s, 3032730n)
+[60] Running Rev-IDA*... done (0.557028s, 2067297n)
 [60] BiHS-Bloom timeout limit: 120s
 [60] Running BiHS-Bloom(50%, size=1182KiB, k=1, fp_est=0.919419, limit=120s)...
 Bloom filter size: 1182 KiB, k_hashes: 1, min_items: 215176
- done (2.34106s, 16998842n)
+ done (2.22597s, 16998842n)
 [60] Running BiHS-Bloom(10%, size=236KiB, k=1, fp_est=0.999997, limit=120s)...
 Bloom filter size: 236 KiB, k_hashes: 1, min_items: 42962
- TIMED OUT (1449017161n)
-Puzzle #60 | A*: 2.82761s/508041n | Rev-A*: 0.675795s/280627n | BAE*: 0.861847s/317279n | MM: 1.23761s/440448n | IDA*: 0.807703s/3032730n | Rev-IDA*: 0.541577s/2067297n | BiHS-Bloom(50%): 2.34106s/16998842n | BiHS-Bloom(10%): -1s/1449017161n | BiHS-Bloom(1%): -1s/0n | Length: 45
+ done (2.25725s, 16998842n)
+[60] Running BiHS-Bloom(1%, size=23KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 23 KiB, k_hashes: 1, min_items: 4187
+ done (12.1094s, 146273740n)
+Puzzle #60 | A*: 3.15006s/508041n | Rev-A*: 0.645459s/280627n | BAE*: 0.870066s/317279n | MM: 1.16337s/440448n | IDA*: 0.768122s/3032730n | Rev-IDA*: 0.557028s/2067297n | BiHS-Bloom(50%): 2.22597s/16998842n | BiHS-Bloom(10%): 2.25725s/16998842n | BiHS-Bloom(1%): 12.1094s/146273740n | Length: 45
 Starting Korf's Puzzle #61
 
-[61] Running A*... done (4.84501s, 1831500n)
-[61] Running Rev-A*... done (13.2975s, 4777327n)
-[61] Running BAE*... done (4.79365s, 1372476n)
-[61] Running MM... done (12.1724s, 3948257n)
-[61] Running IDA*... done (2.05435s, 8356540n)
-[61] Running Rev-IDA*... done (27.5365s, 107265985n)
-[61] BiHS-Bloom timeout limit: 550.731s
-[61] Running BiHS-Bloom(50%, size=7087KiB, k=1, fp_est=0.846254, limit=550.731s)...
+[61] Running A*... done (4.82687s, 1831500n)
+[61] Running Rev-A*... done (13.1403s, 4777327n)
+[61] Running BAE*... done (4.80446s, 1372476n)
+[61] Running MM... done (12.1017s, 3948257n)
+[61] Running IDA*... done (2.06462s, 8356540n)
+[61] Running Rev-IDA*... done (27.4333s, 107265985n)
+[61] BiHS-Bloom timeout limit: 548.666s
+[61] Running BiHS-Bloom(50%, size=7087KiB, k=1, fp_est=0.846254, limit=548.666s)...
 Bloom filter size: 7087 KiB, k_hashes: 1, min_items: 1290148
- done (28.3592s, 202113868n)
-[61] Running BiHS-Bloom(10%, size=1417KiB, k=1, fp_est=0.999914, limit=550.731s)...
+ done (26.5174s, 202113868n)
+[61] Running BiHS-Bloom(10%, size=1417KiB, k=1, fp_est=0.999914, limit=548.666s)...
 Bloom filter size: 1417 KiB, k_hashes: 1, min_items: 257956
- TIMED OUT (6381300587n)
-Puzzle #61 | A*: 4.84501s/1831500n | Rev-A*: 13.2975s/4777327n | BAE*: 4.79365s/1372476n | MM: 12.1724s/3948257n | IDA*: 2.05435s/8356540n | Rev-IDA*: 27.5365s/107265985n | BiHS-Bloom(50%): 28.3592s/202113868n | BiHS-Bloom(10%): -1s/6381300587n | BiHS-Bloom(1%): -1s/0n | Length: 57
+ done (37.7774s, 363242992n)
+[61] Running BiHS-Bloom(1%, size=141KiB, k=1, fp_est=1, limit=548.666s)...
+Bloom filter size: 141 KiB, k_hashes: 1, min_items: 25668
+ TIMED OUT (7325273742n)
+Puzzle #61 | A*: 4.82687s/1831500n | Rev-A*: 13.1403s/4777327n | BAE*: 4.80446s/1372476n | MM: 12.1017s/3948257n | IDA*: 2.06462s/8356540n | Rev-IDA*: 27.4333s/107265985n | BiHS-Bloom(50%): 26.5174s/202113868n | BiHS-Bloom(10%): 37.7774s/363242992n | BiHS-Bloom(1%): -1s/7325273742n | Length: 57
 Starting Korf's Puzzle #62
 
-[62] Running A*... done (31.4537s, 10000000n)
-[62] Running Rev-A*... done (20.2702s, 6328921n)
-[62] Running BAE*... done (15.3697s, 3849666n)
-[62] Running MM... done (46.6213s, 13228320n)
-[62] Running IDA*... done (55.861s, 202124691n)
-[62] Running Rev-IDA*... done (15.1675s, 57400550n)
-[62] BiHS-Bloom timeout limit: 1117.22s
-[62] Running BiHS-Bloom(50%, size=16942KiB, k=1, fp_est=0.997144, limit=1117.22s)...
+[62] Running A*... done (31.3943s, 10000000n)
+[62] Running Rev-A*... done (20.1594s, 6328921n)
+[62] Running BAE*... done (14.8816s, 3849666n)
+[62] Running MM... done (46.6073s, 13228320n)
+[62] Running IDA*... done (55.4253s, 202124691n)
+[62] Running Rev-IDA*... done (15.4397s, 57400550n)
+[62] BiHS-Bloom timeout limit: 1108.51s
+[62] Running BiHS-Bloom(50%, size=16942KiB, k=1, fp_est=0.997144, limit=1108.51s)...
 Bloom filter size: 16942 KiB, k_hashes: 1, min_items: 3084196
- done (174.837s, 1363407468n)
-[62] Running BiHS-Bloom(10%, size=3388KiB, k=1, fp_est=1, limit=1117.22s)...
+ done (119.867s, 782937276n)
+[62] Running BiHS-Bloom(10%, size=3388KiB, k=1, fp_est=1, limit=1108.51s)...
 Bloom filter size: 3388 KiB, k_hashes: 1, min_items: 616766
- TIMED OUT (10658518023n)
-Puzzle #62 | A*: 31.4537s/10000000n | Rev-A*: 20.2702s/6328921n | BAE*: 15.3697s/3849666n | MM: 46.6213s/13228320n | IDA*: 55.861s/202124691n | Rev-IDA*: 15.1675s/57400550n | BiHS-Bloom(50%): 174.837s/1363407468n | BiHS-Bloom(10%): -1s/10658518023n | BiHS-Bloom(1%): -1s/0n | Length: 56
+ done (163.64s, 1363407468n)
+[62] Running BiHS-Bloom(1%, size=338KiB, k=1, fp_est=1, limit=1108.51s)...
+Bloom filter size: 338 KiB, k_hashes: 1, min_items: 61531
+ TIMED OUT (12010779011n)
+Puzzle #62 | A*: 31.3943s/10000000n | Rev-A*: 20.1594s/6328921n | BAE*: 14.8816s/3849666n | MM: 46.6073s/13228320n | IDA*: 55.4253s/202124691n | Rev-IDA*: 15.4397s/57400550n | BiHS-Bloom(50%): 119.867s/782937276n | BiHS-Bloom(10%): 163.64s/1363407468n | BiHS-Bloom(1%): -1s/12010779011n | Length: 56
 Starting Korf's Puzzle #63
 
-[63] Running A*... done (16.5806s, 5630312n)
-[63] Running Rev-A*... done (13.6151s, 4469879n)
-[63] Running BAE*... done (5.40302s, 1447409n)
-[63] Running MM... done (16.9033s, 5164425n)
-[63] Running IDA*... done (23.4866s, 93057850n)
-[63] Running Rev-IDA*... done (14.0099s, 53579367n)
-[63] BiHS-Bloom timeout limit: 469.733s
-[63] Running BiHS-Bloom(50%, size=7572KiB, k=1, fp_est=0.971354, limit=469.733s)...
+[63] Running A*... done (16.2793s, 5630312n)
+[63] Running Rev-A*... done (13.4049s, 4469879n)
+[63] Running BAE*... done (5.49546s, 1447409n)
+[63] Running MM... done (16.8216s, 5164425n)
+[63] Running IDA*... done (24.626s, 93057850n)
+[63] Running Rev-IDA*... done (13.9982s, 53579367n)
+[63] BiHS-Bloom timeout limit: 492.52s
+[63] Running BiHS-Bloom(50%, size=7572KiB, k=1, fp_est=0.971354, limit=492.52s)...
 Bloom filter size: 7572 KiB, k_hashes: 1, min_items: 1378440
- done (58.0896s, 459504286n)
-[63] Running BiHS-Bloom(10%, size=1514KiB, k=1, fp_est=1, limit=469.733s)...
+ done (38.948s, 267824394n)
+[63] Running BiHS-Bloom(10%, size=1514KiB, k=1, fp_est=1, limit=492.52s)...
 Bloom filter size: 1514 KiB, k_hashes: 1, min_items: 275615
- TIMED OUT (4518885947n)
-Puzzle #63 | A*: 16.5806s/5630312n | Rev-A*: 13.6151s/4469879n | BAE*: 5.40302s/1447409n | MM: 16.9033s/5164425n | IDA*: 23.4866s/93057850n | Rev-IDA*: 14.0099s/53579367n | BiHS-Bloom(50%): 58.0896s/459504286n | BiHS-Bloom(10%): -1s/4518885947n | BiHS-Bloom(1%): -1s/0n | Length: 51
+ done (53.3261s, 459504286n)
+[63] Running BiHS-Bloom(1%, size=151KiB, k=1, fp_est=1, limit=492.52s)...
+Bloom filter size: 151 KiB, k_hashes: 1, min_items: 27488
+ TIMED OUT (5165038045n)
+Puzzle #63 | A*: 16.2793s/5630312n | Rev-A*: 13.4049s/4469879n | BAE*: 5.49546s/1447409n | MM: 16.8216s/5164425n | IDA*: 24.626s/93057850n | Rev-IDA*: 13.9982s/53579367n | BiHS-Bloom(50%): 38.948s/267824394n | BiHS-Bloom(10%): 53.3261s/459504286n | BiHS-Bloom(1%): -1s/5165038045n | Length: 51
 Starting Korf's Puzzle #64
 
-[64] Running A*... done (2.49458s, 920340n)
-[64] Running Rev-A*... done (1.10076s, 442925n)
-[64] Running BAE*... done (1.16861s, 410064n)
-[64] Running MM... done (2.20416s, 795641n)
-[64] Running IDA*... done (1.04514s, 4189042n)
-[64] Running Rev-IDA*... done (0.286874s, 1175718n)
+[64] Running A*... done (2.47256s, 920340n)
+[64] Running Rev-A*... done (1.07603s, 442925n)
+[64] Running BAE*... done (1.14589s, 410064n)
+[64] Running MM... done (2.15731s, 795641n)
+[64] Running IDA*... done (1.05443s, 4189042n)
+[64] Running Rev-IDA*... done (0.28857s, 1175718n)
 [64] BiHS-Bloom timeout limit: 120s
 [64] Running BiHS-Bloom(50%, size=1583KiB, k=1, fp_est=0.972954, limit=120s)...
 Bloom filter size: 1583 KiB, k_hashes: 1, min_items: 288176
- done (4.55306s, 32018300n)
+ done (4.33339s, 32018300n)
 [64] Running BiHS-Bloom(10%, size=316KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 316 KiB, k_hashes: 1, min_items: 57526
- TIMED OUT (1401241145n)
-Puzzle #64 | A*: 2.49458s/920340n | Rev-A*: 1.10076s/442925n | BAE*: 1.16861s/410064n | MM: 2.20416s/795641n | IDA*: 1.04514s/4189042n | Rev-IDA*: 0.286874s/1175718n | BiHS-Bloom(50%): 4.55306s/32018300n | BiHS-Bloom(10%): -1s/1401241145n | BiHS-Bloom(1%): -1s/0n | Length: 47
+ done (4.35453s, 32018300n)
+[64] Running BiHS-Bloom(1%, size=31KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 31 KiB, k_hashes: 1, min_items: 5643
+ TIMED OUT (1597266853n)
+Puzzle #64 | A*: 2.47256s/920340n | Rev-A*: 1.07603s/442925n | BAE*: 1.14589s/410064n | MM: 2.15731s/795641n | IDA*: 1.05443s/4189042n | Rev-IDA*: 0.28857s/1175718n | BiHS-Bloom(50%): 4.33339s/32018300n | BiHS-Bloom(10%): 4.35453s/32018300n | BiHS-Bloom(1%): -1s/1597266853n | Length: 47
 Starting Korf's Puzzle #65
 
-[65] Running A*... done (29.0678s, 10000000n)
-[65] Running Rev-A*... done (31.0169s, 10000000n)
+[65] Running A*... done (29.5894s, 10000000n)
+[65] Running Rev-A*... done (31.9684s, 10000000n)
 [65] A* hit node cap both directions — skipping instance
-Puzzle #65 | A*: 29.0678s/10000000n | Rev-A*: 31.0169s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #65 | A*: 29.5894s/10000000n | Rev-A*: 31.9684s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #66
 
-[66] Running A*... done (27.1322s, 8430957n)
-[66] Running Rev-A*... done (17.7914s, 5531547n)
-[66] Running BAE*... done (10.1746s, 2564227n)
-[66] Running MM... done (25.5607s, 7644317n)
-[66] Running IDA*... done (30.8396s, 122756042n)
-[66] Running Rev-IDA*... done (15.1509s, 58874621n)
-[66] BiHS-Bloom timeout limit: 616.792s
-[66] Running BiHS-Bloom(50%, size=11145KiB, k=1, fp_est=0.989392, limit=616.792s)...
+[66] Running A*... done (28.1795s, 8430957n)
+[66] Running Rev-A*... done (18.1168s, 5531547n)
+[66] Running BAE*... done (10.305s, 2564227n)
+[66] Running MM... done (26.4008s, 7644317n)
+[66] Running IDA*... done (31.183s, 122756042n)
+[66] Running Rev-IDA*... done (15.3167s, 58874621n)
+[66] BiHS-Bloom timeout limit: 623.66s
+[66] Running BiHS-Bloom(50%, size=11145KiB, k=1, fp_est=0.989392, limit=623.66s)...
 Bloom filter size: 11145 KiB, k_hashes: 1, min_items: 2028885
- done (90.0396s, 698617606n)
-[66] Running BiHS-Bloom(10%, size=2229KiB, k=1, fp_est=1, limit=616.792s)...
+ done (62.4482s, 412676310n)
+[66] Running BiHS-Bloom(10%, size=2229KiB, k=1, fp_est=1, limit=623.66s)...
 Bloom filter size: 2229 KiB, k_hashes: 1, min_items: 405777
- TIMED OUT (5731649727n)
-Puzzle #66 | A*: 27.1322s/8430957n | Rev-A*: 17.7914s/5531547n | BAE*: 10.1746s/2564227n | MM: 25.5607s/7644317n | IDA*: 30.8396s/122756042n | Rev-IDA*: 15.1509s/58874621n | BiHS-Bloom(50%): 90.0396s/698617606n | BiHS-Bloom(10%): -1s/5731649727n | BiHS-Bloom(1%): -1s/0n | Length: 50
+ done (84.4492s, 698617606n)
+[66] Running BiHS-Bloom(1%, size=222KiB, k=1, fp_est=1, limit=623.66s)...
+Bloom filter size: 222 KiB, k_hashes: 1, min_items: 40413
+ TIMED OUT (6330327031n)
+Puzzle #66 | A*: 28.1795s/8430957n | Rev-A*: 18.1168s/5531547n | BAE*: 10.305s/2564227n | MM: 26.4008s/7644317n | IDA*: 31.183s/122756042n | Rev-IDA*: 15.3167s/58874621n | BiHS-Bloom(50%): 62.4482s/412676310n | BiHS-Bloom(10%): 84.4492s/698617606n | BiHS-Bloom(1%): -1s/6330327031n | Length: 50
 Starting Korf's Puzzle #67
 
-[67] Running A*... done (16.1604s, 5471048n)
-[67] Running Rev-A*... done (6.862s, 2110759n)
-[67] Running BAE*... done (5.07999s, 1450662n)
-[67] Running MM... done (15.8835s, 4860851n)
-[67] Running IDA*... done (11.3849s, 45399399n)
-[67] Running Rev-IDA*... done (4.38368s, 17069830n)
-[67] BiHS-Bloom timeout limit: 323.209s
-[67] Running BiHS-Bloom(50%, size=6147KiB, k=1, fp_est=0.997083, limit=323.209s)...
+[67] Running A*... done (16.5193s, 5471048n)
+[67] Running Rev-A*... done (6.78843s, 2110759n)
+[67] Running BAE*... done (5.10919s, 1450662n)
+[67] Running MM... done (16.3437s, 4860851n)
+[67] Running IDA*... done (11.4392s, 45399399n)
+[67] Running Rev-IDA*... done (4.41724s, 17069830n)
+[67] BiHS-Bloom timeout limit: 330.386s
+[67] Running BiHS-Bloom(50%, size=6147KiB, k=1, fp_est=0.997083, limit=330.386s)...
 Bloom filter size: 6147 KiB, k_hashes: 1, min_items: 1119027
- done (55.189s, 461846434n)
-[67] Running BiHS-Bloom(10%, size=1229KiB, k=1, fp_est=1, limit=323.209s)...
+ done (37.8771s, 266939796n)
+[67] Running BiHS-Bloom(10%, size=1229KiB, k=1, fp_est=1, limit=330.386s)...
 Bloom filter size: 1229 KiB, k_hashes: 1, min_items: 223732
- TIMED OUT (3396435935n)
-Puzzle #67 | A*: 16.1604s/5471048n | Rev-A*: 6.862s/2110759n | BAE*: 5.07999s/1450662n | MM: 15.8835s/4860851n | IDA*: 11.3849s/45399399n | Rev-IDA*: 4.38368s/17069830n | BiHS-Bloom(50%): 55.189s/461846434n | BiHS-Bloom(10%): -1s/3396435935n | BiHS-Bloom(1%): -1s/0n | Length: 51
+ done (53.1478s, 461846434n)
+[67] Running BiHS-Bloom(1%, size=122KiB, k=1, fp_est=1, limit=330.386s)...
+Bloom filter size: 122 KiB, k_hashes: 1, min_items: 22209
+ TIMED OUT (3840043341n)
+Puzzle #67 | A*: 16.5193s/5471048n | Rev-A*: 6.78843s/2110759n | BAE*: 5.10919s/1450662n | MM: 16.3437s/4860851n | IDA*: 11.4392s/45399399n | Rev-IDA*: 4.41724s/17069830n | BiHS-Bloom(50%): 37.8771s/266939796n | BiHS-Bloom(10%): 53.1478s/461846434n | BiHS-Bloom(1%): -1s/3840043341n | Length: 51
 Starting Korf's Puzzle #68
 
-[68] Running A*... done (12.8624s, 4577747n)
-[68] Running Rev-A*... done (13.8276s, 4755076n)
-[68] Running BAE*... done (5.71586s, 1645192n)
-[68] Running MM... done (16.3927s, 5028344n)
-[68] Running IDA*... done (16.815s, 67393597n)
-[68] Running Rev-IDA*... done (31.1065s, 120686881n)
-[68] BiHS-Bloom timeout limit: 622.13s
-[68] Running BiHS-Bloom(50%, size=7581KiB, k=1, fp_est=0.967463, limit=622.13s)...
+[68] Running A*... done (12.7057s, 4577747n)
+[68] Running Rev-A*... done (13.8309s, 4755076n)
+[68] Running BAE*... done (5.71457s, 1645192n)
+[68] Running MM... done (16.4794s, 5028344n)
+[68] Running IDA*... done (16.9685s, 67393597n)
+[68] Running Rev-IDA*... done (31.2373s, 120686881n)
+[68] BiHS-Bloom timeout limit: 624.746s
+[68] Running BiHS-Bloom(50%, size=7581KiB, k=1, fp_est=0.967463, limit=624.746s)...
 Bloom filter size: 7581 KiB, k_hashes: 1, min_items: 1380078
- done (56.8431s, 455420564n)
-[68] Running BiHS-Bloom(10%, size=1516KiB, k=1, fp_est=1, limit=622.13s)...
+ done (37.1708s, 261464374n)
+[68] Running BiHS-Bloom(10%, size=1516KiB, k=1, fp_est=1, limit=624.746s)...
 Bloom filter size: 1516 KiB, k_hashes: 1, min_items: 275979
- TIMED OUT (6131327364n)
-Puzzle #68 | A*: 12.8624s/4577747n | Rev-A*: 13.8276s/4755076n | BAE*: 5.71586s/1645192n | MM: 16.3927s/5028344n | IDA*: 16.815s/67393597n | Rev-IDA*: 31.1065s/120686881n | BiHS-Bloom(50%): 56.8431s/455420564n | BiHS-Bloom(10%): -1s/6131327364n | BiHS-Bloom(1%): -1s/0n | Length: 53
+ done (51.4921s, 455420564n)
+[68] Running BiHS-Bloom(1%, size=151KiB, k=1, fp_est=1, limit=624.746s)...
+Bloom filter size: 151 KiB, k_hashes: 1, min_items: 27488
+ TIMED OUT (6777027996n)
+Puzzle #68 | A*: 12.7057s/4577747n | Rev-A*: 13.8309s/4755076n | BAE*: 5.71457s/1645192n | MM: 16.4794s/5028344n | IDA*: 16.9685s/67393597n | Rev-IDA*: 31.2373s/120686881n | BiHS-Bloom(50%): 37.1708s/261464374n | BiHS-Bloom(10%): 51.4921s/455420564n | BiHS-Bloom(1%): -1s/6777027996n | Length: 53
 Starting Korf's Puzzle #69
 
-[69] Running A*... done (23.486s, 8179224n)
-[69] Running Rev-A*... done (16.0436s, 5206958n)
-[69] Running BAE*... done (7.25279s, 1828843n)
-[69] Running MM... done (22.4024s, 6960893n)
-[69] Running IDA*... done (19.9134s, 79701617n)
-[69] Running Rev-IDA*... done (16.4297s, 64833271n)
-[69] BiHS-Bloom timeout limit: 469.719s
-[69] Running BiHS-Bloom(50%, size=8049KiB, k=1, fp_est=0.996518, limit=469.719s)...
+[69] Running A*... done (24.2075s, 8179224n)
+[69] Running Rev-A*... done (16.3415s, 5206958n)
+[69] Running BAE*... done (7.33185s, 1828843n)
+[69] Running MM... done (22.9351s, 6960893n)
+[69] Running IDA*... done (20.143s, 79701617n)
+[69] Running Rev-IDA*... done (16.4052s, 64833271n)
+[69] BiHS-Bloom timeout limit: 484.15s
+[69] Running BiHS-Bloom(50%, size=8049KiB, k=1, fp_est=0.996518, limit=484.15s)...
 Bloom filter size: 8049 KiB, k_hashes: 1, min_items: 1465275
- done (89.2251s, 702461924n)
-[69] Running BiHS-Bloom(10%, size=1609KiB, k=1, fp_est=1, limit=469.719s)...
+ done (60.068s, 408680518n)
+[69] Running BiHS-Bloom(10%, size=1609KiB, k=1, fp_est=1, limit=484.15s)...
 Bloom filter size: 1609 KiB, k_hashes: 1, min_items: 292909
- TIMED OUT (4482326852n)
-Puzzle #69 | A*: 23.486s/8179224n | Rev-A*: 16.0436s/5206958n | BAE*: 7.25279s/1828843n | MM: 22.4024s/6960893n | IDA*: 19.9134s/79701617n | Rev-IDA*: 16.4297s/64833271n | BiHS-Bloom(50%): 89.2251s/702461924n | BiHS-Bloom(10%): -1s/4482326852n | BiHS-Bloom(1%): -1s/0n | Length: 52
+ done (82.4728s, 702461924n)
+[69] Running BiHS-Bloom(1%, size=160KiB, k=1, fp_est=1, limit=484.15s)...
+Bloom filter size: 160 KiB, k_hashes: 1, min_items: 29127
+ TIMED OUT (4998501371n)
+Puzzle #69 | A*: 24.2075s/8179224n | Rev-A*: 16.3415s/5206958n | BAE*: 7.33185s/1828843n | MM: 22.9351s/6960893n | IDA*: 20.143s/79701617n | Rev-IDA*: 16.4052s/64833271n | BiHS-Bloom(50%): 60.068s/408680518n | BiHS-Bloom(10%): 82.4728s/702461924n | BiHS-Bloom(1%): -1s/4998501371n | Length: 52
 Starting Korf's Puzzle #70
 
-[70] Running A*... done (1.44636s, 557142n)
-[70] Running Rev-A*... done (0.395386s, 177335n)
-[70] Running BAE*... done (0.583717s, 224756n)
-[70] Running MM... done (1.19949s, 430736n)
-[70] Running IDA*... done (1.53686s, 6074831n)
-[70] Running Rev-IDA*... done (0.170473s, 637659n)
+[70] Running A*... done (1.46371s, 557142n)
+[70] Running Rev-A*... done (0.387828s, 177335n)
+[70] Running BAE*... done (0.552232s, 224756n)
+[70] Running MM... done (1.13298s, 430736n)
+[70] Running IDA*... done (1.51803s, 6074831n)
+[70] Running Rev-IDA*... done (0.170916s, 637659n)
 [70] BiHS-Bloom timeout limit: 120s
 [70] Running BiHS-Bloom(50%, size=846KiB, k=1, fp_est=0.978344, limit=120s)...
 Bloom filter size: 846 KiB, k_hashes: 1, min_items: 154009
- done (2.11108s, 14617504n)
+ done (1.97683s, 14617504n)
 [70] Running BiHS-Bloom(10%, size=169KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 169 KiB, k_hashes: 1, min_items: 30765
- TIMED OUT (1372326317n)
-Puzzle #70 | A*: 1.44636s/557142n | Rev-A*: 0.395386s/177335n | BAE*: 0.583717s/224756n | MM: 1.19949s/430736n | IDA*: 1.53686s/6074831n | Rev-IDA*: 0.170473s/637659n | BiHS-Bloom(50%): 2.11108s/14617504n | BiHS-Bloom(10%): -1s/1372326317n | BiHS-Bloom(1%): -1s/0n | Length: 44
+ done (2.02721s, 14617504n)
+[70] Running BiHS-Bloom(1%, size=16KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 16 KiB, k_hashes: 1, min_items: 2912
+ TIMED OUT (1525960390n)
+Puzzle #70 | A*: 1.46371s/557142n | Rev-A*: 0.387828s/177335n | BAE*: 0.552232s/224756n | MM: 1.13298s/430736n | IDA*: 1.51803s/6074831n | Rev-IDA*: 0.170916s/637659n | BiHS-Bloom(50%): 1.97683s/14617504n | BiHS-Bloom(10%): 2.02721s/14617504n | BiHS-Bloom(1%): -1s/1525960390n | Length: 44
 Starting Korf's Puzzle #71
 
-[71] Running A*... done (29.4113s, 10000000n)
-[71] Running Rev-A*... done (22.1688s, 6912324n)
-[71] Running BAE*... done (16.1228s, 4001872n)
-[71] Running MM... done (67.9435s, 18693537n)
-[71] Running IDA*... done (204.191s, 806265927n)
-[71] Running Rev-IDA*... done (9.03189s, 35954147n)
-[71] BiHS-Bloom timeout limit: 4083.82s
-[71] Running BiHS-Bloom(50%, size=17757KiB, k=1, fp_est=0.999787, limit=4083.82s)...
+[71] Running A*... done (30.7351s, 10000000n)
+[71] Running Rev-A*... done (22.6761s, 6912324n)
+[71] Running BAE*... done (16.0999s, 4001872n)
+[71] Running MM... done (66.0697s, 18693537n)
+[71] Running IDA*... done (210.15s, 806265927n)
+[71] Running Rev-IDA*... done (9.16624s, 35954147n)
+[71] BiHS-Bloom timeout limit: 4203s
+[71] Running BiHS-Bloom(50%, size=17757KiB, k=1, fp_est=0.999787, limit=4203s)...
 Bloom filter size: 17757 KiB, k_hashes: 1, min_items: 3232563
- done (286.427s, 2121660604n)
-[71] Running BiHS-Bloom(10%, size=3551KiB, k=1, fp_est=1, limit=4083.82s)...
+ done (196.238s, 1229837566n)
+[71] Running BiHS-Bloom(10%, size=3551KiB, k=1, fp_est=1, limit=4203s)...
 Bloom filter size: 3551 KiB, k_hashes: 1, min_items: 646439
- TIMED OUT (37492211017n)
-Puzzle #71 | A*: 29.4113s/10000000n | Rev-A*: 22.1688s/6912324n | BAE*: 16.1228s/4001872n | MM: 67.9435s/18693537n | IDA*: 204.191s/806265927n | Rev-IDA*: 9.03189s/35954147n | BiHS-Bloom(50%): 286.427s/2121660604n | BiHS-Bloom(10%): -1s/37492211017n | BiHS-Bloom(1%): -1s/0n | Length: 56
+ done (265.864s, 2121660604n)
+[71] Running BiHS-Bloom(1%, size=355KiB, k=1, fp_est=1, limit=4203s)...
+Bloom filter size: 355 KiB, k_hashes: 1, min_items: 64625
+ TIMED OUT (42017737357n)
+Puzzle #71 | A*: 30.7351s/10000000n | Rev-A*: 22.6761s/6912324n | BAE*: 16.0999s/4001872n | MM: 66.0697s/18693537n | IDA*: 210.15s/806265927n | Rev-IDA*: 9.16624s/35954147n | BiHS-Bloom(50%): 196.238s/1229837566n | BiHS-Bloom(10%): 265.864s/2121660604n | BiHS-Bloom(1%): -1s/42017737357n | Length: 56
 Starting Korf's Puzzle #72
 
-[72] Running A*... done (0.372316s, 185052n)
-[72] Running Rev-A*... done (0.251975s, 133390n)
-[72] Running BAE*... done (0.151697s, 79005n)
-[72] Running MM... done (0.374632s, 186149n)
-[72] Running IDA*... done (0.106304s, 419498n)
-[72] Running Rev-IDA*... done (0.34781s, 1271787n)
+[72] Running A*... done (0.98319s, 185052n)
+[72] Running Rev-A*... done (0.268683s, 133390n)
+[72] Running BAE*... done (0.152298s, 79005n)
+[72] Running MM... done (0.393645s, 186149n)
+[72] Running IDA*... done (0.107694s, 419498n)
+[72] Running Rev-IDA*... done (0.344329s, 1271787n)
 [72] BiHS-Bloom timeout limit: 120s
 [72] Running BiHS-Bloom(50%, size=308KiB, k=1, fp_est=0.974109, limit=120s)...
 Bloom filter size: 308 KiB, k_hashes: 1, min_items: 56069
- done (1.09795s, 8356478n)
+ done (1.04871s, 8356478n)
 [72] Running BiHS-Bloom(10%, size=61KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 61 KiB, k_hashes: 1, min_items: 11104
- TIMED OUT (1490085013n)
-Puzzle #72 | A*: 0.372316s/185052n | Rev-A*: 0.251975s/133390n | BAE*: 0.151697s/79005n | MM: 0.374632s/186149n | IDA*: 0.106304s/419498n | Rev-IDA*: 0.34781s/1271787n | BiHS-Bloom(50%): 1.09795s/8356478n | BiHS-Bloom(10%): -1s/1490085013n | BiHS-Bloom(1%): -1s/0n | Length: 49
+ done (1.52703s, 15195656n)
+[72] Running BiHS-Bloom(1%, size=6KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 6 KiB, k_hashes: 1, min_items: 1092
+ TIMED OUT (1587119513n)
+Puzzle #72 | A*: 0.98319s/185052n | Rev-A*: 0.268683s/133390n | BAE*: 0.152298s/79005n | MM: 0.393645s/186149n | IDA*: 0.107694s/419498n | Rev-IDA*: 0.344329s/1271787n | BiHS-Bloom(50%): 1.04871s/8356478n | BiHS-Bloom(10%): 1.52703s/15195656n | BiHS-Bloom(1%): -1s/1587119513n | Length: 49
 Starting Korf's Puzzle #73
 
-[73] Running A*... done (3.49901s, 1348055n)
-[73] Running Rev-A*... done (0.122067s, 71121n)
-[73] Running BAE*... done (0.423001s, 169128n)
-[73] Running MM... done (2.17332s, 810284n)
-[73] Running IDA*... done (1.02959s, 4205874n)
-[73] Running Rev-IDA*... done (0.288096s, 1173941n)
+[73] Running A*... done (3.48893s, 1348055n)
+[73] Running Rev-A*... done (0.126527s, 71121n)
+[73] Running BAE*... done (0.445947s, 169128n)
+[73] Running MM... done (2.22319s, 810284n)
+[73] Running IDA*... done (1.04318s, 4205874n)
+[73] Running Rev-IDA*... done (0.292017s, 1173941n)
 [73] BiHS-Bloom timeout limit: 120s
 [73] Running BiHS-Bloom(50%, size=367KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 367 KiB, k_hashes: 1, min_items: 66810
- done (1.72808s, 13736070n)
+ done (1.67124s, 13736070n)
 [73] Running BiHS-Bloom(10%, size=73KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 73 KiB, k_hashes: 1, min_items: 13289
- TIMED OUT (1601702229n)
-Puzzle #73 | A*: 3.49901s/1348055n | Rev-A*: 0.122067s/71121n | BAE*: 0.423001s/169128n | MM: 2.17332s/810284n | IDA*: 1.02959s/4205874n | Rev-IDA*: 0.288096s/1173941n | BiHS-Bloom(50%): 1.72808s/13736070n | BiHS-Bloom(10%): -1s/1601702229n | BiHS-Bloom(1%): -1s/0n | Length: 56
+ done (1.66487s, 13736070n)
+[73] Running BiHS-Bloom(1%, size=7KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 7 KiB, k_hashes: 1, min_items: 1274
+ TIMED OUT (1684182781n)
+Puzzle #73 | A*: 3.48893s/1348055n | Rev-A*: 0.126527s/71121n | BAE*: 0.445947s/169128n | MM: 2.22319s/810284n | IDA*: 1.04318s/4205874n | Rev-IDA*: 0.292017s/1173941n | BiHS-Bloom(50%): 1.67124s/13736070n | BiHS-Bloom(10%): 1.66487s/13736070n | BiHS-Bloom(1%): -1s/1684182781n | Length: 56
 Starting Korf's Puzzle #74
 
-[74] Running A*... done (10.296s, 3440530n)
-[74] Running Rev-A*... done (7.16113s, 2486671n)
-[74] Running BAE*... done (4.08726s, 1171811n)
-[74] Running MM... done (9.14042s, 2775545n)
-[74] Running IDA*... done (5.51848s, 21720710n)
-[74] Running Rev-IDA*... done (5.89482s, 22928978n)
-[74] BiHS-Bloom timeout limit: 205.92s
-[74] Running BiHS-Bloom(50%, size=5178KiB, k=1, fp_est=0.965635, limit=205.92s)...
+[74] Running A*... done (10.3175s, 3440530n)
+[74] Running Rev-A*... done (7.24316s, 2486671n)
+[74] Running BAE*... done (3.90678s, 1171811n)
+[74] Running MM... done (8.82043s, 2775545n)
+[74] Running IDA*... done (5.54827s, 21720710n)
+[74] Running Rev-IDA*... done (5.98563s, 22928978n)
+[74] BiHS-Bloom timeout limit: 206.35s
+[74] Running BiHS-Bloom(50%, size=5178KiB, k=1, fp_est=0.965635, limit=206.35s)...
 Bloom filter size: 5178 KiB, k_hashes: 1, min_items: 942626
- done (27.1072s, 211271678n)
-[74] Running BiHS-Bloom(10%, size=1035KiB, k=1, fp_est=1, limit=205.92s)...
+ done (18.5734s, 123499300n)
+[74] Running BiHS-Bloom(10%, size=1035KiB, k=1, fp_est=1, limit=206.35s)...
 Bloom filter size: 1035 KiB, k_hashes: 1, min_items: 188416
- TIMED OUT (1956999563n)
-Puzzle #74 | A*: 10.296s/3440530n | Rev-A*: 7.16113s/2486671n | BAE*: 4.08726s/1171811n | MM: 9.14042s/2775545n | IDA*: 5.51848s/21720710n | Rev-IDA*: 5.89482s/22928978n | BiHS-Bloom(50%): 27.1072s/211271678n | BiHS-Bloom(10%): -1s/1956999563n | BiHS-Bloom(1%): -1s/0n | Length: 48
+ done (26.056s, 211271678n)
+[74] Running BiHS-Bloom(1%, size=103KiB, k=1, fp_est=1, limit=206.35s)...
+Bloom filter size: 103 KiB, k_hashes: 1, min_items: 18750
+ TIMED OUT (2114003108n)
+Puzzle #74 | A*: 10.3175s/3440530n | Rev-A*: 7.24316s/2486671n | BAE*: 3.90678s/1171811n | MM: 8.82043s/2775545n | IDA*: 5.54827s/21720710n | Rev-IDA*: 5.98563s/22928978n | BiHS-Bloom(50%): 18.5734s/123499300n | BiHS-Bloom(10%): 26.056s/211271678n | BiHS-Bloom(1%): -1s/2114003108n | Length: 48
 Starting Korf's Puzzle #75
 
-[75] Running A*... done (22.4163s, 7596156n)
-[75] Running Rev-A*... done (15.9895s, 5231024n)
-[75] Running BAE*... done (8.20211s, 2016581n)
-[75] Running MM... done (25.5832s, 7870712n)
-[75] Running IDA*... done (59.2548s, 236331472n)
-[75] Running Rev-IDA*... done (7.37972s, 29875640n)
-[75] BiHS-Bloom timeout limit: 1185.1s
-[75] Running BiHS-Bloom(50%, size=10518KiB, k=1, fp_est=0.986489, limit=1185.1s)...
+[75] Running A*... done (22.1167s, 7596156n)
+[75] Running Rev-A*... done (15.3611s, 5231024n)
+[75] Running BAE*... done (7.96869s, 2016581n)
+[75] Running MM... done (24.9002s, 7870712n)
+[75] Running IDA*... done (60.0125s, 236331472n)
+[75] Running Rev-IDA*... done (7.43393s, 29875640n)
+[75] BiHS-Bloom timeout limit: 1200.25s
+[75] Running BiHS-Bloom(50%, size=10518KiB, k=1, fp_est=0.986489, limit=1200.25s)...
 Bloom filter size: 10518 KiB, k_hashes: 1, min_items: 1914743
- done (101.174s, 857454968n)
-[75] Running BiHS-Bloom(10%, size=2103KiB, k=1, fp_est=1, limit=1185.1s)...
+ done (66.9658s, 483630806n)
+[75] Running BiHS-Bloom(10%, size=2103KiB, k=1, fp_est=1, limit=1200.25s)...
 Bloom filter size: 2103 KiB, k_hashes: 1, min_items: 382839
- TIMED OUT (12159399488n)
-Puzzle #75 | A*: 22.4163s/7596156n | Rev-A*: 15.9895s/5231024n | BAE*: 8.20211s/2016581n | MM: 25.5832s/7870712n | IDA*: 59.2548s/236331472n | Rev-IDA*: 7.37972s/29875640n | BiHS-Bloom(50%): 101.174s/857454968n | BiHS-Bloom(10%): -1s/12159399488n | BiHS-Bloom(1%): -1s/0n | Length: 57
+ done (95.2446s, 857454968n)
+[75] Running BiHS-Bloom(1%, size=210KiB, k=1, fp_est=1, limit=1200.25s)...
+Bloom filter size: 210 KiB, k_hashes: 1, min_items: 38229
+ TIMED OUT (13280871974n)
+Puzzle #75 | A*: 22.1167s/7596156n | Rev-A*: 15.3611s/5231024n | BAE*: 7.96869s/2016581n | MM: 24.9002s/7870712n | IDA*: 60.0125s/236331472n | Rev-IDA*: 7.43393s/29875640n | BiHS-Bloom(50%): 66.9658s/483630806n | BiHS-Bloom(10%): 95.2446s/857454968n | BiHS-Bloom(1%): -1s/13280871974n | Length: 57
 Starting Korf's Puzzle #76
 
-[76] Running A*... done (5.80776s, 2184326n)
-[76] Running Rev-A*... done (21.3899s, 7124043n)
-[76] Running BAE*... done (5.96426s, 1436368n)
-[76] Running MM... done (13.6215s, 4282766n)
-[76] Running IDA*... done (2.42434s, 9768236n)
-[76] Running Rev-IDA*... done (14.8811s, 59448656n)
-[76] BiHS-Bloom timeout limit: 427.798s
-[76] Running BiHS-Bloom(50%, size=5996KiB, k=1, fp_est=0.917903, limit=427.798s)...
+[76] Running A*... done (5.68711s, 2184326n)
+[76] Running Rev-A*... done (20.8652s, 7124043n)
+[76] Running BAE*... done (6.02035s, 1436368n)
+[76] Running MM... done (13.9013s, 4282766n)
+[76] Running IDA*... done (2.43663s, 9768236n)
+[76] Running Rev-IDA*... done (15.1448s, 59448656n)
+[76] BiHS-Bloom timeout limit: 417.303s
+[76] Running BiHS-Bloom(50%, size=5996KiB, k=1, fp_est=0.917903, limit=417.303s)...
 Bloom filter size: 5996 KiB, k_hashes: 1, min_items: 1091538
- done (46.8515s, 401622190n)
-[76] Running BiHS-Bloom(10%, size=1199KiB, k=1, fp_est=0.999996, limit=427.798s)...
+ done (31.4234s, 229177956n)
+[76] Running BiHS-Bloom(10%, size=1199KiB, k=1, fp_est=0.999996, limit=417.303s)...
 Bloom filter size: 1199 KiB, k_hashes: 1, min_items: 218271
- TIMED OUT (4467755765n)
-Puzzle #76 | A*: 5.80776s/2184326n | Rev-A*: 21.3899s/7124043n | BAE*: 5.96426s/1436368n | MM: 13.6215s/4282766n | IDA*: 2.42434s/9768236n | Rev-IDA*: 14.8811s/59448656n | BiHS-Bloom(50%): 46.8515s/401622190n | BiHS-Bloom(10%): -1s/4467755765n | BiHS-Bloom(1%): -1s/0n | Length: 54
+ done (43.853s, 401622190n)
+[76] Running BiHS-Bloom(1%, size=119KiB, k=1, fp_est=1, limit=417.303s)...
+Bloom filter size: 119 KiB, k_hashes: 1, min_items: 21663
+ TIMED OUT (4800140832n)
+Puzzle #76 | A*: 5.68711s/2184326n | Rev-A*: 20.8652s/7124043n | BAE*: 6.02035s/1436368n | MM: 13.9013s/4282766n | IDA*: 2.43663s/9768236n | Rev-IDA*: 15.1448s/59448656n | BiHS-Bloom(50%): 31.4234s/229177956n | BiHS-Bloom(10%): 43.853s/401622190n | BiHS-Bloom(1%): -1s/4800140832n | Length: 54
 Starting Korf's Puzzle #77
 
-[77] Running A*... done (1.47756s, 619121n)
-[77] Running Rev-A*... done (0.678856s, 301936n)
-[77] Running BAE*... done (0.859675s, 300753n)
-[77] Running MM... done (1.58821s, 603070n)
-[77] Running IDA*... done (1.43957s, 5882727n)
-[77] Running Rev-IDA*... done (0.339052s, 1340622n)
+[77] Running A*... done (1.47776s, 619121n)
+[77] Running Rev-A*... done (0.659308s, 301936n)
+[77] Running BAE*... done (0.853261s, 300753n)
+[77] Running MM... done (1.50905s, 603070n)
+[77] Running IDA*... done (1.4462s, 5882727n)
+[77] Running Rev-IDA*... done (0.340939s, 1340622n)
 [77] BiHS-Bloom timeout limit: 120s
 [77] Running BiHS-Bloom(50%, size=1432KiB, k=1, fp_est=0.946407, limit=120s)...
 Bloom filter size: 1432 KiB, k_hashes: 1, min_items: 260687
- done (3.39528s, 26435152n)
+ done (3.3577s, 26435152n)
 [77] Running BiHS-Bloom(10%, size=286KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 286 KiB, k_hashes: 1, min_items: 52064
- TIMED OUT (1597669123n)
-Puzzle #77 | A*: 1.47756s/619121n | Rev-A*: 0.678856s/301936n | BAE*: 0.859675s/300753n | MM: 1.58821s/603070n | IDA*: 1.43957s/5882727n | Rev-IDA*: 0.339052s/1340622n | BiHS-Bloom(50%): 3.39528s/26435152n | BiHS-Bloom(10%): -1s/1597669123n | BiHS-Bloom(1%): -1s/0n | Length: 53
+ done (3.31018s, 26435152n)
+[77] Running BiHS-Bloom(1%, size=28KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 28 KiB, k_hashes: 1, min_items: 5097
+ done (12.8924s, 160128236n)
+Puzzle #77 | A*: 1.47776s/619121n | Rev-A*: 0.659308s/301936n | BAE*: 0.853261s/300753n | MM: 1.50905s/603070n | IDA*: 1.4462s/5882727n | Rev-IDA*: 0.340939s/1340622n | BiHS-Bloom(50%): 3.3577s/26435152n | BiHS-Bloom(10%): 3.31018s/26435152n | BiHS-Bloom(1%): 12.8924s/160128236n | Length: 53
 Starting Korf's Puzzle #78
 
-[78] Running A*... done (0.137375s, 67387n)
-[78] Running Rev-A*... done (0.256688s, 123516n)
-[78] Running BAE*... done (0.128594s, 55830n)
-[78] Running MM... done (0.211928s, 96900n)
-[78] Running IDA*... done (0.0648988s, 256422n)
-[78] Running Rev-IDA*... done (0.107199s, 412287n)
+[78] Running A*... done (0.12905s, 67387n)
+[78] Running Rev-A*... done (0.259311s, 123516n)
+[78] Running BAE*... done (0.12797s, 55830n)
+[78] Running MM... done (0.197355s, 96900n)
+[78] Running IDA*... done (0.0653065s, 256422n)
+[78] Running Rev-IDA*... done (0.105207s, 412287n)
 [78] BiHS-Bloom timeout limit: 120s
 [78] Running BiHS-Bloom(50%, size=302KiB, k=1, fp_est=0.814876, limit=120s)...
 Bloom filter size: 302 KiB, k_hashes: 1, min_items: 54977
- done (0.37621s, 2899418n)
+ done (0.356079s, 2899418n)
 [78] Running BiHS-Bloom(10%, size=60KiB, k=1, fp_est=0.999794, limit=120s)...
 Bloom filter size: 60 KiB, k_hashes: 1, min_items: 10922
- done (1.07636s, 11746338n)
+ done (0.359538s, 2899418n)
 [78] Running BiHS-Bloom(1%, size=6KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 6 KiB, k_hashes: 1, min_items: 1092
- TIMED OUT (1560982357n)
-Puzzle #78 | A*: 0.137375s/67387n | Rev-A*: 0.256688s/123516n | BAE*: 0.128594s/55830n | MM: 0.211928s/96900n | IDA*: 0.0648988s/256422n | Rev-IDA*: 0.107199s/412287n | BiHS-Bloom(50%): 0.37621s/2899418n | BiHS-Bloom(10%): 1.07636s/11746338n | BiHS-Bloom(1%): -1s/1560982357n | Length: 42
+ done (0.854375s, 9534608n)
+Puzzle #78 | A*: 0.12905s/67387n | Rev-A*: 0.259311s/123516n | BAE*: 0.12797s/55830n | MM: 0.197355s/96900n | IDA*: 0.0653065s/256422n | Rev-IDA*: 0.105207s/412287n | BiHS-Bloom(50%): 0.356079s/2899418n | BiHS-Bloom(10%): 0.359538s/2899418n | BiHS-Bloom(1%): 0.854375s/9534608n | Length: 42
 Starting Korf's Puzzle #79
 
-[79] Running A*... done (11.3743s, 4130961n)
-[79] Running Rev-A*... done (9.69374s, 3476514n)
-[79] Running BAE*... done (3.97286s, 1168658n)
-[79] Running MM... done (11.958s, 3902265n)
-[79] Running IDA*... done (16.5658s, 66976966n)
-[79] Running Rev-IDA*... done (6.36948s, 25594450n)
-[79] BiHS-Bloom timeout limit: 331.316s
-[79] Running BiHS-Bloom(50%, size=6187KiB, k=1, fp_est=0.979492, limit=331.316s)...
+[79] Running A*... done (11.5109s, 4130961n)
+[79] Running Rev-A*... done (9.90293s, 3476514n)
+[79] Running BAE*... done (4.0855s, 1168658n)
+[79] Running MM... done (12.1119s, 3902265n)
+[79] Running IDA*... done (16.7716s, 66976966n)
+[79] Running Rev-IDA*... done (6.52618s, 25594450n)
+[79] BiHS-Bloom timeout limit: 335.432s
+[79] Running BiHS-Bloom(50%, size=6187KiB, k=1, fp_est=0.979492, limit=335.432s)...
 Bloom filter size: 6187 KiB, k_hashes: 1, min_items: 1126308
- done (38.4778s, 331862474n)
-[79] Running BiHS-Bloom(10%, size=1237KiB, k=1, fp_est=1, limit=331.316s)...
+ done (25.3347s, 183548086n)
+[79] Running BiHS-Bloom(10%, size=1237KiB, k=1, fp_est=1, limit=335.432s)...
 Bloom filter size: 1237 KiB, k_hashes: 1, min_items: 225188
- TIMED OUT (3544935001n)
-Puzzle #79 | A*: 11.3743s/4130961n | Rev-A*: 9.69374s/3476514n | BAE*: 3.97286s/1168658n | MM: 11.958s/3902265n | IDA*: 16.5658s/66976966n | Rev-IDA*: 6.36948s/25594450n | BiHS-Bloom(50%): 38.4778s/331862474n | BiHS-Bloom(10%): -1s/3544935001n | BiHS-Bloom(1%): -1s/0n | Length: 57
+ done (36.0113s, 331862474n)
+[79] Running BiHS-Bloom(1%, size=123KiB, k=1, fp_est=1, limit=335.432s)...
+Bloom filter size: 123 KiB, k_hashes: 1, min_items: 22391
+ TIMED OUT (3920669052n)
+Puzzle #79 | A*: 11.5109s/4130961n | Rev-A*: 9.90293s/3476514n | BAE*: 4.0855s/1168658n | MM: 12.1119s/3902265n | IDA*: 16.7716s/66976966n | Rev-IDA*: 6.52618s/25594450n | BiHS-Bloom(50%): 25.3347s/183548086n | BiHS-Bloom(10%): 36.0113s/331862474n | BiHS-Bloom(1%): -1s/3920669052n | Length: 57
 Starting Korf's Puzzle #80
 
-[80] Running A*... done (1.87297s, 746317n)
-[80] Running Rev-A*... done (0.281447s, 141103n)
-[80] Running BAE*... done (0.61942s, 223712n)
-[80] Running MM... done (1.95273s, 725750n)
-[80] Running IDA*... done (1.04459s, 4245290n)
-[80] Running Rev-IDA*... done (0.312625s, 1265329n)
+[80] Running A*... done (1.88288s, 746317n)
+[80] Running Rev-A*... done (0.290153s, 141103n)
+[80] Running BAE*... done (0.644932s, 223712n)
+[80] Running MM... done (1.93781s, 725750n)
+[80] Running IDA*... done (1.06612s, 4245290n)
+[80] Running Rev-IDA*... done (0.311296s, 1265329n)
 [80] BiHS-Bloom timeout limit: 120s
 [80] Running BiHS-Bloom(50%, size=706KiB, k=1, fp_est=0.999828, limit=120s)...
 Bloom filter size: 706 KiB, k_hashes: 1, min_items: 128523
- done (4.15823s, 32650980n)
+ done (4.04347s, 32650980n)
 [80] Running BiHS-Bloom(10%, size=141KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 141 KiB, k_hashes: 1, min_items: 25668
- TIMED OUT (1568733653n)
-Puzzle #80 | A*: 1.87297s/746317n | Rev-A*: 0.281447s/141103n | BAE*: 0.61942s/223712n | MM: 1.95273s/725750n | IDA*: 1.04459s/4245290n | Rev-IDA*: 0.312625s/1265329n | BiHS-Bloom(50%): 4.15823s/32650980n | BiHS-Bloom(10%): -1s/1568733653n | BiHS-Bloom(1%): -1s/0n | Length: 53
+ done (4.07254s, 32650980n)
+[80] Running BiHS-Bloom(1%, size=14KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 14 KiB, k_hashes: 1, min_items: 2548
+ TIMED OUT (1682337812n)
+Puzzle #80 | A*: 1.88288s/746317n | Rev-A*: 0.290153s/141103n | BAE*: 0.644932s/223712n | MM: 1.93781s/725750n | IDA*: 1.06612s/4245290n | Rev-IDA*: 0.311296s/1265329n | BiHS-Bloom(50%): 4.04347s/32650980n | BiHS-Bloom(10%): 4.07254s/32650980n | BiHS-Bloom(1%): -1s/1682337812n | Length: 53
 Starting Korf's Puzzle #81
 
-[81] Running A*... done (29.2296s, 10000000n)
-[81] Running Rev-A*... done (31.3268s, 10000000n)
+[81] Running A*... done (29.8489s, 10000000n)
+[81] Running Rev-A*... done (32.5542s, 10000000n)
 [81] A* hit node cap both directions — skipping instance
-Puzzle #81 | A*: 29.2296s/10000000n | Rev-A*: 31.3268s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #81 | A*: 29.8489s/10000000n | Rev-A*: 32.5542s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #82
 
-[82] Running A*... done (7.0062s, 1899650n)
-[82] Running Rev-A*... done (7.02034s, 2396335n)
-[82] Running BAE*... done (2.41459s, 758189n)
-[82] Running MM... done (15.0187s, 4429869n)
-[82] Running IDA*... done (4.21429s, 16247142n)
-[82] Running Rev-IDA*... done (3.16818s, 12568870n)
-[82] BiHS-Bloom timeout limit: 300.374s
-[82] Running BiHS-Bloom(50%, size=3020KiB, k=1, fp_est=0.99999, limit=300.374s)...
+[82] Running A*... done (7.28839s, 1899650n)
+[82] Running Rev-A*... done (6.96536s, 2396335n)
+[82] Running BAE*... done (2.39693s, 758189n)
+[82] Running MM... done (14.9149s, 4429869n)
+[82] Running IDA*... done (4.22239s, 16247142n)
+[82] Running Rev-IDA*... done (3.1874s, 12568870n)
+[82] BiHS-Bloom timeout limit: 298.299s
+[82] Running BiHS-Bloom(50%, size=3020KiB, k=1, fp_est=0.99999, limit=298.299s)...
 Bloom filter size: 3020 KiB, k_hashes: 1, min_items: 549774
- done (12.2099s, 84373560n)
-[82] Running BiHS-Bloom(10%, size=604KiB, k=1, fp_est=1, limit=300.374s)...
+ done (12.0282s, 84373560n)
+[82] Running BiHS-Bloom(10%, size=604KiB, k=1, fp_est=1, limit=298.299s)...
 Bloom filter size: 604 KiB, k_hashes: 1, min_items: 109954
- TIMED OUT (3368490046n)
-Puzzle #82 | A*: 7.0062s/1899650n | Rev-A*: 7.02034s/2396335n | BAE*: 2.41459s/758189n | MM: 15.0187s/4429869n | IDA*: 4.21429s/16247142n | Rev-IDA*: 3.16818s/12568870n | BiHS-Bloom(50%): 12.2099s/84373560n | BiHS-Bloom(10%): -1s/3368490046n | BiHS-Bloom(1%): -1s/0n | Length: 49
+ done (15.997s, 146338022n)
+[82] Running BiHS-Bloom(1%, size=60KiB, k=1, fp_est=1, limit=298.299s)...
+Bloom filter size: 60 KiB, k_hashes: 1, min_items: 10922
+ TIMED OUT (3803089523n)
+Puzzle #82 | A*: 7.28839s/1899650n | Rev-A*: 6.96536s/2396335n | BAE*: 2.39693s/758189n | MM: 14.9149s/4429869n | IDA*: 4.22239s/16247142n | Rev-IDA*: 3.1874s/12568870n | BiHS-Bloom(50%): 12.0282s/84373560n | BiHS-Bloom(10%): 15.997s/146338022n | BiHS-Bloom(1%): -1s/3803089523n | Length: 49
 Starting Korf's Puzzle #83
 
-[83] Running A*... done (29.9276s, 10000000n)
-[83] Running Rev-A*... done (10.1618s, 3079039n)
-[83] Running BAE*... done (7.65743s, 2143416n)
-[83] Running MM... done (26.7313s, 8285043n)
-[83] Running IDA*... done (57.437s, 229384428n)
-[83] Running Rev-IDA*... done (4.45553s, 17983147n)
-[83] BiHS-Bloom timeout limit: 1148.74s
-[83] Running BiHS-Bloom(50%, size=8874KiB, k=1, fp_est=0.999338, limit=1148.74s)...
+[83] Running A*... done (30.3707s, 10000000n)
+[83] Running Rev-A*... done (10.4521s, 3079039n)
+[83] Running BAE*... done (7.57034s, 2143416n)
+[83] Running MM... done (26.8054s, 8285043n)
+[83] Running IDA*... done (58.1644s, 229384428n)
+[83] Running Rev-IDA*... done (4.56056s, 17983147n)
+[83] BiHS-Bloom timeout limit: 1163.29s
+[83] Running BiHS-Bloom(50%, size=8874KiB, k=1, fp_est=0.999338, limit=1163.29s)...
 Bloom filter size: 8874 KiB, k_hashes: 1, min_items: 1615462
- done (99.5232s, 848325962n)
-[83] Running BiHS-Bloom(10%, size=1774KiB, k=1, fp_est=1, limit=1148.74s)...
+ done (67.2813s, 479625032n)
+[83] Running BiHS-Bloom(10%, size=1774KiB, k=1, fp_est=1, limit=1163.29s)...
 Bloom filter size: 1774 KiB, k_hashes: 1, min_items: 322946
- TIMED OUT (12299651459n)
-Puzzle #83 | A*: 29.9276s/10000000n | Rev-A*: 10.1618s/3079039n | BAE*: 7.65743s/2143416n | MM: 26.7313s/8285043n | IDA*: 57.437s/229384428n | Rev-IDA*: 4.45553s/17983147n | BiHS-Bloom(50%): 99.5232s/848325962n | BiHS-Bloom(10%): -1s/12299651459n | BiHS-Bloom(1%): -1s/0n | Length: 55
+ done (94.1542s, 848325962n)
+[83] Running BiHS-Bloom(1%, size=177KiB, k=1, fp_est=1, limit=1163.29s)...
+Bloom filter size: 177 KiB, k_hashes: 1, min_items: 32221
+ TIMED OUT (13559849642n)
+Puzzle #83 | A*: 30.3707s/10000000n | Rev-A*: 10.4521s/3079039n | BAE*: 7.57034s/2143416n | MM: 26.8054s/8285043n | IDA*: 58.1644s/229384428n | Rev-IDA*: 4.56056s/17983147n | BiHS-Bloom(50%): 67.2813s/479625032n | BiHS-Bloom(10%): 94.1542s/848325962n | BiHS-Bloom(1%): -1s/13559849642n | Length: 55
 Starting Korf's Puzzle #84
 
-[84] Running A*... done (0.353466s, 164745n)
-[84] Running Rev-A*... done (0.56821s, 235663n)
-[84] Running BAE*... done (0.245332s, 104201n)
-[84] Running MM... done (0.402255s, 175862n)
-[84] Running IDA*... done (0.354517s, 1409211n)
-[84] Running Rev-IDA*... done (0.464433s, 1802720n)
+[84] Running A*... done (0.362514s, 164745n)
+[84] Running Rev-A*... done (0.542854s, 235663n)
+[84] Running BAE*... done (0.244596s, 104201n)
+[84] Running MM... done (0.39846s, 175862n)
+[84] Running IDA*... done (0.352023s, 1409211n)
+[84] Running Rev-IDA*... done (0.469539s, 1802720n)
 [84] BiHS-Bloom timeout limit: 120s
 [84] Running BiHS-Bloom(50%, size=458KiB, k=1, fp_est=0.869321, limit=120s)...
 Bloom filter size: 458 KiB, k_hashes: 1, min_items: 83376
- done (0.794133s, 5956744n)
+ done (0.745332s, 5956744n)
 [84] Running BiHS-Bloom(10%, size=91KiB, k=1, fp_est=0.999964, limit=120s)...
 Bloom filter size: 91 KiB, k_hashes: 1, min_items: 16566
- TIMED OUT (1519797289n)
-Puzzle #84 | A*: 0.353466s/164745n | Rev-A*: 0.56821s/235663n | BAE*: 0.245332s/104201n | MM: 0.402255s/175862n | IDA*: 0.354517s/1409211n | Rev-IDA*: 0.464433s/1802720n | BiHS-Bloom(50%): 0.794133s/5956744n | BiHS-Bloom(10%): -1s/1519797289n | BiHS-Bloom(1%): -1s/0n | Length: 44
+ done (0.756099s, 5956744n)
+[84] Running BiHS-Bloom(1%, size=9KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 9 KiB, k_hashes: 1, min_items: 1638
+ done (3.13611s, 38490318n)
+Puzzle #84 | A*: 0.362514s/164745n | Rev-A*: 0.542854s/235663n | BAE*: 0.244596s/104201n | MM: 0.39846s/175862n | IDA*: 0.352023s/1409211n | Rev-IDA*: 0.469539s/1802720n | BiHS-Bloom(50%): 0.745332s/5956744n | BiHS-Bloom(10%): 0.756099s/5956744n | BiHS-Bloom(1%): 3.13611s/38490318n | Length: 44
 Starting Korf's Puzzle #85
 
-[85] Running A*... done (0.448747s, 195559n)
-[85] Running Rev-A*... done (0.517931s, 223537n)
-[85] Running BAE*... done (0.419867s, 174312n)
-[85] Running MM... done (0.506712s, 224068n)
-[85] Running IDA*... done (0.196485s, 771622n)
-[85] Running Rev-IDA*... done (0.282064s, 1072609n)
+[85] Running A*... done (0.445657s, 195559n)
+[85] Running Rev-A*... done (0.517623s, 223537n)
+[85] Running BAE*... done (0.401769s, 174312n)
+[85] Running MM... done (0.541621s, 224068n)
+[85] Running IDA*... done (0.198124s, 771622n)
+[85] Running Rev-IDA*... done (0.28915s, 1072609n)
 [85] BiHS-Bloom timeout limit: 120s
 [85] Running BiHS-Bloom(50%, size=682KiB, k=1, fp_est=0.840316, limit=120s)...
 Bloom filter size: 682 KiB, k_hashes: 1, min_items: 124154
- done (1.08581s, 8062816n)
+ done (1.04384s, 8062816n)
 [85] Running BiHS-Bloom(10%, size=136KiB, k=1, fp_est=0.999899, limit=120s)...
 Bloom filter size: 136 KiB, k_hashes: 1, min_items: 24758
- TIMED OUT (1509164698n)
-Puzzle #85 | A*: 0.448747s/195559n | Rev-A*: 0.517931s/223537n | BAE*: 0.419867s/174312n | MM: 0.506712s/224068n | IDA*: 0.196485s/771622n | Rev-IDA*: 0.282064s/1072609n | BiHS-Bloom(50%): 1.08581s/8062816n | BiHS-Bloom(10%): -1s/1509164698n | BiHS-Bloom(1%): -1s/0n | Length: 45
+ done (1.04088s, 8062816n)
+[85] Running BiHS-Bloom(1%, size=13KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 13 KiB, k_hashes: 1, min_items: 2366
+ done (4.44226s, 52796024n)
+Puzzle #85 | A*: 0.445657s/195559n | Rev-A*: 0.517623s/223537n | BAE*: 0.401769s/174312n | MM: 0.541621s/224068n | IDA*: 0.198124s/771622n | Rev-IDA*: 0.28915s/1072609n | BiHS-Bloom(50%): 1.04384s/8062816n | BiHS-Bloom(10%): 1.04088s/8062816n | BiHS-Bloom(1%): 4.44226s/52796024n | Length: 45
 Starting Korf's Puzzle #86
 
-[86] Running A*... done (13.9896s, 4681600n)
-[86] Running Rev-A*... done (10.6921s, 3537720n)
-[86] Running BAE*... done (4.81391s, 1383789n)
-[86] Running MM... done (16.4655s, 4911982n)
-[86] Running IDA*... done (9.06853s, 36290239n)
-[86] Running Rev-IDA*... done (5.18024s, 19835163n)
-[86] BiHS-Bloom timeout limit: 329.31s
-[86] Running BiHS-Bloom(50%, size=5888KiB, k=1, fp_est=0.994962, limit=329.31s)...
+[86] Running A*... done (13.8754s, 4681600n)
+[86] Running Rev-A*... done (10.6152s, 3537720n)
+[86] Running BAE*... done (4.81111s, 1383789n)
+[86] Running MM... done (16.342s, 4911982n)
+[86] Running IDA*... done (9.16379s, 36290239n)
+[86] Running Rev-IDA*... done (5.34604s, 19835163n)
+[86] BiHS-Bloom timeout limit: 326.841s
+[86] Running BiHS-Bloom(50%, size=5888KiB, k=1, fp_est=0.994962, limit=326.841s)...
 Bloom filter size: 5888 KiB, k_hashes: 1, min_items: 1071877
- done (59.9451s, 505227258n)
-[86] Running BiHS-Bloom(10%, size=1177KiB, k=1, fp_est=1, limit=329.31s)...
+ done (40.3039s, 289355094n)
+[86] Running BiHS-Bloom(10%, size=1177KiB, k=1, fp_est=1, limit=326.841s)...
 Bloom filter size: 1177 KiB, k_hashes: 1, min_items: 214266
- TIMED OUT (3423986322n)
-Puzzle #86 | A*: 13.9896s/4681600n | Rev-A*: 10.6921s/3537720n | BAE*: 4.81391s/1383789n | MM: 16.4655s/4911982n | IDA*: 9.06853s/36290239n | Rev-IDA*: 5.18024s/19835163n | BiHS-Bloom(50%): 59.9451s/505227258n | BiHS-Bloom(10%): -1s/3423986322n | BiHS-Bloom(1%): -1s/0n | Length: 52
+ done (56.3286s, 505227258n)
+[86] Running BiHS-Bloom(1%, size=117KiB, k=1, fp_est=1, limit=326.841s)...
+Bloom filter size: 117 KiB, k_hashes: 1, min_items: 21299
+ TIMED OUT (3563626495n)
+Puzzle #86 | A*: 13.8754s/4681600n | Rev-A*: 10.6152s/3537720n | BAE*: 4.81111s/1383789n | MM: 16.342s/4911982n | IDA*: 9.16379s/36290239n | Rev-IDA*: 5.34604s/19835163n | BiHS-Bloom(50%): 40.3039s/289355094n | BiHS-Bloom(10%): 56.3286s/505227258n | BiHS-Bloom(1%): -1s/3563626495n | Length: 52
 Starting Korf's Puzzle #87
 
-[87] Running A*... done (29.5676s, 10000000n)
-[87] Running Rev-A*... done (31.0524s, 10000000n)
+[87] Running A*... done (29.2783s, 10000000n)
+[87] Running Rev-A*... done (31.8972s, 10000000n)
 [87] A* hit node cap both directions — skipping instance
-Puzzle #87 | A*: 29.5676s/10000000n | Rev-A*: 31.0524s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #87 | A*: 29.2783s/10000000n | Rev-A*: 31.8972s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #88
 
-[88] Running A*... done (11.9495s, 3562748n)
-[88] Running Rev-A*... done (10.448s, 3640199n)
-[88] Running BAE*... done (4.47012s, 1282951n)
-[88] Running MM... done (13.4666s, 4178524n)
-[88] Running IDA*... done (14.5714s, 58127959n)
-[88] Running Rev-IDA*... done (6.11518s, 24472218n)
-[88] BiHS-Bloom timeout limit: 291.428s
-[88] Running BiHS-Bloom(50%, size=6109KiB, k=1, fp_est=0.970895, limit=291.428s)...
+[88] Running A*... done (12.3109s, 3562748n)
+[88] Running Rev-A*... done (10.3373s, 3640199n)
+[88] Running BAE*... done (4.45144s, 1282951n)
+[88] Running MM... done (13.1133s, 4178524n)
+[88] Running IDA*... done (14.7958s, 58127959n)
+[88] Running Rev-IDA*... done (6.17393s, 24472218n)
+[88] BiHS-Bloom timeout limit: 295.917s
+[88] Running BiHS-Bloom(50%, size=6109KiB, k=1, fp_est=0.970895, limit=295.917s)...
 Bloom filter size: 6109 KiB, k_hashes: 1, min_items: 1112109
- done (47.9298s, 412708238n)
-[88] Running BiHS-Bloom(10%, size=1221KiB, k=1, fp_est=1, limit=291.428s)...
+ done (32.0149s, 234929538n)
+[88] Running BiHS-Bloom(10%, size=1221KiB, k=1, fp_est=1, limit=295.917s)...
 Bloom filter size: 1221 KiB, k_hashes: 1, min_items: 222276
- TIMED OUT (3123441140n)
-Puzzle #88 | A*: 11.9495s/3562748n | Rev-A*: 10.448s/3640199n | BAE*: 4.47012s/1282951n | MM: 13.4666s/4178524n | IDA*: 14.5714s/58127959n | Rev-IDA*: 6.11518s/24472218n | BiHS-Bloom(50%): 47.9298s/412708238n | BiHS-Bloom(10%): -1s/3123441140n | BiHS-Bloom(1%): -1s/0n | Length: 54
+ done (44.8633s, 412708238n)
+[88] Running BiHS-Bloom(1%, size=122KiB, k=1, fp_est=1, limit=295.917s)...
+Bloom filter size: 122 KiB, k_hashes: 1, min_items: 22209
+ TIMED OUT (3437625905n)
+Puzzle #88 | A*: 12.3109s/3562748n | Rev-A*: 10.3373s/3640199n | BAE*: 4.45144s/1282951n | MM: 13.1133s/4178524n | IDA*: 14.7958s/58127959n | Rev-IDA*: 6.17393s/24472218n | BiHS-Bloom(50%): 32.0149s/234929538n | BiHS-Bloom(10%): 44.8633s/412708238n | BiHS-Bloom(1%): -1s/3437625905n | Length: 54
 Starting Korf's Puzzle #89
 
-[89] Running A*... done (2.14193s, 822543n)
-[89] Running Rev-A*... done (1.52796s, 587400n)
-[89] Running BAE*... done (1.34833s, 447237n)
-[89] Running MM... done (2.55448s, 898828n)
-[89] Running IDA*... done (1.07761s, 4399101n)
-[89] Running Rev-IDA*... done (0.868429s, 3164704n)
+[89] Running A*... done (2.15654s, 822543n)
+[89] Running Rev-A*... done (1.55205s, 587400n)
+[89] Running BAE*... done (1.35889s, 447237n)
+[89] Running MM... done (2.5472s, 898828n)
+[89] Running IDA*... done (1.10307s, 4399101n)
+[89] Running Rev-IDA*... done (0.854883s, 3164704n)
 [89] BiHS-Bloom timeout limit: 120s
 [89] Running BiHS-Bloom(50%, size=1890KiB, k=1, fp_est=0.959017, limit=120s)...
 Bloom filter size: 1890 KiB, k_hashes: 1, min_items: 344064
- done (5.29662s, 40128008n)
+ done (5.12234s, 40128008n)
 [89] Running BiHS-Bloom(10%, size=378KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 378 KiB, k_hashes: 1, min_items: 68812
- TIMED OUT (1509526427n)
-Puzzle #89 | A*: 2.14193s/822543n | Rev-A*: 1.52796s/587400n | BAE*: 1.34833s/447237n | MM: 2.55448s/898828n | IDA*: 1.07761s/4399101n | Rev-IDA*: 0.868429s/3164704n | BiHS-Bloom(50%): 5.29662s/40128008n | BiHS-Bloom(10%): -1s/1509526427n | BiHS-Bloom(1%): -1s/0n | Length: 50
+ done (5.12236s, 40128008n)
+[89] Running BiHS-Bloom(1%, size=37KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 37 KiB, k_hashes: 1, min_items: 6735
+ done (31.0667s, 393334460n)
+Puzzle #89 | A*: 2.15654s/822543n | Rev-A*: 1.55205s/587400n | BAE*: 1.35889s/447237n | MM: 2.5472s/898828n | IDA*: 1.10307s/4399101n | Rev-IDA*: 0.854883s/3164704n | BiHS-Bloom(50%): 5.12234s/40128008n | BiHS-Bloom(10%): 5.12236s/40128008n | BiHS-Bloom(1%): 31.0667s/393334460n | Length: 50
 Starting Korf's Puzzle #90
 
-[90] Running A*... done (29.9063s, 10000000n)
-[90] Running Rev-A*... done (7.04205s, 2027850n)
-[90] Running BAE*... done (6.18458s, 1677382n)
-[90] Running MM... done (33.2075s, 10306036n)
-[90] Running IDA*... done (69.9001s, 278328926n)
-[90] Running Rev-IDA*... done (4.65165s, 17734359n)
-[90] BiHS-Bloom timeout limit: 1398s
-[90] Running BiHS-Bloom(50%, size=8304KiB, k=1, fp_est=0.999978, limit=1398s)...
+[90] Running A*... done (29.3239s, 10000000n)
+[90] Running Rev-A*... done (7.06703s, 2027850n)
+[90] Running BAE*... done (5.94815s, 1677382n)
+[90] Running MM... done (33.0537s, 10306036n)
+[90] Running IDA*... done (70.4398s, 278328926n)
+[90] Running Rev-IDA*... done (4.69413s, 17734359n)
+[90] BiHS-Bloom timeout limit: 1408.8s
+[90] Running BiHS-Bloom(50%, size=8304KiB, k=1, fp_est=0.999978, limit=1408.8s)...
 Bloom filter size: 8304 KiB, k_hashes: 1, min_items: 1511697
- done (145.443s, 1188347042n)
-[90] Running BiHS-Bloom(10%, size=1660KiB, k=1, fp_est=1, limit=1398s)...
+ done (98.2388s, 670811406n)
+[90] Running BiHS-Bloom(10%, size=1660KiB, k=1, fp_est=1, limit=1408.8s)...
 Bloom filter size: 1660 KiB, k_hashes: 1, min_items: 302193
- TIMED OUT (14593291165n)
-Puzzle #90 | A*: 29.9063s/10000000n | Rev-A*: 7.04205s/2027850n | BAE*: 6.18458s/1677382n | MM: 33.2075s/10306036n | IDA*: 69.9001s/278328926n | Rev-IDA*: 4.65165s/17734359n | BiHS-Bloom(50%): 145.443s/1188347042n | BiHS-Bloom(10%): -1s/14593291165n | BiHS-Bloom(1%): -1s/0n | Length: 57
+ done (137.394s, 1188347042n)
+[90] Running BiHS-Bloom(1%, size=166KiB, k=1, fp_est=1, limit=1408.8s)...
+Bloom filter size: 166 KiB, k_hashes: 1, min_items: 30219
+ TIMED OUT (15870357381n)
+Puzzle #90 | A*: 29.3239s/10000000n | Rev-A*: 7.06703s/2027850n | BAE*: 5.94815s/1677382n | MM: 33.0537s/10306036n | IDA*: 70.4398s/278328926n | Rev-IDA*: 4.69413s/17734359n | BiHS-Bloom(50%): 98.2388s/670811406n | BiHS-Bloom(10%): 137.394s/1188347042n | BiHS-Bloom(1%): -1s/15870357381n | Length: 57
 Starting Korf's Puzzle #91
 
-[91] Running A*... done (30.0792s, 10000000n)
-[91] Running Rev-A*... done (32.1637s, 10000000n)
+[91] Running A*... done (29.7084s, 10000000n)
+[91] Running Rev-A*... done (32.3684s, 10000000n)
 [91] A* hit node cap both directions — skipping instance
-Puzzle #91 | A*: 30.0792s/10000000n | Rev-A*: 32.1637s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
+Puzzle #91 | A*: 29.7084s/10000000n | Rev-A*: 32.3684s/10000000n | BAE*: -1s/0n | MM: -1s/0n | IDA*: -1s/0n | Rev-IDA*: -1s/0n | BiHS-Bloom(50%): -1s/0n | BiHS-Bloom(10%): -1s/0n | BiHS-Bloom(1%): -1s/0n | Length: -1
 Starting Korf's Puzzle #92
 
-[92] Running A*... done (2.81317s, 486072n)
-[92] Running Rev-A*... done (0.253551s, 117906n)
-[92] Running BAE*... done (0.433691s, 168295n)
-[92] Running MM... done (0.615447s, 255523n)
-[92] Running IDA*... done (1.07769s, 4157786n)
-[92] Running Rev-IDA*... done (0.261681s, 1008781n)
+[92] Running A*... done (3.01087s, 486072n)
+[92] Running Rev-A*... done (0.240701s, 117906n)
+[92] Running BAE*... done (0.420032s, 168295n)
+[92] Running MM... done (0.622739s, 255523n)
+[92] Running IDA*... done (1.07883s, 4157786n)
+[92] Running Rev-IDA*... done (0.261268s, 1008781n)
 [92] BiHS-Bloom timeout limit: 120s
 [92] Running BiHS-Bloom(50%, size=622KiB, k=1, fp_est=0.950982, limit=120s)...
 Bloom filter size: 622 KiB, k_hashes: 1, min_items: 113231
- done (1.18096s, 8812432n)
+ done (1.14412s, 8812432n)
 [92] Running BiHS-Bloom(10%, size=124KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 124 KiB, k_hashes: 1, min_items: 22573
- TIMED OUT (1536247299n)
-Puzzle #92 | A*: 2.81317s/486072n | Rev-A*: 0.253551s/117906n | BAE*: 0.433691s/168295n | MM: 0.615447s/255523n | IDA*: 1.07769s/4157786n | Rev-IDA*: 0.261681s/1008781n | BiHS-Bloom(50%): 1.18096s/8812432n | BiHS-Bloom(10%): -1s/1536247299n | BiHS-Bloom(1%): -1s/0n | Length: 46
+ done (1.15994s, 8812432n)
+[92] Running BiHS-Bloom(1%, size=12KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 12 KiB, k_hashes: 1, min_items: 2184
+ done (4.85166s, 58192160n)
+Puzzle #92 | A*: 3.01087s/486072n | Rev-A*: 0.240701s/117906n | BAE*: 0.420032s/168295n | MM: 0.622739s/255523n | IDA*: 1.07883s/4157786n | Rev-IDA*: 0.261268s/1008781n | BiHS-Bloom(50%): 1.14412s/8812432n | BiHS-Bloom(10%): 1.15994s/8812432n | BiHS-Bloom(1%): 4.85166s/58192160n | Length: 46
 Starting Korf's Puzzle #93
 
-[93] Running A*... done (0.632856s, 273189n)
-[93] Running Rev-A*... done (0.182765s, 104000n)
-[93] Running BAE*... done (0.193582s, 88090n)
-[93] Running MM... done (0.516475s, 234029n)
-[93] Running IDA*... done (0.171025s, 659460n)
-[93] Running Rev-IDA*... done (0.522312s, 1979130n)
+[93] Running A*... done (0.585681s, 273189n)
+[93] Running Rev-A*... done (0.195048s, 104000n)
+[93] Running BAE*... done (0.200989s, 88090n)
+[93] Running MM... done (0.511384s, 234029n)
+[93] Running IDA*... done (0.164744s, 659460n)
+[93] Running Rev-IDA*... done (0.529794s, 1979130n)
 [93] BiHS-Bloom timeout limit: 120s
 [93] Running BiHS-Bloom(50%, size=419KiB, k=1, fp_est=0.984694, limit=120s)...
 Bloom filter size: 419 KiB, k_hashes: 1, min_items: 76276
- done (0.640752s, 5104674n)
+ done (0.623882s, 5104674n)
 [93] Running BiHS-Bloom(10%, size=83KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 83 KiB, k_hashes: 1, min_items: 15109
- done (1.64058s, 18517140n)
+ done (0.625248s, 5104674n)
 [93] Running BiHS-Bloom(1%, size=8KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 8 KiB, k_hashes: 1, min_items: 1456
- TIMED OUT (1486689114n)
-Puzzle #93 | A*: 0.632856s/273189n | Rev-A*: 0.182765s/104000n | BAE*: 0.193582s/88090n | MM: 0.516475s/234029n | IDA*: 0.171025s/659460n | Rev-IDA*: 0.522312s/1979130n | BiHS-Bloom(50%): 0.640752s/5104674n | BiHS-Bloom(10%): 1.64058s/18517140n | BiHS-Bloom(1%): -1s/1486689114n | Length: 53
+ done (1.59786s, 18517140n)
+Puzzle #93 | A*: 0.585681s/273189n | Rev-A*: 0.195048s/104000n | BAE*: 0.200989s/88090n | MM: 0.511384s/234029n | IDA*: 0.164744s/659460n | Rev-IDA*: 0.529794s/1979130n | BiHS-Bloom(50%): 0.623882s/5104674n | BiHS-Bloom(10%): 0.625248s/5104674n | BiHS-Bloom(1%): 1.59786s/18517140n | Length: 53
 Starting Korf's Puzzle #94
 
-[94] Running A*... done (2.03111s, 756615n)
-[94] Running Rev-A*... done (1.78439s, 660801n)
-[94] Running BAE*... done (0.908267s, 285569n)
-[94] Running MM... done (2.66773s, 908255n)
-[94] Running IDA*... done (2.74589s, 10952581n)
-[94] Running Rev-IDA*... done (2.0194s, 7601305n)
+[94] Running A*... done (1.92795s, 756615n)
+[94] Running Rev-A*... done (1.68273s, 660801n)
+[94] Running BAE*... done (0.842979s, 285569n)
+[94] Running MM... done (2.55623s, 908255n)
+[94] Running IDA*... done (2.7461s, 10952581n)
+[94] Running Rev-IDA*... done (1.99355s, 7601305n)
 [94] BiHS-Bloom timeout limit: 120s
 [94] Running BiHS-Bloom(50%, size=1500KiB, k=1, fp_est=0.967174, limit=120s)...
 Bloom filter size: 1500 KiB, k_hashes: 1, min_items: 273066
- done (5.37967s, 39025712n)
+ done (4.99365s, 39025712n)
 [94] Running BiHS-Bloom(10%, size=300KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 300 KiB, k_hashes: 1, min_items: 54613
- TIMED OUT (1398860017n)
-Puzzle #94 | A*: 2.03111s/756615n | Rev-A*: 1.78439s/660801n | BAE*: 0.908267s/285569n | MM: 2.66773s/908255n | IDA*: 2.74589s/10952581n | Rev-IDA*: 2.0194s/7601305n | BiHS-Bloom(50%): 5.37967s/39025712n | BiHS-Bloom(10%): -1s/1398860017n | BiHS-Bloom(1%): -1s/0n | Length: 50
+ done (7.1652s, 68893104n)
+[94] Running BiHS-Bloom(1%, size=30KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 30 KiB, k_hashes: 1, min_items: 5461
+ TIMED OUT (1539565580n)
+Puzzle #94 | A*: 1.92795s/756615n | Rev-A*: 1.68273s/660801n | BAE*: 0.842979s/285569n | MM: 2.55623s/908255n | IDA*: 2.7461s/10952581n | Rev-IDA*: 1.99355s/7601305n | BiHS-Bloom(50%): 4.99365s/39025712n | BiHS-Bloom(10%): 7.1652s/68893104n | BiHS-Bloom(1%): -1s/1539565580n | Length: 50
 Starting Korf's Puzzle #95
 
-[95] Running A*... done (3.36546s, 1262205n)
-[95] Running Rev-A*... done (2.15793s, 798519n)
-[95] Running BAE*... done (1.61966s, 558131n)
-[95] Running MM... done (3.21972s, 1119720n)
-[95] Running IDA*... done (1.52148s, 6036891n)
-[95] Running Rev-IDA*... done (1.02825s, 3908124n)
+[95] Running A*... done (3.25705s, 1262205n)
+[95] Running Rev-A*... done (2.05841s, 798519n)
+[95] Running BAE*... done (1.55693s, 558131n)
+[95] Running MM... done (3.14097s, 1119720n)
+[95] Running IDA*... done (1.55562s, 6036891n)
+[95] Running Rev-IDA*... done (1.04546s, 3908124n)
 [95] BiHS-Bloom timeout limit: 120s
 [95] Running BiHS-Bloom(50%, size=2193KiB, k=1, fp_est=0.964097, limit=120s)...
 Bloom filter size: 2193 KiB, k_hashes: 1, min_items: 399223
- done (5.9145s, 40844498n)
+ done (5.55927s, 40844498n)
 [95] Running BiHS-Bloom(10%, size=438KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 438 KiB, k_hashes: 1, min_items: 79735
- TIMED OUT (1309291539n)
-Puzzle #95 | A*: 3.36546s/1262205n | Rev-A*: 2.15793s/798519n | BAE*: 1.61966s/558131n | MM: 3.21972s/1119720n | IDA*: 1.52148s/6036891n | Rev-IDA*: 1.02825s/3908124n | BiHS-Bloom(50%): 5.9145s/40844498n | BiHS-Bloom(10%): -1s/1309291539n | BiHS-Bloom(1%): -1s/0n | Length: 49
+ done (7.89017s, 72050590n)
+[95] Running BiHS-Bloom(1%, size=43KiB, k=1, fp_est=1, limit=120s)...
+Bloom filter size: 43 KiB, k_hashes: 1, min_items: 7827
+ TIMED OUT (1483897130n)
+Puzzle #95 | A*: 3.25705s/1262205n | Rev-A*: 2.05841s/798519n | BAE*: 1.55693s/558131n | MM: 3.14097s/1119720n | IDA*: 1.55562s/6036891n | Rev-IDA*: 1.04546s/3908124n | BiHS-Bloom(50%): 5.55927s/40844498n | BiHS-Bloom(10%): 7.89017s/72050590n | BiHS-Bloom(1%): -1s/1483897130n | Length: 49
 Starting Korf's Puzzle #96
 
-[96] Running A*... done (0.425098s, 190101n)
-[96] Running Rev-A*... done (0.349113s, 163967n)
-[96] Running BAE*... done (0.387071s, 146021n)
-[96] Running MM... done (0.466282s, 201805n)
-[96] Running IDA*... done (0.486459s, 1910562n)
-[96] Running Rev-IDA*... done (0.282032s, 992103n)
+[96] Running A*... done (0.42608s, 190101n)
+[96] Running Rev-A*... done (0.367991s, 163967n)
+[96] Running BAE*... done (0.374653s, 146021n)
+[96] Running MM... done (0.459866s, 201805n)
+[96] Running IDA*... done (0.489056s, 1910562n)
+[96] Running Rev-IDA*... done (0.273333s, 992103n)
 [96] BiHS-Bloom timeout limit: 120s
 [96] Running BiHS-Bloom(50%, size=740KiB, k=1, fp_est=0.801685, limit=120s)...
 Bloom filter size: 740 KiB, k_hashes: 1, min_items: 134712
- done (0.856232s, 6210854n)
+ done (0.810744s, 6210854n)
 [96] Running BiHS-Bloom(10%, size=148KiB, k=1, fp_est=0.999693, limit=120s)...
 Bloom filter size: 148 KiB, k_hashes: 1, min_items: 26942
- done (2.34802s, 25151686n)
+ done (0.804895s, 6210854n)
 [96] Running BiHS-Bloom(1%, size=14KiB, k=1, fp_est=1, limit=120s)...
 Bloom filter size: 14 KiB, k_hashes: 1, min_items: 2548
- TIMED OUT (1494897958n)
-Puzzle #96 | A*: 0.425098s/190101n | Rev-A*: 0.349113s/163967n | BAE*: 0.387071s/146021n | MM: 0.466282s/201805n | IDA*: 0.486459s/1910562n | Rev-IDA*: 0.282032s/992103n | BiHS-Bloom(50%): 0.856232s/6210854n | BiHS-Bloom(10%): 2.34802s/25151686n | BiHS-Bloom(1%): -1s/1494897958n | Length: 44
+ done (2.29903s, 26316602n)
+Puzzle #96 | A*: 0.42608s/190101n | Rev-A*: 0.367991s/163967n | BAE*: 0.374653s/146021n | MM: 0.459866s/201805n | IDA*: 0.489056s/1910562n | Rev-IDA*: 0.273333s/992103n | BiHS-Bloom(50%): 0.810744s/6210854n | BiHS-Bloom(10%): 0.804895s/6210854n | BiHS-Bloom(1%): 2.29903s/26316602n | Length: 44
 Starting Korf's Puzzle #97
 
-[97] Running A*... done (29.1718s, 9508383n)
-[97] Running Rev-A*... done (31.5327s, 10000000n)
-[97] Running BAE*... done (12.1028s, 2746830n)
-[97] Running MM... done (35.4889s, 10440668n)
-[97] Running IDA*... done (18.8083s, 75042351n)
-[97] Running Rev-IDA*... done (26.7541s, 108938294n)
-[97] BiHS-Bloom timeout limit: 709.778s
-[97] Running BiHS-Bloom(50%, size=13484KiB, k=1, fp_est=0.973733, limit=709.778s)...
+[97] Running A*... done (29.0434s, 9508383n)
+[97] Running Rev-A*... done (31.9074s, 10000000n)
+[97] Running BAE*... done (12.4235s, 2746830n)
+[97] Running MM... done (35.9284s, 10440668n)
+[97] Running IDA*... done (19.0156s, 75042351n)
+[97] Running Rev-IDA*... done (27.0986s, 108938294n)
+[97] BiHS-Bloom timeout limit: 718.568s
+[97] Running BiHS-Bloom(50%, size=13484KiB, k=1, fp_est=0.973733, limit=718.568s)...
 Bloom filter size: 13484 KiB, k_hashes: 1, min_items: 2454687
- done (126.154s, 982519858n)
-[97] Running BiHS-Bloom(10%, size=2696KiB, k=1, fp_est=1, limit=709.778s)...
+ done (83.6085s, 570190646n)
+[97] Running BiHS-Bloom(10%, size=2696KiB, k=1, fp_est=1, limit=718.568s)...
 Bloom filter size: 2696 KiB, k_hashes: 1, min_items: 490791
- TIMED OUT (6690598503n)
-Puzzle #97 | A*: 29.1718s/9508383n | Rev-A*: 31.5327s/10000000n | BAE*: 12.1028s/2746830n | MM: 35.4889s/10440668n | IDA*: 18.8083s/75042351n | Rev-IDA*: 26.7541s/108938294n | BiHS-Bloom(50%): 126.154s/982519858n | BiHS-Bloom(10%): -1s/6690598503n | BiHS-Bloom(1%): -1s/0n | Length: 54
+ done (116.231s, 982519858n)
+[97] Running BiHS-Bloom(1%, size=269KiB, k=1, fp_est=1, limit=718.568s)...
+Bloom filter size: 269 KiB, k_hashes: 1, min_items: 48969
+ TIMED OUT (7136169872n)
+Puzzle #97 | A*: 29.0434s/9508383n | Rev-A*: 31.9074s/10000000n | BAE*: 12.4235s/2746830n | MM: 35.9284s/10440668n | IDA*: 19.0156s/75042351n | Rev-IDA*: 27.0986s/108938294n | BiHS-Bloom(50%): 83.6085s/570190646n | BiHS-Bloom(10%): 116.231s/982519858n | BiHS-Bloom(1%): -1s/7136169872n | Length: 54
 Starting Korf's Puzzle #98
 
-[98] Running A*... done (14.9298s, 5332505n)
-[98] Running Rev-A*... done (26.6551s, 9113983n)
-[98] Running BAE*... done (8.79006s, 2121462n)
-[98] Running MM... done (28.7435s, 8850407n)
-[98] Running IDA*... done (18.0962s, 75455945n)
-[98] Running Rev-IDA*... done (55.392s, 222535417n)
-[98] BiHS-Bloom timeout limit: 1107.84s
-[98] Running BiHS-Bloom(50%, size=8995KiB, k=1, fp_est=0.981414, limit=1107.84s)...
+[98] Running A*... done (14.7811s, 5332505n)
+[98] Running Rev-A*... done (26.5791s, 9113983n)
+[98] Running BAE*... done (8.89035s, 2121462n)
+[98] Running MM... done (28.4991s, 8850407n)
+[98] Running IDA*... done (18.3358s, 75455945n)
+[98] Running Rev-IDA*... done (55.7213s, 222535417n)
+[98] BiHS-Bloom timeout limit: 1114.43s
+[98] Running BiHS-Bloom(50%, size=8995KiB, k=1, fp_est=0.981414, limit=1114.43s)...
 Bloom filter size: 8995 KiB, k_hashes: 1, min_items: 1637489
- done (131.311s, 1280440548n)
-[98] Running BiHS-Bloom(10%, size=1799KiB, k=1, fp_est=1, limit=1107.84s)...
+ done (67.5773s, 502447052n)
+[98] Running BiHS-Bloom(10%, size=1799KiB, k=1, fp_est=1, limit=1114.43s)...
 Bloom filter size: 1799 KiB, k_hashes: 1, min_items: 327497
- TIMED OUT (11664049444n)
-Puzzle #98 | A*: 14.9298s/5332505n | Rev-A*: 26.6551s/9113983n | BAE*: 8.79006s/2121462n | MM: 28.7435s/8850407n | IDA*: 18.0962s/75455945n | Rev-IDA*: 55.392s/222535417n | BiHS-Bloom(50%): 131.311s/1280440548n | BiHS-Bloom(10%): -1s/11664049444n | BiHS-Bloom(1%): -1s/0n | Length: 57
-Starting Korf's Puzzle #99
-
-[99] Running A*... done (13.9199s, 4599091n)
-[99] Running Rev-A*... done (14.2271s, 4882368n)
-[99] Running BAE*... done (5.13056s, 1479820n)
-[99] Running MM... done (16.8323s, 5167517n)
-[99] Running IDA*... done (7.00465s, 27687835n)
-[99] Running Rev-IDA*... done (19.8692s, 77297535n)
-[99] BiHS-Bloom timeout limit: 397.385s
-[99] Running BiHS-Bloom(50%, size=6448KiB, k=1, fp_est=0.97464, limit=397.385s)...
-Bloom filter size: 6448 KiB, k_hashes: 1, min_items: 1173822
- done (57.5177s, 488936416n)
-[99] Running BiHS-Bloom(10%, size=1289KiB, k=1, fp_est=1, limit=397.385s)...
-Bloom filter size: 1289 KiB, k_hashes: 1, min_items: 234655
- TIMED OUT (4148616282n)
-Puzzle #99 | A*: 13.9199s/4599091n | Rev-A*: 14.2271s/4882368n | BAE*: 5.13056s/1479820n | MM: 16.8323s/5167517n | IDA*: 7.00465s/27687835n | Rev-IDA*: 19.8692s/77297535n | BiHS-Bloom(50%): 57.5177s/488936416n | BiHS-Bloom(10%): -1s/4148616282n | BiHS-Bloom(1%): -1s/0n | Length: 54
-Results written to benchmark_stp_korf100.csv
+ done (95.5962s, 891443800n)
+[98] Running BiHS-Bloom(1%, size=179KiB, k=1, fp_est=1, limit=1114.43s)...
+Bloom filter size: 179 KiB, k_hashes: 1, min_items: 32585
