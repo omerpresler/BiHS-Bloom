@@ -1658,3 +1658,25 @@ Bloom filter size: 1799 KiB, k_hashes: 1, min_items: 327497
  done (95.5962s, 891443800n)
 [98] Running BiHS-Bloom(1%, size=179KiB, k=1, fp_est=1, limit=1114.43s)...
 Bloom filter size: 179 KiB, k_hashes: 1, min_items: 32585
+ TIMED OUT (12509216509n)
+Puzzle #98 | A*: 14.7811s/5332505n | Rev-A*: 26.5791s/9113983n | BAE*: 8.89035s/2121462n | MM: 28.4991s/8850407n | IDA*: 18.3358s/75455945n | Rev-IDA*: 55.7213s/222535417n | BiHS-Bloom(50%): 67.5773s/502447052n | BiHS-Bloom(10%): 95.5962s/891443800n | BiHS-Bloom(1%): -1s/12509216509n | Length: 57
+Starting Korf's Puzzle #99
+
+[99] Running A*... done (13.7687s, 4599091n)
+[99] Running Rev-A*... done (14.3826s, 4882368n)
+[99] Running BAE*... done (5.13775s, 1479820n)
+[99] Running MM... done (16.9603s, 5167517n)
+[99] Running IDA*... done (6.9771s, 27687835n)
+[99] Running Rev-IDA*... done (19.9297s, 77297535n)
+[99] BiHS-Bloom timeout limit: 398.594s
+[99] Running BiHS-Bloom(50%, size=6448KiB, k=1, fp_est=0.97464, limit=398.594s)...
+Bloom filter size: 6448 KiB, k_hashes: 1, min_items: 1173822
+ done (37.8127s, 276648158n)
+[99] Running BiHS-Bloom(10%, size=1289KiB, k=1, fp_est=1, limit=398.594s)...
+Bloom filter size: 1289 KiB, k_hashes: 1, min_items: 234655
+ done (53.528s, 488936416n)
+[99] Running BiHS-Bloom(1%, size=128KiB, k=1, fp_est=1, limit=398.594s)...
+Bloom filter size: 128 KiB, k_hashes: 1, min_items: 23301
+ TIMED OUT (4411684020n)
+Puzzle #99 | A*: 13.7687s/4599091n | Rev-A*: 14.3826s/4882368n | BAE*: 5.13775s/1479820n | MM: 16.9603s/5167517n | IDA*: 6.9771s/27687835n | Rev-IDA*: 19.9297s/77297535n | BiHS-Bloom(50%): 37.8127s/276648158n | BiHS-Bloom(10%): 53.528s/488936416n | BiHS-Bloom(1%): -1s/4411684020n | Length: 54
+Results written to benchmark_stp_korf100.csv
