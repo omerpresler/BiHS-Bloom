@@ -8,6 +8,7 @@
 #include "BAE.h"
 #include "MM.h"
 #include "IDAStar.h"
+#include "NBS.h"
 
 #include "PancakeInstances.h"
 
@@ -536,6 +537,7 @@ struct STPResult {
   double revAStarTime;
   double baeTime;
   double mmTime;
+  double nbsTime;
   double idaTime;
   double revIdaTime;
   std::array<double, 3> bihsTime;
@@ -544,6 +546,7 @@ struct STPResult {
   size_t revAStarNodeExpanded;
   size_t baeNodeExpanded;
   size_t mmNodeExpanded;
+  size_t nbsNodeExpanded;
   size_t idaNodeExpanded;
   size_t revIdaNodeExpanded;
   std::array<size_t, 3> bihsNodeExpanded;
@@ -560,6 +563,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   result.revAStarTime = -1;
   result.baeTime = -1;
   result.mmTime = -1;
+  result.nbsTime = -1;
   result.idaTime = -1;
   result.revIdaTime = -1;
   result.bihsTime.fill(-1);
@@ -568,6 +572,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   result.revAStarNodeExpanded = 0;
   result.baeNodeExpanded = 0;
   result.mmNodeExpanded = 0;
+  result.nbsNodeExpanded = 0;
   result.idaNodeExpanded = 0;
   result.revIdaNodeExpanded = 0;
   size_t minSize = 0;
@@ -632,6 +637,21 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
     }
 
+    std::cout << "[" << i << "] Running NBS..." << std::flush;
+    // NBS
+    {
+      NBS<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> nbs;
+      std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+      t.StartTimer();
+      nbs.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
+      t.EndTimer();
+      result.nbsTime = t.GetElapsedTime();
+      result.nbsNodeExpanded = nbs.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+
+      std::cout << " done (" << result.nbsTime << "s, " << result.nbsNodeExpanded << "n)\n" << std::flush;
+    }
+
     std::cout << "[" << i << "] Running MM..." << std::flush;
     // MM
     {
@@ -680,7 +700,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     std::cout << " done (" << result.revIdaTime << "s, " << result.revIdaNodeExpanded << "n)\n" << std::flush;
   }
 
-  double maxBaselineTime = std::max({result.aStarTime, result.revAStarTime, result.baeTime,
+  double maxBaselineTime = std::max({result.aStarTime, result.revAStarTime, result.baeTime, result.nbsTime,
                                      result.mmTime, result.idaTime, result.revIdaTime});
   double bihsTimeLimit = std::max(maxBaselineTime * 20.0, 120.0); // Set a minimum time limit of 120 seconds for BiHS-Bloom
   std::cout << "[" << i << "] BiHS-Bloom timeout limit: " << bihsTimeLimit << "s\n" << std::flush;
@@ -744,8 +764,8 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
 void solveSTP(){
   std::ofstream log("benchmark_stp_korf100.csv");
   std::vector<std::string> headers = {"instance", "solution_length",
-      "a_star_time", "rev_a_star_time", "bae_time", "mm_time", "ida_time", "rev_ida_time",
-      "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "mm_nodes", "ida_nodes", "rev_ida_nodes",
+      "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "rev_ida_time",
+      "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "rev_ida_nodes",
       "bihs_bloom_time_50pct", "bihs_bloom_time_10pct", "bihs_bloom_time_1pct",
       "bihs_bloom_nodes_50pct", "bihs_bloom_nodes_10pct", "bihs_bloom_nodes_1pct"};
   for(size_t i = 0; i < headers.size(); ++i) {
@@ -781,6 +801,7 @@ void solveSTP(){
                   << " | A*: " << r.aStarTime << "s/" << r.aStarNodeExpanded << "n"
                   << " | Rev-A*: " << r.revAStarTime << "s/" << r.revAStarNodeExpanded << "n"
                   << " | BAE*: " << r.baeTime << "s/" << r.baeNodeExpanded << "n"
+                  << " | NBS: " << r.nbsTime << "s/" << r.nbsNodeExpanded << "n"
                   << " | MM: " << r.mmTime << "s/" << r.mmNodeExpanded << "n"
                   << " | IDA*: " << r.idaTime << "s/" << r.idaNodeExpanded << "n"
                   << " | Rev-IDA*: " << r.revIdaTime << "s/" << r.revIdaNodeExpanded << "n"
@@ -797,11 +818,12 @@ void solveSTP(){
             << r.aStarTime << ","
             << r.revAStarTime << ","
             << r.baeTime << ","
+            << r.nbsTime << ","
             << r.mmTime << ","
             << r.idaTime << ","
             << r.revIdaTime << ","
             << r.aStarNodeExpanded << "," << r.revAStarNodeExpanded << ","
-            << r.baeNodeExpanded << "," << r.mmNodeExpanded << ","
+            << r.baeNodeExpanded << "," << r.nbsNodeExpanded << "," << r.mmNodeExpanded << ","
             << r.idaNodeExpanded << "," << r.revIdaNodeExpanded << ","
             << r.bihsTime[0] << "," << r.bihsTime[1] << "," << r.bihsTime[2] << ","
             << r.bihsNodeExpanded[0] << "," << r.bihsNodeExpanded[1] << "," << r.bihsNodeExpanded[2] << "\n";
