@@ -30,6 +30,10 @@ HAS_BITS = "bits_set" in df.columns
 HAS_FILL = "fill_ratio" in df.columns
 
 ITER_CMAP = plt.get_cmap("tab10")
+LOG_Y_MIN = 0.1
+
+def format_log_tick(value, _):
+    return f"{value:g}" if value < 1 else f"{int(value):,}"
 
 COLORS = {
     "n_inserted": "#4e79a7",
@@ -79,7 +83,8 @@ for puzzle_id in instances:
                edgecolor="black", linewidth=0.6, label="n_inserted")
         ax.set_ylabel("n_inserted (log scale)")
         ax.set_yscale("log")
-        ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{int(v):,}"))
+        ax.set_ylim(bottom=LOG_Y_MIN)
+        ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_log_tick))
 
         ax2.bar(x + BAR_W, fill_pct, BAR_W, color=COLORS["bits_set"],
                 edgecolor="black", linewidth=0.6, label="fill %")
@@ -175,7 +180,8 @@ for puzzle_id in instances:
             ax.set_ylabel(ylabel)
             if use_log:
                 ax.set_yscale("log")
-                ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+                ax.set_ylim(bottom=LOG_Y_MIN)
+                ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_log_tick))
             elif metric == "fill_pct":
                 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x:.1f}%"))
             ax.grid(True, alpha=0.2)

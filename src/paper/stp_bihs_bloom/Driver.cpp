@@ -635,8 +635,8 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       result.solutionLength = static_cast<int>(path.size()) - 1;
 
       size_t baeSize = bae.GetNumForwardItems() + bae.GetNumBackwardItems();
-      if (baeSize < minSize)
-        minSize = baeSize;
+      //if (baeSize < minSize)
+      //  minSize = baeSize;
       std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
     }
 
