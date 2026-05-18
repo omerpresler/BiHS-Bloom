@@ -77,6 +77,9 @@ public:
         size_t bitsSet;
         double fillRatio;
         double expectedFillRatio;
+        size_t materializedForwardStates;
+        size_t materializedBackwardStates;
+        size_t materializedTotalStates;
     };
 
     bool hasTimedOut() const { return timed_out; }
@@ -98,6 +101,12 @@ public:
     }
 
     using StateWithPath = std::pair<state, std::vector<action>>;
+
+    struct PathExtractionResult {
+        std::vector<action> path;
+        size_t forwardStates;
+        size_t backwardStates;
+    };
 
     void GetStatesFromBloomRecursive(state &curr, state &goal, int depth, int targetDepth, int upperBound, BloomFilter<state>* bf, std::vector<action> &movesSoFar, std::vector<StateWithPath> &states, action lastMove) {
 
@@ -160,7 +169,7 @@ public:
         return states;
     }
 
-    std::vector<action> GetPathFromBloom(state &start, state &goal,
+    PathExtractionResult GetPathFromBloom(state &start, state &goal,
                                     int forwardDepth, int backwardDepth,
                                     BloomFilter<state>* bf)
     {
@@ -196,11 +205,11 @@ public:
                     path.push_back(inv);
                 }
 
-                return path;
+                return {path, forwardStates.size(), backwardStates.size()};
             }
         }
 
-        return {};
+        return {{}, forwardStates.size(), backwardStates.size()};
     }
 
     void BuildBloomFrontierRecursive(state &curr, state &goal, int depth, int targetDepth, int upperBound, BloomFilter<state>* oldBf, BloomFilter<state>* newBf, action last_action) {
@@ -358,11 +367,14 @@ public:
 
 
     std::vector<action> SolveAtDepth(state start, state &goal, int forwardDepth, int backwardDepth, bool recursive, Timer &globalTimer) {
-        Period2Window<LOOP_LIMIT> tail;
         TerminationCondition term = TerminationCondition::NOT_TERMINATED;
         std::unique_ptr<BloomFilter<state>> bf;
         std::vector<action> path;
         int upperBound = forwardDepth + backwardDepth; // We know f value from node to goal cant be bigger then Df + Db
+        size_t lastForwardInserted = 0;
+        size_t lastBackwardInserted = 0;
+        bool haveForward = false;
+        bool haveBackward = false;
 
         this->firstForwardNodeExpanded = 0;
         this->firstBackwardNodeExpanded = 0;
@@ -385,17 +397,19 @@ public:
 
             if (i % 2 == 0){
                 bf.reset(GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound, bf.get(), recursive));
+                lastForwardInserted = bf->get_n_inserted();
+                haveForward = true;
                 if(this->firstForwardNodeExpanded == 0)
                     this->firstForwardNodeExpanded = this->nodeExpanded;
             }
             else {
                 bf.reset(GetBloomOfStatesInBloomAtDepth(goal, start, backwardDepth, upperBound, bf.get(), recursive));
+                lastBackwardInserted = bf->get_n_inserted();
+                haveBackward = true;
                 if(this->firstBackwardNodeExpanded == 0)
                     this->firstBackwardNodeExpanded = this->nodeExpanded;
             }
                 
-            tail.push(bf->get_n_inserted());
-
             iterStats.push_back({
                 forwardDepth + backwardDepth,
                 i,
@@ -404,7 +418,10 @@ public:
                 bf->estimate_fp(),
                 bf->get_bits_set(),
                 bf->get_fill_ratio(),
-                bf->expected_fill_ratio()
+                bf->expected_fill_ratio(),
+                0,
+                0,
+                0
             });
 
             
@@ -417,7 +434,8 @@ public:
                           << bf->expected_fill_ratio() << "\n";
             }
 
-            if (i % 2 == 1 && bf->get_n_inserted() <= this->min_items){ //Bloom is small enopugh that we can save the states in memory
+            if (haveForward && haveBackward &&
+                lastForwardInserted + lastBackwardInserted <= static_cast<size_t>(this->min_items)) {
                 term = TerminationCondition::MIN_ITEMS;
                 //std::cout << "[PROF] Min items reached at iter " << i << std::endl;
                 break;
@@ -428,7 +446,13 @@ public:
 
         Timer pathTimer;
         pathTimer.StartTimer();
-        path = GetPathFromBloom(start, goal, forwardDepth, backwardDepth, bf.get());
+        PathExtractionResult extraction = GetPathFromBloom(start, goal, forwardDepth, backwardDepth, bf.get());
+        path = extraction.path;
+        if (!iterStats.empty()) {
+            iterStats.back().materializedForwardStates = extraction.forwardStates;
+            iterStats.back().materializedBackwardStates = extraction.backwardStates;
+            iterStats.back().materializedTotalStates = extraction.forwardStates + extraction.backwardStates;
+        }
         pathTimer.EndTimer();
         //std::cout << "[PROF] GetPathFromBloom time=" << pathTimer.GetElapsedTime() << "s" << std::endl;
 

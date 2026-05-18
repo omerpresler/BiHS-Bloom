@@ -612,16 +612,8 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     std::cout << " done (" << result.revAStarTime << "s, " << result.revAStarNodeExpanded << "n)\n" << std::flush;
   }
 
-  // If A* hit its node cap both ways the instance is too large — skip everything
-  if (result.aStarNodeExpanded >= 10000000 && result.revAStarNodeExpanded >= 10000000) {
-    std::cout << "[" << i << "] A* hit node cap both directions — skipping instance\n" << std::flush;
-    return result;
-  }
 
-  // If either direction hit cap, BAE*/MM would likely OOM too — skip them and BiHS
-  bool astarHitCap = (result.aStarNodeExpanded >= 10000000 && result.revAStarNodeExpanded >= 10000000);
-
-  if (!astarHitCap) {
+  {
     std::cout << "[" << i << "] Running BAE*..." << std::flush;
     // BAE*
     {
@@ -695,10 +687,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
 
   double percentages[] = {0.5, 0.1, 0.01};
   // BiHS-Bloom
-  if (astarHitCap) {
-    std::cout << "[" << i << "] Skipping BiHS-Bloom (no frontierSize from MM)\n" << std::flush;
-  }
-  for(int pIdx = 0; !astarHitCap && pIdx < 3; ++pIdx)
+  for(int pIdx = 0; pIdx < 3; ++pIdx)
   {
     double ratio = percentages[pIdx];
     int size_in_KiB = (minSize * get_state_size(puzzle) / 8192) * ratio ; // Convert bits to KiB
@@ -740,7 +729,9 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
         convLog << i << "," << size_in_KiB << "," << ratio << ","
                 << s.totalDepth << "," << s.iteration << ","
                 << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << ","
-                << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << "\n";
+                << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << ","
+                << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
+                << s.materializedTotalStates << "\n";
       convLog.flush();
     }
     if (bihs.hasTimedOut()) break;
@@ -764,7 +755,7 @@ void solveSTP(){
   log << "\n";
 
   std::ofstream convLog("bloom_convergence.csv");
-  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio\n";
+  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total\n";
 
   std::mutex logMutex;
   std::mutex convMutex;

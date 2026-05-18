@@ -28,6 +28,11 @@ RATIO_SLUGS = {0.5: "50pct", 0.1: "10pct", 0.01: "1pct"}
 
 HAS_BITS = "bits_set" in df.columns
 HAS_FILL = "fill_ratio" in df.columns
+HAS_MATERIALIZED = {
+    "materialized_forward",
+    "materialized_backward",
+    "materialized_total",
+}.issubset(df.columns)
 
 ITER_CMAP = plt.get_cmap("tab10")
 LOG_Y_MIN = 0.1
@@ -36,8 +41,11 @@ def format_log_tick(value, _):
     return f"{value:g}" if value < 1 else f"{int(value):,}"
 
 COLORS = {
-    "n_inserted": "#4e79a7",
-    "bits_set":   "#59a14f",
+    "n_inserted":            "#4e79a7",
+    "bits_set":              "#59a14f",
+    "materialized_forward":  "#e15759",
+    "materialized_backward": "#f28e2b",
+    "materialized_total":    "#7b61a8",
 }
 
 instances = sorted(df["instance"].unique())
@@ -81,6 +89,19 @@ for puzzle_id in instances:
 
         ax.bar(x, n_ins, BAR_W, color=COLORS["n_inserted"],
                edgecolor="black", linewidth=0.6, label="n_inserted")
+        if HAS_MATERIALIZED:
+            actual_forward = rdata["materialized_forward"].values.astype(float)
+            actual_backward = rdata["materialized_backward"].values.astype(float)
+            forward_mask = actual_forward > 0
+            backward_mask = actual_backward > 0
+            ax.scatter(x[forward_mask], actual_forward[forward_mask],
+                       color=COLORS["materialized_forward"], marker="^", s=55,
+                       edgecolor="black", linewidth=0.5, zorder=4,
+                       label="actual forward")
+            ax.scatter(x[backward_mask], actual_backward[backward_mask],
+                       color=COLORS["materialized_backward"], marker="v", s=55,
+                       edgecolor="black", linewidth=0.5, zorder=4,
+                       label="actual backward")
         ax.set_ylabel("n_inserted (log scale)")
         ax.set_yscale("log")
         ax.set_ylim(bottom=LOG_Y_MIN)
@@ -182,6 +203,24 @@ for puzzle_id in instances:
                 ax.set_yscale("log")
                 ax.set_ylim(bottom=LOG_Y_MIN)
                 ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_log_tick))
+                if metric == "n_inserted" and HAS_MATERIALIZED:
+                    actual = rdata[rdata["materialized_total"] > 0]
+                    if not actual.empty:
+                        actual_forward = actual[actual["materialized_forward"] > 0]
+                        actual_backward = actual[actual["materialized_backward"] > 0]
+                        actual_total = actual[actual["materialized_total"] > 0]
+                        ax.scatter(actual_forward["iteration"], actual_forward["materialized_forward"],
+                                   color=COLORS["materialized_forward"], marker="^", s=55,
+                                   edgecolor="black", linewidth=0.5, zorder=4,
+                                   label="actual forward")
+                        ax.scatter(actual_backward["iteration"], actual_backward["materialized_backward"],
+                                   color=COLORS["materialized_backward"], marker="v", s=55,
+                                   edgecolor="black", linewidth=0.5, zorder=4,
+                                   label="actual backward")
+                        ax.scatter(actual_total["iteration"], actual_total["materialized_total"],
+                                   color=COLORS["materialized_total"], marker="D", s=45,
+                                   edgecolor="black", linewidth=0.5, zorder=4,
+                                   label="actual total")
             elif metric == "fill_pct":
                 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x:.1f}%"))
             ax.grid(True, alpha=0.2)
