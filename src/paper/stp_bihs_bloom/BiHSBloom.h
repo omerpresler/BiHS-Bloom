@@ -279,42 +279,6 @@ public:
         return {{}, forwardStates.size(), backwardStates.size()};
     }
 
-    void BuildBloomFrontierRecursive(state &curr, state &goal, uint64_t currHash, int depth, int targetDepth, int upperBound, BloomFilter<state>* oldBf, BloomFilter<state>* newBf, action last_action) {
-
-        size_t f_value = env.HCost(curr, goal) + depth;
-        if (f_value > upperBound) { // If f value > upper bound no need to explore
-            if (this->min_f_value == -1 || this->min_f_value > f_value)
-                    this->min_f_value = f_value;
-            return;
-        }
-        
-        // If we are at the correct depth, check if the state is in the Bloom filter, if Bloom filter is null no need to check we'll add every state at depth
-        if (depth == targetDepth) {
-            this->nodeExpanded++;
-            if (!oldBf || oldBf->maybe_contains_hash(currHash))
-                newBf->add_hash(currHash);
-            return; // CRITICAL: do not expand deeper
-        }
-            
-        std::vector<action> actions;
-        BiHSBloomHelper::get_actions(env, curr, actions, last_action, 0);
-
-        for (auto a : actions) {
-            uint64_t nextHash = currHash;
-            if (BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
-                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::apply(currHash, curr, a);
-            }
-            env.ApplyAction(curr, a);
-            if (!BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
-                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(curr);
-            }
-            BuildBloomFrontierRecursive(curr, goal, nextHash, depth + 1, targetDepth, upperBound, oldBf, newBf, a);
-
-            env.InvertAction(a); // "Fix" the state
-            env.ApplyAction(curr, a);
-        }
-    }
-
     struct Frame {
         std::vector<action> acts;
         uint64_t hash = 0;
@@ -415,7 +379,7 @@ public:
         }
     }
 
-    BloomFilter<state>* GetBloomOfStatesInBloomAtDepth(state start, state goal, int depth, int upperBound, BloomFilter<state>* oldBf, bool recursive) {
+    BloomFilter<state>* GetBloomOfStatesInBloomAtDepth(state start, state goal, int depth, int upperBound, BloomFilter<state>* oldBf) {
 
         BloomFilter<state> *bf = nullptr;
         InitBloom(bf);
@@ -431,37 +395,16 @@ public:
             return bf;
         }
         
+        BuildBloomFrontier(start, goal, depth, upperBound, oldBf, bf);
 
-        if(recursive){
-            std::vector<action> actions;
-            env.GetActions(start, actions); // no lastAction at root
-
-            for (auto a : actions) {
-                uint64_t nextHash = startHash;
-                if (BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
-                    nextHash = BiHSBloomHelper::StateFingerprint<state, action>::apply(startHash, start, a);
-                }
-                env.ApplyAction(start, a);
-                if (!BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
-                    nextHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
-                }
-                BuildBloomFrontierRecursive(start, goal, nextHash, 1, depth, upperBound, oldBf, bf, a);
-
-                env.InvertAction(a); // "Fix" the state
-                env.ApplyAction(start, a);
-            }
-        }
-        else{
-            BuildBloomFrontier(start, goal, depth, upperBound, oldBf, bf);
-        }
-        
+    
 
         this->totalNodesExpanded += this->nodeExpanded;
         return bf;
     }
 
 
-    std::vector<action> SolveAtDepth(state start, state &goal, int forwardDepth, int backwardDepth, bool recursive, Timer &globalTimer) {
+    std::vector<action> SolveAtDepth(state start, state &goal, int forwardDepth, int backwardDepth , Timer &globalTimer) {
         TerminationCondition term = TerminationCondition::NOT_TERMINATED;
         std::unique_ptr<BloomFilter<state>> bf;
         std::vector<action> path;
@@ -491,14 +434,14 @@ public:
             iterTimer.StartTimer();
 
             if (i % 2 == 0){
-                bf.reset(GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound, bf.get(), recursive));
+                bf.reset(GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound, bf.get()));
                 lastForwardInserted = bf->get_n_inserted();
                 haveForward = true;
                 if(this->firstForwardNodeExpanded == 0)
                     this->firstForwardNodeExpanded = this->nodeExpanded;
             }
             else {
-                bf.reset(GetBloomOfStatesInBloomAtDepth(goal, start, backwardDepth, upperBound, bf.get(), recursive));
+                bf.reset(GetBloomOfStatesInBloomAtDepth(goal, start, backwardDepth, upperBound, bf.get()));
                 lastBackwardInserted = bf->get_n_inserted();
                 haveBackward = true;
                 if(this->firstBackwardNodeExpanded == 0)
@@ -554,7 +497,7 @@ public:
         return path;
     }
 
-    std::vector<action> GetPath(state start, state goal, bool recursive=false) {
+    std::vector<action> GetPath(state start, state goal) {
         timed_out = false;
         totalNodesExpanded = 0;
         iterStats.clear();
@@ -583,7 +526,7 @@ public:
             }
 
             //std::cout << "[PROF] Trying depth: " << forwardDepth << " + " << backwardDepth << " = " << (forwardDepth + backwardDepth) << std::endl;
-            std::vector<action> path = SolveAtDepth(start, goal, forwardDepth, backwardDepth, recursive, globalTimer);
+            std::vector<action> path = SolveAtDepth(start, goal, forwardDepth, backwardDepth, globalTimer);
 
             if (timed_out) return {};
 
