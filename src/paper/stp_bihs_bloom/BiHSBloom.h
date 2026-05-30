@@ -2,8 +2,69 @@
 #include <algorithm>
 #include <iostream>
 #include <cmath>
+#include <stdexcept>
+#include <string>
+#include <vector>
+#include <array>
+#include <unordered_map>
+#include <fstream>
+#include <memory>
+
+#include "Bloom.h"
+#include "BloomUtil.h"
+#include "Timer.h"
 
 namespace BiHSBloomHelper {
+    template <typename State, typename Action>
+    struct StateFingerprint {
+        static constexpr bool incremental = false;
+
+        static uint64_t hash(const State& state)
+        {
+            return BloomFilter<State>::stable_fingerprint(state);
+        }
+
+        static uint64_t apply(uint64_t, const State& state, Action)
+        {
+            return hash(state);
+        }
+    };
+
+    template <int W, int H>
+    struct StateFingerprint<MNPuzzleState<W, H>, slideDir> {
+        static constexpr bool incremental = true;
+
+        static uint64_t zobrist(unsigned pos, unsigned tile)
+        {
+            return BloomFilter<MNPuzzleState<W, H>>::template zobrist_value<W, H>(pos, tile);
+        }
+
+        static uint64_t hash(const MNPuzzleState<W, H>& state)
+        {
+            return BloomFilter<MNPuzzleState<W, H>>::stable_fingerprint(state);
+        }
+
+        static uint64_t apply(uint64_t h, const MNPuzzleState<W, H>& state, slideDir action)
+        {
+            unsigned blank = state.blank;
+            unsigned tile_pos = blank;
+            switch (action) {
+                case kUp: tile_pos = blank - W; break;
+                case kDown: tile_pos = blank + W; break;
+                case kLeft: tile_pos = blank - 1; break;
+                case kRight: tile_pos = blank + 1; break;
+                case kNoSlide: return h;
+            }
+
+            unsigned tile = (unsigned)state.puzzle[tile_pos];
+            h ^= zobrist(blank, 0);
+            h ^= zobrist(tile_pos, tile);
+            h ^= zobrist(blank, tile);
+            h ^= zobrist(tile_pos, 0);
+            return h;
+        }
+    };
+
     template <typename Env, typename State, typename Action>
     auto get_actions(Env& env, const State& curr, std::vector<Action>& actions, Action last_action, int)
         -> decltype(env.GetActions(curr, actions, last_action), void())
@@ -25,15 +86,6 @@ namespace BiHSBloomHelper {
         }
     }
 }
-#include <stdexcept>
-#include <string>
-#include <vector>
-#include <array>
-#include <unordered_map>
-
-#include "Bloom.h"
-#include "BloomUtil.h"
-#include "Timer.h"
 
 #define LOOP_LIMIT 200
 #define BRANCH_FACTOR 4
@@ -108,12 +160,12 @@ public:
         size_t backwardStates;
     };
 
-    void GetStatesFromBloomRecursive(state &curr, state &goal, int depth, int targetDepth, int upperBound, BloomFilter<state>* bf, std::vector<action> &movesSoFar, std::vector<StateWithPath> &states, action lastMove) {
+    void GetStatesFromBloomRecursive(state &curr, state &goal, uint64_t currHash, int depth, int targetDepth, int upperBound, BloomFilter<state>* bf, std::vector<action> &movesSoFar, std::vector<StateWithPath> &states, action lastMove) {
 
         if (env.HCost(curr, goal) + depth > upperBound) return;
 
         if (depth == targetDepth) {
-            if (bf && bf->maybe_contains(curr))
+            if (bf && bf->maybe_contains_hash(currHash))
                 states.emplace_back(curr, movesSoFar); // vector copy is intentional
             return;
         }
@@ -122,10 +174,17 @@ public:
         BiHSBloomHelper::get_actions(env, curr, moves, lastMove, 0);
 
         for (action a : moves) {
+            uint64_t nextHash = currHash;
+            if (BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::apply(currHash, curr, a);
+            }
             env.ApplyAction(curr, a);
+            if (!BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(curr);
+            }
             movesSoFar.push_back(a);
 
-            GetStatesFromBloomRecursive(curr, goal, depth + 1, targetDepth, upperBound, bf, movesSoFar, states, a);
+            GetStatesFromBloomRecursive(curr, goal, nextHash, depth + 1, targetDepth, upperBound, bf, movesSoFar, states, a);
 
             // restore
             action inv = a;
@@ -139,8 +198,9 @@ public:
                                                 int targetDepth, int upperBound,
                                                 BloomFilter<state>* bf)
     {
+        uint64_t startHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
         if (targetDepth == 0) {
-            if (bf && bf->maybe_contains(start) && env.HCost(start, goal) <= upperBound) {
+            if (bf && bf->maybe_contains_hash(startHash) && env.HCost(start, goal) <= upperBound) {
                 return {{start, {}}};
             }
             return {};
@@ -154,10 +214,17 @@ public:
         env.GetActions(start, moves);
 
         for (const action &a : moves) {
+            uint64_t nextHash = startHash;
+            if (BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::apply(startHash, start, a);
+            }
             env.ApplyAction(start, a);
+            if (!BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
+            }
             movesSoFar.push_back(a);
 
-            GetStatesFromBloomRecursive(start, goal, 1, targetDepth,
+            GetStatesFromBloomRecursive(start, goal, nextHash, 1, targetDepth,
                                         upperBound, bf, movesSoFar, states, a);
 
             action inv = a;
@@ -212,7 +279,7 @@ public:
         return {{}, forwardStates.size(), backwardStates.size()};
     }
 
-    void BuildBloomFrontierRecursive(state &curr, state &goal, int depth, int targetDepth, int upperBound, BloomFilter<state>* oldBf, BloomFilter<state>* newBf, action last_action) {
+    void BuildBloomFrontierRecursive(state &curr, state &goal, uint64_t currHash, int depth, int targetDepth, int upperBound, BloomFilter<state>* oldBf, BloomFilter<state>* newBf, action last_action) {
 
         size_t f_value = env.HCost(curr, goal) + depth;
         if (f_value > upperBound) { // If f value > upper bound no need to explore
@@ -224,8 +291,8 @@ public:
         // If we are at the correct depth, check if the state is in the Bloom filter, if Bloom filter is null no need to check we'll add every state at depth
         if (depth == targetDepth) {
             this->nodeExpanded++;
-            if (!oldBf || oldBf->maybe_contains(curr))
-                newBf->add(curr);
+            if (!oldBf || oldBf->maybe_contains_hash(currHash))
+                newBf->add_hash(currHash);
             return; // CRITICAL: do not expand deeper
         }
             
@@ -233,8 +300,15 @@ public:
         BiHSBloomHelper::get_actions(env, curr, actions, last_action, 0);
 
         for (auto a : actions) {
+            uint64_t nextHash = currHash;
+            if (BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::apply(currHash, curr, a);
+            }
             env.ApplyAction(curr, a);
-            BuildBloomFrontierRecursive(curr, goal, depth + 1, targetDepth, upperBound, oldBf, newBf, a);
+            if (!BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(curr);
+            }
+            BuildBloomFrontierRecursive(curr, goal, nextHash, depth + 1, targetDepth, upperBound, oldBf, newBf, a);
 
             env.InvertAction(a); // "Fix" the state
             env.ApplyAction(curr, a);
@@ -243,15 +317,16 @@ public:
 
     struct Frame {
         std::vector<action> acts;
+        uint64_t hash = 0;
         uint8_t next = 0;
         action last;
         bool has_last;
 
-        Frame() : next(0), has_last(false) {
+        Frame(uint64_t hash) : hash(hash), next(0), has_last(false) {
             acts.reserve(BRANCH_FACTOR); // IMPORTANT: prevents reallocations
         }
 
-        Frame(action lastAction) : next(0), last(lastAction), has_last(true) {
+        Frame(action lastAction, uint64_t hash) : hash(hash), next(0), last(lastAction), has_last(true) {
             acts.reserve(BRANCH_FACTOR); // IMPORTANT: prevents reallocations
         }
     };
@@ -266,8 +341,9 @@ public:
     {
         std::vector<Frame> st;
         st.reserve(targetDepth + 1);
-        st.emplace_back();
         state curr = start;
+        uint64_t currHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
+        st.emplace_back(currHash);
 
         while (!st.empty()) {
             this->nodeExpanded++;
@@ -287,6 +363,7 @@ public:
                 action undo = f.last;
                 st.pop_back();
                 env.UndoAction(curr, undo);
+                currHash = st.back().hash;
                 continue;
             }
 
@@ -302,13 +379,14 @@ public:
 
             // Target depth: add to Bloom and backtrack (don’t expand deeper)
             if (depth == targetDepth) {
-                if (!oldBf || oldBf->maybe_contains(curr))
-                    newBf->add(curr);
+                if (!oldBf || oldBf->maybe_contains_hash(currHash))
+                    newBf->add_hash(currHash);
 
                 if (st.size() == 1) break;
                 action undo = f.last;
                 st.pop_back();
                 env.UndoAction(curr, undo);
+                currHash = st.back().hash;
                 continue;
             }
 
@@ -318,13 +396,22 @@ public:
                 action undo = f.last;
                 st.pop_back();
                 env.UndoAction(curr, undo);
+                currHash = st.back().hash;
                 continue;
             }
 
             // Otherwise expand next child
             action a = f.acts[f.next++];
+            uint64_t nextHash = currHash;
+            if (BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::apply(currHash, curr, a);
+            }
             env.ApplyAction(curr, a);
-            st.emplace_back(a); // child frame "remembers" last action
+            if (!BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(curr);
+            }
+            currHash = nextHash;
+            st.emplace_back(a, currHash); // child frame "remembers" last action
         }
     }
 
@@ -333,11 +420,12 @@ public:
         BloomFilter<state> *bf = nullptr;
         InitBloom(bf);
         this->nodeExpanded = 0;
+        uint64_t startHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
 
         if (depth == 0) {
             this->nodeExpanded++;
-            if (!oldBf || oldBf->maybe_contains(start)) {
-                bf->add(start);
+            if (!oldBf || oldBf->maybe_contains_hash(startHash)) {
+                bf->add_hash(startHash);
             }
             this->totalNodesExpanded += this->nodeExpanded;
             return bf;
@@ -349,8 +437,15 @@ public:
             env.GetActions(start, actions); // no lastAction at root
 
             for (auto a : actions) {
+                uint64_t nextHash = startHash;
+                if (BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                    nextHash = BiHSBloomHelper::StateFingerprint<state, action>::apply(startHash, start, a);
+                }
                 env.ApplyAction(start, a);
-                BuildBloomFrontierRecursive(start, goal, 1, depth, upperBound, oldBf, bf, a);
+                if (!BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                    nextHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
+                }
+                BuildBloomFrontierRecursive(start, goal, nextHash, 1, depth, upperBound, oldBf, bf, a);
 
                 env.InvertAction(a); // "Fix" the state
                 env.ApplyAction(start, a);

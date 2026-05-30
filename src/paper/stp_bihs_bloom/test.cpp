@@ -60,42 +60,22 @@ void testRegularBloomFilterTracksInsertedValues() {
   require(!bloom.maybe_contains(goal), "regular Bloom clear left goal present");
 }
 
-void testInitBloomForPuzzleCreatesExpectedFilterTypes() {
-  BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *regular = nullptr;
-  init_bloom_for_puzzle(regular, 1, 2, BloomType::REGULAR, 0.0);
-  std::unique_ptr<BloomFilter<std::array<int, MN_SIZE * MN_SIZE>>> regularPtr(regular);
-
-  require(regularPtr != nullptr, "regular init returned null");
-  require(dynamic_cast<BloomFilterWithSet<MNPuzzle<MN_SIZE, MN_SIZE>,
-                                         std::array<int, MN_SIZE * MN_SIZE>> *>(
-              regularPtr.get()) == nullptr,
-          "regular init returned Bloom-with-set");
-
-  BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> *withSet = nullptr;
-  init_bloom_for_puzzle(withSet, 1, 2, BloomType::WITH_SET, 0.10);
-  std::unique_ptr<BloomFilter<std::array<int, MN_SIZE * MN_SIZE>>> withSetPtr(withSet);
-
-  auto *typed = dynamic_cast<BloomFilterWithSet<MNPuzzle<MN_SIZE, MN_SIZE>,
-                                               std::array<int, MN_SIZE * MN_SIZE>> *>(
-      withSetPtr.get());
-  require(typed != nullptr, "with-set init did not return Bloom-with-set");
-  require(typed->get_set_limit() > 0, "with-set init produced an empty set limit");
-}
-
 void testDepthZeroBloomContainsStart() {
   MNPuzzleState<MN_SIZE, MN_SIZE> start;
   MNPuzzleState<MN_SIZE, MN_SIZE> goal;
-  MNPuzzle<MN_SIZE, MN_SIZE> env;
   start.Reset();
   goal.Reset();
 
-  std::unique_ptr<BloomFilter<std::array<int, MN_SIZE * MN_SIZE>>> bloom(
-      GetBloomOfStatesInBloomAtDepth(start, goal, env, 0, nullptr, 1, 2,
-                                     BloomType::REGULAR, 0.0));
+  BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir,
+            MNPuzzle<MN_SIZE, MN_SIZE>>
+      solver(1, 2);
+
+  std::unique_ptr<BloomFilter<MNPuzzleState<MN_SIZE, MN_SIZE>>> bloom(
+      solver.GetBloomOfStatesInBloomAtDepth(start, goal, 0, 0, nullptr, false));
 
   require(bloom != nullptr, "depth-zero Bloom returned null");
   require(bloom->get_n_inserted() == 1, "depth-zero Bloom inserted count is wrong");
-  require(bloom->maybe_contains(start.puzzle), "depth-zero Bloom does not contain start");
+  require(bloom->maybe_contains(start), "depth-zero Bloom does not contain start");
 }
 
 void testBloomCapacityTracksFilledBits() {
@@ -179,7 +159,6 @@ void testBiHSBloomSolvesOneMovePuzzle() {
 int main() {
   const auto tests = {
       testRegularBloomFilterTracksInsertedValues,
-      testInitBloomForPuzzleCreatesExpectedFilterTypes,
       testDepthZeroBloomContainsStart,
       testBloomCapacityTracksFilledBits,
       testBiHSBloomCollectsZeroDepthState,

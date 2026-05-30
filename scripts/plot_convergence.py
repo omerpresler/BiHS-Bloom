@@ -40,12 +40,58 @@ LOG_Y_MIN = 0.1
 def format_log_tick(value, _):
     return f"{value:g}" if value < 1 else f"{int(value):,}"
 
+def format_count(value):
+    return f"{int(value):,}"
+
+def get_last_actual_run(rdata):
+    if not HAS_MATERIALIZED or rdata.empty:
+        return None
+    actual = rdata[rdata["materialized_total"] > 0]
+    if actual.empty:
+        return None
+    return actual.sort_values(["total_depth", "iteration"]).iloc[-1]
+
+def add_actual_summary(ax, last_actual):
+    if last_actual is None:
+        return
+    text = (
+        f"actual forward: {format_count(last_actual['materialized_forward'])}\n"
+        f"actual backward: {format_count(last_actual['materialized_backward'])}"
+    )
+    ax.text(
+        0.03, 0.97, text,
+        transform=ax.transAxes,
+        ha="left", va="top",
+        fontsize=9, fontweight="bold",
+        bbox=dict(boxstyle="round,pad=0.35", facecolor="white", edgecolor="black", alpha=0.88),
+        zorder=6,
+    )
+
+def annotate_actual_point(ax, x, y, label, xytext):
+    if y <= 0:
+        return
+    ax.annotate(
+        label,
+        xy=(x, y),
+        xytext=xytext,
+        textcoords="offset points",
+        ha="center",
+        va="bottom",
+        fontsize=8,
+        fontweight="bold",
+        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="none", alpha=0.78),
+        zorder=7,
+    )
+
+def save_convergence_plot(filename):
+    os.makedirs(OUT_DIR, exist_ok=True)
+    plt.savefig(os.path.join(OUT_DIR, filename), dpi=150)
+
 COLORS = {
     "n_inserted":            "#4e79a7",
     "bits_set":              "#59a14f",
     "materialized_forward":  "#e15759",
     "materialized_backward": "#f28e2b",
-    "materialized_total":    "#7b61a8",
 }
 
 instances = sorted(df["instance"].unique())
@@ -89,19 +135,26 @@ for puzzle_id in instances:
 
         ax.bar(x, n_ins, BAR_W, color=COLORS["n_inserted"],
                edgecolor="black", linewidth=0.6, label="n_inserted")
-        if HAS_MATERIALIZED:
-            actual_forward = rdata["materialized_forward"].values.astype(float)
-            actual_backward = rdata["materialized_backward"].values.astype(float)
-            forward_mask = actual_forward > 0
-            backward_mask = actual_backward > 0
-            ax.scatter(x[forward_mask], actual_forward[forward_mask],
-                       color=COLORS["materialized_forward"], marker="^", s=55,
-                       edgecolor="black", linewidth=0.5, zorder=4,
-                       label="actual forward")
-            ax.scatter(x[backward_mask], actual_backward[backward_mask],
-                       color=COLORS["materialized_backward"], marker="v", s=55,
-                       edgecolor="black", linewidth=0.5, zorder=4,
-                       label="actual backward")
+        last_actual = get_last_actual_run(rdata)
+        if last_actual is not None:
+            actual_index = int(last_actual.name)
+            actual_forward = float(last_actual["materialized_forward"])
+            actual_backward = float(last_actual["materialized_backward"])
+            if actual_forward > 0:
+                ax.scatter([actual_index], [actual_forward],
+                           color=COLORS["materialized_forward"], marker="^", s=70,
+                           edgecolor="black", linewidth=0.5, zorder=4,
+                           label="actual forward")
+                annotate_actual_point(ax, actual_index, actual_forward,
+                                      format_count(actual_forward), (0, 8))
+            if actual_backward > 0:
+                ax.scatter([actual_index], [actual_backward],
+                           color=COLORS["materialized_backward"], marker="v", s=70,
+                           edgecolor="black", linewidth=0.5, zorder=4,
+                           label="actual backward")
+                annotate_actual_point(ax, actual_index, actual_backward,
+                                      format_count(actual_backward), (0, -18))
+            add_actual_summary(ax, last_actual)
         ax.set_ylabel("n_inserted (log scale)")
         ax.set_yscale("log")
         ax.set_ylim(bottom=LOG_Y_MIN)
@@ -131,7 +184,7 @@ for puzzle_id in instances:
         ax.legend(h1 + h2, l1 + l2, fontsize=7, loc="upper right")
 
     plt.tight_layout()
-    plt.savefig(os.path.join(OUT_DIR, f"puzzle_{puzzle_id:03d}.png"), dpi=150)
+    save_convergence_plot(f"puzzle_{puzzle_id:03d}.png")
     plt.close()
 
     # -----------------------------------------------------------------------
@@ -161,7 +214,7 @@ for puzzle_id in instances:
             for ax in axes[0]:
                 ax.text(0.5, 0.5, "no data", ha="center", va="center", transform=ax.transAxes)
             plt.tight_layout()
-            plt.savefig(os.path.join(OUT_DIR, f"puzzle_{puzzle_id:03d}_{slug}.png"), dpi=150)
+            save_convergence_plot(f"puzzle_{puzzle_id:03d}_{slug}.png")
             plt.close()
             continue
 
@@ -204,30 +257,33 @@ for puzzle_id in instances:
                 ax.set_ylim(bottom=LOG_Y_MIN)
                 ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_log_tick))
                 if metric == "n_inserted" and HAS_MATERIALIZED:
-                    actual = rdata[rdata["materialized_total"] > 0]
-                    if not actual.empty:
-                        actual_forward = actual[actual["materialized_forward"] > 0]
-                        actual_backward = actual[actual["materialized_backward"] > 0]
-                        actual_total = actual[actual["materialized_total"] > 0]
-                        ax.scatter(actual_forward["iteration"], actual_forward["materialized_forward"],
-                                   color=COLORS["materialized_forward"], marker="^", s=55,
-                                   edgecolor="black", linewidth=0.5, zorder=4,
-                                   label="actual forward")
-                        ax.scatter(actual_backward["iteration"], actual_backward["materialized_backward"],
-                                   color=COLORS["materialized_backward"], marker="v", s=55,
-                                   edgecolor="black", linewidth=0.5, zorder=4,
-                                   label="actual backward")
-                        ax.scatter(actual_total["iteration"], actual_total["materialized_total"],
-                                   color=COLORS["materialized_total"], marker="D", s=45,
-                                   edgecolor="black", linewidth=0.5, zorder=4,
-                                   label="actual total")
+                    last_actual = get_last_actual_run(rdata)
+                    if last_actual is not None:
+                        actual_iteration = int(last_actual["iteration"])
+                        actual_forward = float(last_actual["materialized_forward"])
+                        actual_backward = float(last_actual["materialized_backward"])
+                        if actual_forward > 0:
+                            ax.scatter([actual_iteration], [actual_forward],
+                                       color=COLORS["materialized_forward"], marker="^", s=70,
+                                       edgecolor="black", linewidth=0.5, zorder=4,
+                                       label="actual forward")
+                            annotate_actual_point(ax, actual_iteration, actual_forward,
+                                                  format_count(actual_forward), (0, 8))
+                        if actual_backward > 0:
+                            ax.scatter([actual_iteration], [actual_backward],
+                                       color=COLORS["materialized_backward"], marker="v", s=70,
+                                       edgecolor="black", linewidth=0.5, zorder=4,
+                                       label="actual backward")
+                            annotate_actual_point(ax, actual_iteration, actual_backward,
+                                                  format_count(actual_backward), (0, -18))
+                        add_actual_summary(ax, last_actual)
             elif metric == "fill_pct":
                 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x:.1f}%"))
             ax.grid(True, alpha=0.2)
             ax.legend(fontsize=7, loc="upper left", bbox_to_anchor=(1.01, 1), borderaxespad=0)
 
         plt.tight_layout()
-        plt.savefig(os.path.join(OUT_DIR, f"puzzle_{puzzle_id:03d}_{slug}.png"), dpi=150)
+        save_convergence_plot(f"puzzle_{puzzle_id:03d}_{slug}.png")
         plt.close()
 
     if puzzle_id % 10 == 0:

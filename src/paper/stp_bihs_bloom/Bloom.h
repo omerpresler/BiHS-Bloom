@@ -3,19 +3,18 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <set>
 #include <unordered_set>
+#include <array>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
 #include "MNPuzzle.h"
 #include "PancakePuzzle.h"
 
 #define MN_SIZE 4
-
-enum class BloomType {
-    REGULAR,
-    WITH_SET
-};
 
 template <typename Key>
 class BloomFilter {
@@ -65,10 +64,15 @@ public:
 
     virtual void add(const Key &key)
     {
+        add_hash(stable_fingerprint(key));
+    }
+
+    void add_hash(uint64_t fingerprint)
+    {
         if (!bits || m_bits == 0 || k_hashes == 0) return;
 
         uint64_t h1, h2;
-        hashes(key, &h1, &h2);
+        hashes_from_fingerprint(fingerprint, &h1, &h2);
 
         for (size_t i = 0; i < k_hashes; i++) {
             uint64_t h = h1 + i * h2;
@@ -76,16 +80,21 @@ public:
             set_bit(bits, idx);
         }
         n_inserted++;
-        unique_set.insert(h1); // h1 is a stable fingerprint of the key
+        unique_set.insert(fingerprint);
     }
 
     size_t get_n_unique() const { return unique_set.size(); }
     virtual bool maybe_contains(const Key &key) const
     {
+        return maybe_contains_hash(stable_fingerprint(key));
+    }
+
+    bool maybe_contains_hash(uint64_t fingerprint) const
+    {
         if (!bits || m_bits == 0 || k_hashes == 0) return false;
 
         uint64_t h1, h2;
-        hashes(key, &h1, &h2);
+        hashes_from_fingerprint(fingerprint, &h1, &h2);
 
         for (size_t i = 0; i < k_hashes; i++) {
             uint64_t h = h1 + i * h2;
@@ -95,6 +104,18 @@ public:
             }
         }
         return true; /* may be present */
+    }
+
+    static uint64_t stable_fingerprint(const Key &key)
+    {
+        return stable_fingerprint_impl(key);
+    }
+
+    template <int W, int H>
+    static uint64_t zobrist_value(unsigned pos, unsigned tile)
+    {
+        static const std::array<std::array<uint64_t, W * H>, W * H> table = build_zobrist_table<W, H>();
+        return table[pos][tile];
     }
     double estimate_fp() const
     {
@@ -193,10 +214,10 @@ protected:
     }
 
 
-    void hashes(const Key &key, uint64_t *h1, uint64_t *h2) const
+    void hashes_from_fingerprint(uint64_t fingerprint, uint64_t *h1, uint64_t *h2) const
     {
-        *h1 = fnv1a_64(key, 0xA5A5A5A5A5A5A5A5ULL ^ seed);
-        *h2 = fnv1a_64(key, 0x5A5A5A5A5A5A5A5AULL ^ seed);
+        *h1 = mix64(fingerprint ^ 0xA5A5A5A5A5A5A5A5ULL ^ seed);
+        *h2 = mix64(fingerprint ^ 0x5A5A5A5A5A5A5A5AULL ^ seed);
         if (*h2 == 0) {
             *h2 = 0x27d4eb2d; /* avoid zero step */
         }
@@ -235,6 +256,28 @@ protected:
         return x;
     }
 
+    static uint64_t splitmix64(uint64_t x)
+    {
+        x += 0x9e3779b97f4a7c15ULL;
+        x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+        x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+        return x ^ (x >> 31);
+    }
+
+    template <int W, int H>
+    static std::array<std::array<uint64_t, W * H>, W * H> build_zobrist_table()
+    {
+        std::array<std::array<uint64_t, W * H>, W * H> table{};
+        uint64_t x = 0x7f4a7c159e3779b9ULL ^ (uint64_t)(W * 131 + H * 977);
+        for (unsigned pos = 0; pos < W * H; ++pos) {
+            for (unsigned tile = 0; tile < W * H; ++tile) {
+                x = splitmix64(x);
+                table[pos][tile] = x;
+            }
+        }
+        return table;
+    }
+
 
     /* FNV-1a 64-bit hash */
     static uint64_t fnv1a_64(const Key &key, uint64_t seed)
@@ -246,56 +289,26 @@ protected:
         );
     }
 
-};
+    template <typename T>
+    static uint64_t stable_fingerprint_impl(const T &key)
+    {
+        return fnv1a_bytes(
+            reinterpret_cast<const uint8_t*>(get_data_ptr(key)),
+            get_data_bytes(key),
+            0x9e3779b97f4a7c15ULL
+        );
+    }
 
-
-template <typename Env, typename Key>
-class BloomFilterWithSet : public BloomFilter<Key> {
-public:
-    BloomFilterWithSet(size_t bloom_bits, size_t set_limit, size_t k_hashes, Env env = Env{})
-        : BloomFilter<Key>(bloom_bits, k_hashes),
-          set_limit(set_limit),
-          env(std::move(env)) {}
-            
-    void add(const Key &key) override {
-        if (set.size() < set_limit) {
-            MNPuzzleState<MN_SIZE, MN_SIZE> state;
-            state.puzzle = key;
-            set.insert(env.GetStateHash(state));
+    template <int W, int H>
+    static uint64_t stable_fingerprint_impl(const MNPuzzleState<W, H> &state)
+    {
+        uint64_t h = 0;
+        for (unsigned pos = 0; pos < W * H; ++pos) {
+            h ^= zobrist_value<W, H>(pos, (unsigned)state.puzzle[pos]);
         }
-        BloomFilter<Key>::add(key);
+        return h;
     }
 
-    bool maybe_contains(const Key &key) const override {
-        if (set.size() >= set_limit) {
-            return BloomFilter<Key>::maybe_contains(key);
-        }
-        MNPuzzleState<MN_SIZE, MN_SIZE> state;
-        state.puzzle = key;
-        const uint64_t h = env.GetStateHash(state);
-        return set.find(h) != set.end();
-    }
-
-    void clear() override {
-        BloomFilter<Key>::clear();
-        set.clear();
-    }
-    size_t get_set_limit() const { return set_limit; }
-    size_t get_set_size() const { return set.size(); }
-
-private:
-/*
-    uint64_t get_hash(const void *key) const {
-        const MNPuzzleState<MN_SIZE, MN_SIZE> *state = static_cast<const MNPuzzleState<MN_SIZE, MN_SIZE> *>(key);
-        return static_cast<uint64_t>(env.GetStateHash(*state));
-    }
-*/
-
-    std::set<uint64_t> set;
-    size_t set_limit;
-    Env env;
 };
-
-
 
 #endif /* BLOOM_H */
