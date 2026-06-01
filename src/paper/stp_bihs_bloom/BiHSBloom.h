@@ -160,13 +160,16 @@ public:
         size_t backwardStates;
     };
 
-    void GetStatesFromBloomRecursive(state &curr, state &goal, uint64_t currHash, int depth, int targetDepth, int upperBound, BloomFilter<state>* bf, std::vector<action> &movesSoFar, std::vector<StateWithPath> &states, action lastMove) {
+    void GetStatesFromBloomRecursive(state &curr, state &goal, uint64_t currHash, int depth, int targetDepth, int upperBound, BloomFilter<state>* bf, std::vector<action> &movesSoFar, std::unordered_map<uint64_t, StateWithPath> &states, action lastMove) {
 
         if (env.HCost(curr, goal) + depth > upperBound) return;
 
         if (depth == targetDepth) {
-            if (bf && bf->maybe_contains_hash(currHash))
-                states.emplace_back(curr, movesSoFar); // vector copy is intentional
+            if (bf && bf->maybe_contains_hash(currHash)) {
+                if (states.find(currHash) == states.end()) {
+                    states.emplace(currHash, StateWithPath{curr, movesSoFar});
+                }
+            }
             return;
         }
 
@@ -194,19 +197,18 @@ public:
         }
     }
 
-    std::vector<StateWithPath> GetStatesFromBloom(state &start, state &goal,
+    std::unordered_map<uint64_t, StateWithPath> GetStatesFromBloom(state &start, state &goal,
                                                 int targetDepth, int upperBound,
                                                 BloomFilter<state>* bf)
     {
         uint64_t startHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
+        std::unordered_map<uint64_t, StateWithPath> states;
         if (targetDepth == 0) {
             if (bf && bf->maybe_contains_hash(startHash) && env.HCost(start, goal) <= upperBound) {
-                return {{start, {}}};
+                states.emplace(startHash, StateWithPath{start, {}});
             }
-            return {};
+            return states;
         }
-
-        std::vector<StateWithPath> states;
         std::vector<action> moves;
         std::vector<action> movesSoFar;
         movesSoFar.reserve(targetDepth);
@@ -238,45 +240,32 @@ public:
 
     PathExtractionResult GetPathFromBloom(state &start, state &goal,
                                     int forwardDepth, int backwardDepth,
-                                    BloomFilter<state>* bf)
+                                    BloomFilter<state>* bf,
+                                    size_t lastForwardInserted,
+                                    size_t lastBackwardInserted)
     {
-        auto forwardStates = GetStatesFromBloom(start, goal, forwardDepth,
-                                                forwardDepth + backwardDepth, bf);
-        auto backwardStates = GetStatesFromBloom(goal, start, backwardDepth,
-                                                forwardDepth + backwardDepth, bf);
+        int upperBound = forwardDepth + backwardDepth;
+        bool storeForward = lastForwardInserted <= lastBackwardInserted;
+        std::unordered_map<uint64_t, StateWithPath> statesMap;
+        StateWithPath intersection;
+        size_t forwardStates = 0;
+        size_t backwardStates = 0;
 
-        std::unordered_map<uint64_t, std::vector<action>> backwardMap;
-        backwardMap.reserve(backwardStates.size() * 2);
-
-        for (auto &s : backwardStates) {
-            uint64_t h = env.GetStateHash(s.first);
-            if (backwardMap.find(h) == backwardMap.end()) {
-                backwardMap.emplace(h, s.second);
-            }
+        if (storeForward) {
+            statesMap = GetStatesFromBloom(start, goal, forwardDepth, upperBound, bf);
+            forwardStates = statesMap.size();
+            intersection = FindFrontierIntersection(goal, start, backwardDepth,
+                                                    upperBound, statesMap, true);
+            backwardStates = intersection.second.empty() ? 0 : 1;
+        } else {
+            statesMap = GetStatesFromBloom(goal, start, backwardDepth, upperBound, bf);
+            backwardStates = statesMap.size();
+            intersection = FindFrontierIntersection(start, goal, forwardDepth,
+                                                    upperBound, statesMap, false);
+            forwardStates = intersection.second.empty() ? 0 : 1;
         }
 
-        for (auto &f : forwardStates) {
-            uint64_t h = env.GetStateHash(f.first);
-            auto it = backwardMap.find(h);
-            if (it != backwardMap.end()) {
-                std::vector<action> path;
-                path.reserve(f.second.size() + it->second.size());
-
-                for (const auto &a : f.second) {
-                    path.push_back(a);
-                }
-
-                for (auto rit = it->second.rbegin(); rit != it->second.rend(); ++rit) {
-                    action inv = *rit;
-                    env.InvertAction(inv);
-                    path.push_back(inv);
-                }
-
-                return {path, forwardStates.size(), backwardStates.size()};
-            }
-        }
-
-        return {{}, forwardStates.size(), backwardStates.size()};
+        return {intersection.second, forwardStates, backwardStates};
     }
 
     struct Frame {
@@ -294,6 +283,125 @@ public:
             acts.reserve(BRANCH_FACTOR); // IMPORTANT: prevents reallocations
         }
     };
+
+    StateWithPath FindFrontierIntersection(
+        state &start,
+        state &goal,
+        int targetDepth,
+        int upperBound,
+        std::unordered_map<uint64_t, StateWithPath> &states,
+        bool storedStatesAreForward)
+    {
+        std::vector<Frame> st;
+        st.reserve(targetDepth + 1);
+        std::vector<action> movesSoFar;
+        movesSoFar.reserve(targetDepth);
+        state curr = start;
+        uint64_t currHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
+        st.emplace_back(currHash);
+
+        while (!st.empty()) {
+            this->nodeExpanded++;
+            Frame &f = st.back();
+            int depth = (int)st.size() - 1;
+
+            size_t f_value = env.HCost(curr, goal) + depth;
+            if (f_value > upperBound) {
+                if (this->min_f_value == -1 || this->min_f_value > f_value){
+                    // std::cout << "New Min F Value: " << f_value << std::endl;
+                    this->min_f_value = f_value;
+                }
+                
+                // backtrack
+                if (st.size() == 1) break;
+                    
+                action undo = f.last;
+                st.pop_back();
+                env.UndoAction(curr, undo);
+                movesSoFar.pop_back();
+                currHash = st.back().hash;
+                continue;
+            }
+
+            // If we just arrived to this frame, generate actions once
+            if (f.next == 0 && f.acts.empty()) {
+                f.acts.clear();
+                if (f.has_last) {
+                    BiHSBloomHelper::get_actions(env, curr, f.acts, f.last, 0);
+                } else {
+                    env.GetActions(curr, f.acts);
+                }
+            }
+
+            // Target depth: check for an exact frontier intersection.
+            if (depth == targetDepth) {
+                auto it = states.find(currHash);
+                if (it != states.end()) {
+                    const std::vector<action> &storedPath = it->second.second;
+                    std::vector<action> fullPath;
+
+                    if (storedStatesAreForward) {
+                        fullPath.reserve(storedPath.size() + movesSoFar.size());
+                        for (const auto &a : storedPath) {
+                            fullPath.push_back(a);
+                        }
+                        for (auto rit = movesSoFar.rbegin(); rit != movesSoFar.rend(); ++rit) {
+                            action inv = *rit;
+                            env.InvertAction(inv);
+                            fullPath.push_back(inv);
+                        }
+                    } else {
+                        fullPath.reserve(movesSoFar.size() + storedPath.size());
+                        for (const auto &a : movesSoFar) {
+                            fullPath.push_back(a);
+                        }
+                        for (auto rit = storedPath.rbegin(); rit != storedPath.rend(); ++rit) {
+                            action inv = *rit;
+                            env.InvertAction(inv);
+                            fullPath.push_back(inv);
+                        }
+                    }
+
+                    return StateWithPath{curr, fullPath};
+                }
+
+                if (st.size() == 1) break;
+                action undo = f.last;
+                st.pop_back();
+                env.UndoAction(curr, undo);
+                movesSoFar.pop_back();
+                currHash = st.back().hash;
+                continue;
+            }
+
+            // If exhausted actions, backtrack
+            if (f.next >= f.acts.size()) {
+                if (st.size() == 1) break;
+                action undo = f.last;
+                st.pop_back();
+                env.UndoAction(curr, undo);
+                movesSoFar.pop_back();
+                currHash = st.back().hash;
+                continue;
+            }
+
+            // Otherwise expand next child
+            action a = f.acts[f.next++];
+            uint64_t nextHash = currHash;
+            if (BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::apply(currHash, curr, a);
+            }
+            env.ApplyAction(curr, a);
+            if (!BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
+                nextHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(curr);
+            }
+            currHash = nextHash;
+            movesSoFar.push_back(a);
+            st.emplace_back(a, currHash); // child frame "remembers" last action
+        }
+
+        return StateWithPath{};
+    }
 
     void BuildBloomFrontier(
         state &start,
@@ -473,7 +581,8 @@ public:
             }
 
             if (haveForward && haveBackward &&
-                lastForwardInserted + lastBackwardInserted <= static_cast<size_t>(this->min_items)) {
+                (lastForwardInserted <= static_cast<size_t>(this->min_items) || 
+                lastBackwardInserted <= static_cast<size_t>(this->min_items) )) {
                 term = TerminationCondition::MIN_ITEMS;
                 //std::cout << "[PROF] Min items reached at iter " << i << std::endl;
                 break;
@@ -484,7 +593,8 @@ public:
 
         Timer pathTimer;
         pathTimer.StartTimer();
-        PathExtractionResult extraction = GetPathFromBloom(start, goal, forwardDepth, backwardDepth, bf.get());
+        PathExtractionResult extraction = GetPathFromBloom(start, goal, forwardDepth, backwardDepth, bf.get(),
+                                                        lastForwardInserted, lastBackwardInserted);
         path = extraction.path;
         if (!iterStats.empty()) {
             iterStats.back().materializedForwardStates = extraction.forwardStates;

@@ -71,7 +71,7 @@ void testDepthZeroBloomContainsStart() {
       solver(1, 2);
 
   std::unique_ptr<BloomFilter<MNPuzzleState<MN_SIZE, MN_SIZE>>> bloom(
-      solver.GetBloomOfStatesInBloomAtDepth(start, goal, 0, 0, nullptr, false));
+      solver.GetBloomOfStatesInBloomAtDepth(start, goal, 0, 0, nullptr));
 
   require(bloom != nullptr, "depth-zero Bloom returned null");
   require(bloom->get_n_inserted() == 1, "depth-zero Bloom inserted count is wrong");
@@ -122,9 +122,10 @@ void testBiHSBloomCollectsZeroDepthState() {
   auto states = solver.GetStatesFromBloom(start, goal, 0, 0, &bloom);
 
   require(states.size() == 1, "BiHS-Bloom zero-depth collection missed start");
-  require(states.front().first == start,
+  auto stateIt = states.begin();
+  require(stateIt->second.first == start,
           "BiHS-Bloom zero-depth collection returned the wrong state");
-  require(states.front().second.empty(),
+  require(stateIt->second.second.empty(),
           "BiHS-Bloom zero-depth path should be empty");
 }
 

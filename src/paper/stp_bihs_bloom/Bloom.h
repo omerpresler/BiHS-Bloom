@@ -57,7 +57,7 @@ public:
         size_t bytes = (m_bits + 7) / 8;
         memset(bits, 0, bytes);
         n_inserted = 0;
-        unique_set.clear();
+        //unique_set.clear();
     }
 
 
@@ -80,10 +80,10 @@ public:
             set_bit(bits, idx);
         }
         n_inserted++;
-        unique_set.insert(fingerprint);
+        //unique_set.insert(fingerprint);
     }
 
-    size_t get_n_unique() const { return unique_set.size(); }
+    size_t get_n_unique() const { return -1; } //return unique_set.size(); } //only for debugging
     virtual bool maybe_contains(const Key &key) const
     {
         return maybe_contains_hash(stable_fingerprint(key));
@@ -162,7 +162,7 @@ protected:
     size_t   k_hashes;  /* number of hash functions */
     size_t   n_inserted; /* number of inserted items (counts duplicates) */
     uint64_t seed;      /* random seed */
-    std::unordered_set<uint64_t> unique_set; /* exact unique state fingerprints */
+    //std::unordered_set<uint64_t> unique_set; /* exact unique state fingerprints */
 
     static const void* get_data_ptr(const std::array<int, MN_SIZE*MN_SIZE>& key)
     {
