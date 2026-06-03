@@ -160,12 +160,16 @@ public:
         size_t backwardStates;
     };
 
-    void GetStatesFromBloomRecursive(state &curr, state &goal, uint64_t currHash, int depth, int targetDepth, int upperBound, BloomFilter<state>* bf, std::vector<action> &movesSoFar, std::unordered_map<uint64_t, StateWithPath> &states, action lastMove) {
+    bool HashMatchesType(uint64_t hash, size_t typeIndex, size_t typeCount) const {
+        return typeCount <= 1 || (hash % typeCount) == typeIndex;
+    }
+
+    void GetStatesFromBloomRecursive(state &curr, state &goal, uint64_t currHash, int depth, int targetDepth, int upperBound, BloomFilter<state>* bf, std::vector<action> &movesSoFar, std::unordered_map<uint64_t, StateWithPath> &states, action lastMove, size_t typeIndex = 0, size_t typeCount = 1) {
 
         if (env.HCost(curr, goal) + depth > upperBound) return;
 
         if (depth == targetDepth) {
-            if (bf && bf->maybe_contains_hash(currHash)) {
+            if (HashMatchesType(currHash, typeIndex, typeCount) && bf && bf->maybe_contains_hash(currHash)) {
                 if (states.find(currHash) == states.end()) {
                     states.emplace(currHash, StateWithPath{curr, movesSoFar});
                 }
@@ -187,7 +191,7 @@ public:
             }
             movesSoFar.push_back(a);
 
-            GetStatesFromBloomRecursive(curr, goal, nextHash, depth + 1, targetDepth, upperBound, bf, movesSoFar, states, a);
+            GetStatesFromBloomRecursive(curr, goal, nextHash, depth + 1, targetDepth, upperBound, bf, movesSoFar, states, a, typeIndex, typeCount);
 
             // restore
             action inv = a;
@@ -199,12 +203,13 @@ public:
 
     std::unordered_map<uint64_t, StateWithPath> GetStatesFromBloom(state &start, state &goal,
                                                 int targetDepth, int upperBound,
-                                                BloomFilter<state>* bf)
+                                                BloomFilter<state>* bf,
+                                                size_t typeIndex = 0, size_t typeCount = 1)
     {
         uint64_t startHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
         std::unordered_map<uint64_t, StateWithPath> states;
         if (targetDepth == 0) {
-            if (bf && bf->maybe_contains_hash(startHash) && env.HCost(start, goal) <= upperBound) {
+            if (HashMatchesType(startHash, typeIndex, typeCount) && bf && bf->maybe_contains_hash(startHash) && env.HCost(start, goal) <= upperBound) {
                 states.emplace(startHash, StateWithPath{start, {}});
             }
             return states;
@@ -227,7 +232,7 @@ public:
             movesSoFar.push_back(a);
 
             GetStatesFromBloomRecursive(start, goal, nextHash, 1, targetDepth,
-                                        upperBound, bf, movesSoFar, states, a);
+                                        upperBound, bf, movesSoFar, states, a, typeIndex, typeCount);
 
             action inv = a;
             env.InvertAction(inv);
@@ -242,7 +247,8 @@ public:
                                     int forwardDepth, int backwardDepth,
                                     BloomFilter<state>* bf,
                                     size_t lastForwardInserted,
-                                    size_t lastBackwardInserted)
+                                    size_t lastBackwardInserted,
+                                    size_t typeIndex = 0, size_t typeCount = 1)
     {
         int upperBound = forwardDepth + backwardDepth;
         bool storeForward = lastForwardInserted <= lastBackwardInserted;
@@ -252,16 +258,16 @@ public:
         size_t backwardStates = 0;
 
         if (storeForward) {
-            statesMap = GetStatesFromBloom(start, goal, forwardDepth, upperBound, bf);
+            statesMap = GetStatesFromBloom(start, goal, forwardDepth, upperBound, bf, typeIndex, typeCount);
             forwardStates = statesMap.size();
             intersection = FindFrontierIntersection(goal, start, backwardDepth,
-                                                    upperBound, statesMap, true);
+                                                    upperBound, statesMap, true, typeIndex, typeCount);
             backwardStates = intersection.second.empty() ? 0 : 1;
         } else {
-            statesMap = GetStatesFromBloom(goal, start, backwardDepth, upperBound, bf);
+            statesMap = GetStatesFromBloom(goal, start, backwardDepth, upperBound, bf, typeIndex, typeCount);
             backwardStates = statesMap.size();
             intersection = FindFrontierIntersection(start, goal, forwardDepth,
-                                                    upperBound, statesMap, false);
+                                                    upperBound, statesMap, false, typeIndex, typeCount);
             forwardStates = intersection.second.empty() ? 0 : 1;
         }
 
@@ -290,7 +296,9 @@ public:
         int targetDepth,
         int upperBound,
         std::unordered_map<uint64_t, StateWithPath> &states,
-        bool storedStatesAreForward)
+        bool storedStatesAreForward,
+        size_t typeIndex = 0,
+        size_t typeCount = 1)
     {
         std::vector<Frame> st;
         st.reserve(targetDepth + 1);
@@ -335,7 +343,9 @@ public:
 
             // Target depth: check for an exact frontier intersection.
             if (depth == targetDepth) {
-                auto it = states.find(currHash);
+                auto it = HashMatchesType(currHash, typeIndex, typeCount)
+                            ? states.find(currHash)
+                            : states.end();
                 if (it != states.end()) {
                     const std::vector<action> &storedPath = it->second.second;
                     std::vector<action> fullPath;
@@ -409,7 +419,9 @@ public:
         int targetDepth,
         int upperBound,
         BloomFilter<state>* oldBf,
-        BloomFilter<state>* newBf)
+        BloomFilter<state>* newBf,
+        size_t typeIndex = 0,
+        size_t typeCount = 1)
     {
         std::vector<Frame> st;
         st.reserve(targetDepth + 1);
@@ -451,7 +463,8 @@ public:
 
             // Target depth: add to Bloom and backtrack (don’t expand deeper)
             if (depth == targetDepth) {
-                if (!oldBf || oldBf->maybe_contains_hash(currHash))
+                if (HashMatchesType(currHash, typeIndex, typeCount) &&
+                    (!oldBf || oldBf->maybe_contains_hash(currHash)))
                     newBf->add_hash(currHash);
 
                 if (st.size() == 1) break;
@@ -487,7 +500,7 @@ public:
         }
     }
 
-    BloomFilter<state>* GetBloomOfStatesInBloomAtDepth(state start, state goal, int depth, int upperBound, BloomFilter<state>* oldBf) {
+    BloomFilter<state>* GetBloomOfStatesInBloomAtDepth(state start, state goal, int depth, int upperBound, BloomFilter<state>* oldBf, size_t typeIndex = 0, size_t typeCount = 1) {
 
         BloomFilter<state> *bf = nullptr;
         InitBloom(bf);
@@ -496,19 +509,120 @@ public:
 
         if (depth == 0) {
             this->nodeExpanded++;
-            if (!oldBf || oldBf->maybe_contains_hash(startHash)) {
+            if (HashMatchesType(startHash, typeIndex, typeCount) &&
+                (!oldBf || oldBf->maybe_contains_hash(startHash))) {
                 bf->add_hash(startHash);
             }
             this->totalNodesExpanded += this->nodeExpanded;
             return bf;
         }
         
-        BuildBloomFrontier(start, goal, depth, upperBound, oldBf, bf);
+        BuildBloomFrontier(start, goal, depth, upperBound, oldBf, bf, typeIndex, typeCount);
 
     
 
         this->totalNodesExpanded += this->nodeExpanded;
         return bf;
+    }
+
+    size_t ChooseTypeCount(size_t forwardInserted, size_t backwardInserted) const {
+        if (forwardInserted == 0 || backwardInserted == 0 || min_items <= 0) {
+            return 1;
+        }
+
+        double load = std::sqrt(static_cast<double>(forwardInserted) *
+                                static_cast<double>(backwardInserted)) /
+                      static_cast<double>(min_items);
+        if (load <= static_cast<double>(type_split_target_load)) {
+            return 1;
+        }
+
+        size_t typeCount = static_cast<size_t>(std::ceil(load / static_cast<double>(type_split_target_load)));
+        return std::max<size_t>(2, std::min(typeCount, static_cast<size_t>(max_type_splits)));
+    }
+
+    std::vector<action> SolveAtDepthForType(state start, state &goal,
+                                            int forwardDepth, int backwardDepth,
+                                            Timer &globalTimer,
+                                            size_t typeIndex,
+                                            size_t typeCount) {
+        TerminationCondition term = TerminationCondition::NOT_TERMINATED;
+        std::unique_ptr<BloomFilter<state>> bf;
+        std::vector<action> path;
+        int upperBound = forwardDepth + backwardDepth;
+        size_t lastForwardInserted = 0;
+        size_t lastBackwardInserted = 0;
+        bool haveForward = false;
+        bool haveBackward = false;
+
+        for (int i = 0; term == TerminationCondition::NOT_TERMINATED; i++) {
+            if (time_limit > 0) {
+                globalTimer.EndTimer();
+                if (globalTimer.GetElapsedTime() > time_limit) {
+                    timed_out = true;
+                    return {};
+                }
+            }
+
+            if (i % 2 == 0) {
+                bf.reset(GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound,
+                                                        bf.get(), typeIndex, typeCount));
+                lastForwardInserted = bf->get_n_inserted();
+                haveForward = true;
+            } else {
+                bf.reset(GetBloomOfStatesInBloomAtDepth(goal, start, backwardDepth, upperBound,
+                                                        bf.get(), typeIndex, typeCount));
+                lastBackwardInserted = bf->get_n_inserted();
+                haveBackward = true;
+            }
+
+            iterStats.push_back({
+                forwardDepth + backwardDepth,
+                i,
+                bf->get_n_inserted(),
+                bf->get_n_unique(),
+                bf->estimate_fp(),
+                bf->get_bits_set(),
+                bf->get_fill_ratio(),
+                bf->expected_fill_ratio(),
+                0,
+                0,
+                0
+            });
+
+            if (haveForward && haveBackward &&
+                (lastForwardInserted <= static_cast<size_t>(this->min_items) ||
+                 lastBackwardInserted <= static_cast<size_t>(this->min_items))) {
+                term = TerminationCondition::MIN_ITEMS;
+                break;
+            }
+        }
+
+        PathExtractionResult extraction = GetPathFromBloom(start, goal, forwardDepth, backwardDepth,
+                                                           bf.get(), lastForwardInserted,
+                                                           lastBackwardInserted,
+                                                           typeIndex, typeCount);
+        path = extraction.path;
+        if (!iterStats.empty()) {
+            iterStats.back().materializedForwardStates = extraction.forwardStates;
+            iterStats.back().materializedBackwardStates = extraction.backwardStates;
+            iterStats.back().materializedTotalStates = extraction.forwardStates + extraction.backwardStates;
+        }
+        return path;
+    }
+
+    std::vector<action> SolveAtDepthByTypes(state start, state &goal,
+                                            int forwardDepth, int backwardDepth,
+                                            Timer &globalTimer,
+                                            size_t typeCount) {
+        for (size_t typeIndex = 0; typeIndex < typeCount; ++typeIndex) {
+            std::vector<action> path = SolveAtDepthForType(start, goal, forwardDepth, backwardDepth,
+                                                           globalTimer, typeIndex, typeCount);
+            if (timed_out || !path.empty()) {
+                return path;
+            }
+        }
+        return {};
     }
 
 
@@ -586,6 +700,19 @@ public:
                 term = TerminationCondition::MIN_ITEMS;
                 //std::cout << "[PROF] Min items reached at iter " << i << std::endl;
                 break;
+            }
+
+            if (i == 1 && haveForward && haveBackward) {
+                size_t typeCount = ChooseTypeCount(lastForwardInserted, lastBackwardInserted);
+                if (typeCount > 1) {
+                    std::cout << "[TYPE] Splitting depth " << (forwardDepth + backwardDepth)
+                              << " into " << typeCount << " hash types"
+                              << " (Ff=" << lastForwardInserted
+                              << ", Fb=" << lastBackwardInserted
+                              << ", min_items=" << this->min_items << ")\n" << std::flush;
+                    return SolveAtDepthByTypes(start, goal, forwardDepth, backwardDepth,
+                                               globalTimer, typeCount);
+                }
             }
         }
 
@@ -709,6 +836,8 @@ private:
 
     double time_limit; // seconds, 0 = no limit
     bool timed_out;
+    int type_split_target_load = 25;
+    int max_type_splits = 8;
 
     environment env;
 };
