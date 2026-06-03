@@ -750,7 +750,7 @@ public:
         Timer globalTimer;
         globalTimer.StartTimer();
         bool hasLearnedSplit = false;
-        bool dynamicSplitting = false;
+        bool dynamicSplitting = true;
 
         while(true){
             // Check time limit at each depth iteration
