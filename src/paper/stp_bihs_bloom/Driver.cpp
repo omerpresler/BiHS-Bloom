@@ -51,7 +51,6 @@ struct STPResult {
   std::array<size_t, 3> bihsNodeExpanded;
 };
 
-static constexpr double TIMEOUT_SECONDS = 1000000000.0;
 static constexpr int NUM_WORKERS = 1;
 
 STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std::ofstream &convLog, std::mutex &convMutex) {
@@ -88,9 +87,15 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   {
     TemplateAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> astar;
     std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-    t.StartTimer();
-    astar.GetPath(&mnp, puzzle, goal, path);
-    t.EndTimer();
+    try {
+      t.StartTimer();
+      astar.GetPath(&mnp, puzzle, goal, path);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      printf("A* ran out of memory\n");
+    }
     result.aStarTime = t.GetElapsedTime();
     result.aStarNodeExpanded = astar.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
@@ -104,9 +109,15 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   {
     TemplateAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> astar;
     std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-    t.StartTimer();
-    astar.GetPath(&mnp, goal, puzzle, path);
-    t.EndTimer();
+    try {
+      t.StartTimer();
+      astar.GetPath(&mnp, goal, puzzle, path);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      printf("Rev-A* ran out of memory\n");
+    }
     result.revAStarTime = t.GetElapsedTime();
     result.revAStarNodeExpanded = astar.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
@@ -123,9 +134,15 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     {
       BAE<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bae;
       std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-      t.StartTimer();
-      bae.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
-      t.EndTimer();
+      try {
+        t.StartTimer();
+        bae.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("BAE* ran out of memory\n");
+      }
       result.baeTime = t.GetElapsedTime();
       result.baeNodeExpanded = bae.GetNodesExpanded();
       result.solutionLength = static_cast<int>(path.size()) - 1;
@@ -141,9 +158,16 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     {
       NBS<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> nbs;
       std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-      t.StartTimer();
-      nbs.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
-      t.EndTimer();
+      try {
+        t.StartTimer();
+        nbs.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+          t.EndTimer();
+          printf("NBS ran out of memory\n");
+      }
+     
       result.nbsTime = t.GetElapsedTime();
       result.nbsNodeExpanded = nbs.GetNodesExpanded();
       result.solutionLength = static_cast<int>(path.size()) - 1;
@@ -156,9 +180,15 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     {
       MM<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> mm;
       std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-      t.StartTimer();
-      mm.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
-      t.EndTimer();
+      try {
+        t.StartTimer();
+        mm.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("MM ran out of memory\n");
+      }
       result.mmTime = t.GetElapsedTime();
       result.mmNodeExpanded = mm.GetNodesExpanded();
       result.solutionLength = static_cast<int>(path.size()) - 1;
@@ -176,9 +206,15 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   {
     IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
     std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-    t.StartTimer();
-    ida.GetPath(&mnp, puzzle, goal, path);
-    t.EndTimer();
+    try {
+      t.StartTimer();
+      ida.GetPath(&mnp, puzzle, goal, path);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      printf("IDA* ran out of memory\n");
+    }
     result.idaTime = t.GetElapsedTime();
     result.idaNodeExpanded = ida.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
@@ -190,9 +226,15 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   {
     IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
     std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-    t.StartTimer();
-    ida.GetPath(&mnp, goal, puzzle, path);
-    t.EndTimer();
+    try {
+      t.StartTimer();
+      ida.GetPath(&mnp, goal, puzzle, path);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      printf("Rev-IDA* ran out of memory\n");
+    }
     result.revIdaTime = t.GetElapsedTime();
     result.revIdaNodeExpanded = ida.GetNodesExpanded();
     result.solutionLength = static_cast<int>(path.size()) - 1;
@@ -223,15 +265,26 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
               << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
 
     BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes, bihsTimeLimit);
-    t.StartTimer();
-    std::vector<slideDir> pathBiHS = bihs.GetPath(puzzle, goal);
-    t.EndTimer();
+    bool bihsOutOfMemory = false;
+    std::vector<slideDir> pathBiHS;
+    try {
+      t.StartTimer();
+      pathBiHS = bihs.GetPath(puzzle, goal);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      bihsOutOfMemory = true;
+      printf("BiHS-Bloom ran out of memory\n");
+    }
 
-    result.bihsTime[pIdx] = bihs.hasTimedOut() ? -1.0 : t.GetElapsedTime();
+    result.bihsTime[pIdx] = bihsOutOfMemory ? -2.0 : (bihs.hasTimedOut() ? -1.0 : t.GetElapsedTime());
     result.bihsNodeExpanded[pIdx] = bihs.GetTotalNodesExpanded();
-    bool converged = !bihs.hasTimedOut();
+    bool converged = !bihsOutOfMemory && !bihs.hasTimedOut();
 
-    if (!converged)
+    if (bihsOutOfMemory)
+      std::cout << " OUT OF MEMORY (" << result.bihsNodeExpanded[pIdx] << "n)\n" << std::flush;
+    else if (!converged)
       std::cout << " TIMED OUT (" << result.bihsNodeExpanded[pIdx] << "n)\n" << std::flush;
     else
       std::cout << " done (" << result.bihsTime[pIdx] << "s, " << result.bihsNodeExpanded[pIdx] << "n)\n" << std::flush;
@@ -364,16 +417,28 @@ void solvePancake(){
 
     GetPancakeInstance(puzzle, i);
 
-    t.StartTimer();
-    ida.GetPath(&mnp, puzzle, goal, pathIDA);
-    t.EndTimer();
+    try {
+      t.StartTimer();
+      ida.GetPath(&mnp, puzzle, goal, pathIDA);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      printf("IDA* ran out of memory\n");
+    }
     double idaTime = t.GetElapsedTime();
 
     std::cout << "IDAStar Solve time: " << idaTime << std::endl;
 
-    t.StartTimer();
-    pathBiHS = bihs.GetPath(puzzle, goal);
-    t.EndTimer();
+    try {
+      t.StartTimer();
+      pathBiHS = bihs.GetPath(puzzle, goal);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      printf("BiHS-Bloom ran out of memory\n");
+    }
     double bihsTime = t.GetElapsedTime();
 
     std::cout << "BIHS Bloom Solve time: " << bihsTime << std::endl;
