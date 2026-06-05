@@ -13,6 +13,7 @@
 #include "PancakeInstances.h"
 
 #include <algorithm>
+#include <cmath>
 #include <random>
 #include <cstring>
 #include <fstream>
@@ -251,14 +252,17 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   for(int pIdx = 0; pIdx < 3; ++pIdx)
   {
     double ratio = percentages[pIdx];
-    int size_in_KiB = (minSize * get_state_size(puzzle) / 8192) * ratio ; // Convert bits to KiB
+    int size_in_KiB = std::max(1, static_cast<int>(
+        std::round((static_cast<double>(minSize) * get_state_size(puzzle) / 8192.0) * ratio))); // Convert bits to KiB
 
-    // Let's cheat a little, i hav frontier size from MM so let's calculate optimal k by using opt_k = 9/13 * (m/n)
+    // Estimate the best Bloom hash count as ln(2) * (m / n).
+    double bloomBits = size_in_KiB * 8192.0;
+    double estimatedFrontierItems = std::max(1.0, static_cast<double>(frontierSize));
+    int k_hashes = std::max(1, static_cast<int>(
+        std::round(std::log(2.0) * bloomBits / estimatedFrontierItems)));
 
-    int k_hashes = std::max(1, static_cast<int>(std::round((9.0 / 13.0) * (size_in_KiB * 8192.0 / (frontierSize * get_state_size(puzzle))))));
-
-    // FP rate: (1 - e^(-k*n/m))^k  where n=frontier items, m=filter bits
-    double fp_rate = std::pow(1.0 - std::exp(-(double)k_hashes * frontierSize / (size_in_KiB * 8192.0 / get_state_size(puzzle))), k_hashes);
+    // FP rate: (1 - e^(-k*n/m))^k where n=estimated items, m=Bloom bits.
+    double fp_rate = std::pow(1.0 - std::exp(-(double)k_hashes * estimatedFrontierItems / bloomBits), k_hashes);
 
     std::cout << "[" << i << "] Running BiHS-Bloom(" << (ratio*100) << "%, size=" << size_in_KiB
               << "KiB, k=" << k_hashes << ", fp_est=" << fp_rate
