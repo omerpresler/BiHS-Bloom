@@ -15,6 +15,7 @@ OUT_DIR = Path("plots") / "runtime_report_assets"
 OUT_HTML = Path("plots") / "runtime_report.html"
 TIMEOUT = -1.0
 OUT_OF_MEMORY = -2.0
+SKIPPED = -3.0
 
 BASE_ALGOS = {
     "A*": ("a_star_time", "a_star_nodes"),
@@ -126,7 +127,7 @@ def discover_algorithms(df):
 
 
 def clean_times(series):
-    return series.replace([TIMEOUT, OUT_OF_MEMORY], np.nan)
+    return series.replace([TIMEOUT, OUT_OF_MEMORY, SKIPPED], np.nan)
 
 
 def algo_frame(df):
@@ -142,6 +143,8 @@ def algo_frame(df):
                 status = "timeout"
             elif time == OUT_OF_MEMORY:
                 status = "oom"
+            elif time == SKIPPED:
+                status = "skipped"
             rows.append(
                 {
                     "instance": int(row["instance"]),
@@ -256,7 +259,7 @@ def make_boxplot(long_df):
 def make_instance_heatmap(df):
     time_cols = [cols[0] for cols in ALGOS.values() if cols[0] in df.columns]
     names = [name for name, cols in ALGOS.items() if cols[0] in df.columns]
-    matrix = df[time_cols].replace([TIMEOUT, OUT_OF_MEMORY], np.nan).to_numpy(dtype=float)
+    matrix = df[time_cols].replace([TIMEOUT, OUT_OF_MEMORY, SKIPPED], np.nan).to_numpy(dtype=float)
     best = np.nanmin(matrix, axis=1)
     ratios = matrix / best[:, None]
     order = np.argsort(df["solution_length"].to_numpy())
@@ -386,7 +389,7 @@ def detail_table_html(df, params):
         times = {
             name: row[time_col]
             for name, time_col in available
-            if row[time_col] not in {TIMEOUT, OUT_OF_MEMORY} and not pd.isna(row[time_col])
+            if row[time_col] not in {TIMEOUT, OUT_OF_MEMORY, SKIPPED} and not pd.isna(row[time_col])
         }
         fastest = min(times.values()) if times else np.nan
         detail = {
@@ -400,6 +403,8 @@ def detail_table_html(df, params):
                 cell = '<span class="status timeout">timeout</span>'
             elif value == OUT_OF_MEMORY:
                 cell = '<span class="status oom">oom</span>'
+            elif value == SKIPPED:
+                cell = '<span class="status skipped">skipped</span>'
             elif pd.isna(value):
                 cell = "-"
             else:
@@ -631,6 +636,7 @@ def render_html(df, params, summary, image_paths):
     }}
     .timeout {{ color: #9b3131; }}
     .oom {{ color: #7b4f18; }}
+    .skipped {{ color: #586579; }}
     .note {{
       color: var(--muted);
       font-size: 14px;

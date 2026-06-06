@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import matplotlib.patches as patches
 import numpy as np
 import os
 
@@ -86,24 +87,24 @@ def get_last_actual_run(rdata):
     sort_cols = ["total_depth", "_csv_order"] if "_csv_order" in actual.columns else ["total_depth", "iteration"]
     return actual.sort_values(sort_cols).iloc[-1]
 
+def type_step_label(row):
+    if row["phase"] == "type":
+        return f"type {int(row['type_index']) + 1}/{int(row['type_count'])}"
+    return f"iter {int(row['iteration'])}"
+
 def add_inferred_type_split_labels(rdata):
     rdata = rdata.sort_values(["total_depth", "_csv_order"]).reset_index(drop=True)
-    rdata["plot_step"] = rdata.groupby("total_depth").cumcount()
     if HAS_TYPE_COLUMNS:
         rdata["phase"] = rdata["phase"].fillna("iter")
         rdata["type_index"] = rdata["type_index"].fillna(0).astype(int)
         rdata["type_count"] = rdata["type_count"].fillna(1).astype(int)
-        rdata["step_label"] = rdata.apply(
-            lambda row: (
-                f"t{int(row['type_index'])}/{int(row['type_count'])}"
-                if row["phase"] == "type"
-                else f"i{int(row['iteration'])}"
-            ),
-            axis=1,
-        )
+        rdata = rdata.sort_values(["total_depth", "_csv_order"]).reset_index(drop=True)
+        rdata["plot_step"] = rdata.groupby("total_depth").cumcount()
+        rdata["step_label"] = rdata.apply(type_step_label, axis=1)
         return rdata
 
     rdata["phase"] = "iter"
+    rdata["plot_step"] = rdata.groupby("total_depth").cumcount()
 
     for _, indexes in rdata.groupby("total_depth", sort=False).groups.items():
         prev_iteration = None
@@ -120,7 +121,7 @@ def add_inferred_type_split_labels(rdata):
             rdata.loc[split_indexes, "phase"] = "type"
 
     rdata["step_label"] = rdata.apply(
-        lambda row: f"t{int(row['iteration'])}" if row["phase"] == "type" else f"i{int(row['iteration'])}",
+        lambda row: f"type pass {int(row['iteration'])}" if row["phase"] == "type" else f"iter {int(row['iteration'])}",
         axis=1,
     )
     return rdata
@@ -176,7 +177,28 @@ COLORS = {
     "bits_set":              "#59a14f",
     "materialized_forward":  "#e15759",
     "materialized_backward": "#f28e2b",
+    "type_split":            "#f6c85f",
 }
+
+def has_type_split_rows(rdata):
+    return "phase" in rdata.columns and (rdata["phase"] == "type").any()
+
+def shade_type_split_bands(ax, rdata, x_col):
+    if not has_type_split_rows(rdata):
+        return
+    type_rows = rdata[rdata["phase"] == "type"]
+    for x in sorted(type_rows[x_col].unique()):
+        ax.axvspan(x - 0.45, x + 0.45, color=COLORS["type_split"], alpha=0.22, zorder=0)
+
+def add_type_split_note(ax):
+    ax.text(
+        0.03, 0.03, "hash-type split\nsearched types only",
+        transform=ax.transAxes,
+        ha="left", va="bottom",
+        fontsize=8, fontweight="bold",
+        bbox=dict(boxstyle="round,pad=0.22", facecolor="#fff3bf", edgecolor="#c99a2e", alpha=0.9),
+        zorder=8,
+    )
 
 instances = sorted(df["instance"].unique())
 print(f"Generating {len(instances)} convergence plots...")
@@ -207,8 +229,9 @@ for puzzle_id in instances:
         ax.set_title(f"Memory {mem_label}  ({size_kib:,} KiB)")
 
         rdata = add_inferred_type_split_labels(rdata)
-        xlabels = [f"{row.total_depth}-{row.step_label}" for _, row in rdata.iterrows()]
+        xlabels = [f"{row.total_depth}\n{row.step_label}" for _, row in rdata.iterrows()]
         x = np.arange(len(xlabels))
+        rdata["xpos"] = x
 
         m_bits   = rdata["size_kib"].iloc[0] * 1024 * 8
         n_ins    = rdata["n_inserted"].values.astype(float)
@@ -217,8 +240,11 @@ for puzzle_id in instances:
         else:
             fill_pct = (rdata["bits_set"].values.astype(float) / m_bits * 100) if HAS_BITS else np.zeros(len(rdata))
 
+        shade_type_split_bands(ax, rdata, "xpos")
         ax.bar(x, n_ins, BAR_W, color=COLORS["n_inserted"],
                edgecolor="black", linewidth=0.6, label="n_inserted")
+        if has_type_split_rows(rdata):
+            add_type_split_note(ax)
         last_actual = get_last_actual_run(rdata)
         if last_actual is not None:
             actual_index = int(last_actual.name)
@@ -265,7 +291,12 @@ for puzzle_id in instances:
         ax.grid(True, axis="y", alpha=0.2)
         h1, l1 = ax.get_legend_handles_labels()
         h2, l2 = ax2.get_legend_handles_labels()
-        ax.legend(h1 + h2, l1 + l2, fontsize=7, loc="upper right")
+        handles = h1 + h2
+        labels = l1 + l2
+        if has_type_split_rows(rdata):
+            handles.append(patches.Patch(facecolor=COLORS["type_split"], alpha=0.35, edgecolor="#c99a2e"))
+            labels.append("hash-type split")
+        ax.legend(handles, labels, fontsize=7, loc="upper right")
 
     plt.tight_layout()
     save_convergence_plot(f"puzzle_{puzzle_id:03d}.png")
@@ -327,18 +358,33 @@ for puzzle_id in instances:
                 ax.set_xlabel("iteration")
                 continue
 
+            shade_type_split_bands(ax, rdata, "plot_step")
             for di, depth in enumerate(depths):
                 ddata = rdata[rdata["total_depth"] == depth]
                 color = ITER_CMAP(di % 10)
                 y = ddata.set_index("plot_step")[metric].reindex(plot_steps)
                 ax.plot(plot_steps, y.values, marker="o", markersize=4,
                         linewidth=1.6, color=color, label=f"depth {depth}")
+                typed = ddata[ddata["phase"] == "type"] if "phase" in ddata.columns else ddata.iloc[0:0]
+                if not typed.empty:
+                    ax.scatter(
+                        typed["plot_step"],
+                        typed[metric],
+                        marker="D",
+                        s=46,
+                        facecolor="white",
+                        edgecolor=color,
+                        linewidth=1.2,
+                        zorder=6,
+                    )
 
             ax.set_title(ylabel)
             ax.set_xlabel("step")
             ax.set_xticks(plot_steps)
             ax.set_xticklabels(plot_step_labels)
             ax.set_ylabel(ylabel)
+            if has_type_split_rows(rdata):
+                add_type_split_note(ax)
             if use_log:
                 ax.set_yscale("log")
                 ax.set_ylim(bottom=LOG_Y_MIN)
@@ -367,7 +413,11 @@ for puzzle_id in instances:
             elif metric == "fill_pct":
                 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x:.1f}%"))
             ax.grid(True, alpha=0.2)
-            ax.legend(fontsize=7, loc="upper left", bbox_to_anchor=(1.01, 1), borderaxespad=0)
+            handles, labels = ax.get_legend_handles_labels()
+            if has_type_split_rows(rdata):
+                handles.append(patches.Patch(facecolor=COLORS["type_split"], alpha=0.35, edgecolor="#c99a2e"))
+                labels.append("hash-type split")
+            ax.legend(handles, labels, fontsize=7, loc="upper left", bbox_to_anchor=(1.01, 1), borderaxespad=0)
 
         plt.tight_layout()
         save_convergence_plot(f"puzzle_{puzzle_id:03d}_{slug}.png")

@@ -29,7 +29,27 @@
 #include <atomic>
 #include <memory>
 
+static constexpr double SKIPPED_TIME = -3.0;
 static constexpr int NUM_BIHS_RUNS = 6;
+
+struct AlgorithmSkipEntry {
+  int instance;
+  const char *algorithm;
+};
+
+static constexpr AlgorithmSkipEntry SKIPPED_ALGORITHMS[] = {
+    {59, "NBS"},
+    {59, "MM"},
+};
+
+static bool ShouldSkipAlgorithm(int instance, const char *algorithm) {
+  for (const auto &entry : SKIPPED_ALGORITHMS) {
+    if (entry.instance == instance && std::strcmp(entry.algorithm, algorithm) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
 
 struct BiHSRunConfig {
   double ratio;
@@ -172,9 +192,12 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
     }
 
-    std::cout << "[" << i << "] Running NBS..." << std::flush;
-    // NBS
-    {
+    if (ShouldSkipAlgorithm(i, "NBS")) {
+      result.nbsTime = SKIPPED_TIME;
+      std::cout << "[" << i << "] Skipping NBS by skip table\n" << std::flush;
+    } else {
+      std::cout << "[" << i << "] Running NBS..." << std::flush;
+      // NBS
       NBS<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> nbs;
       std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
       try {
@@ -194,9 +217,12 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       std::cout << " done (" << result.nbsTime << "s, " << result.nbsNodeExpanded << "n)\n" << std::flush;
     }
 
-    std::cout << "[" << i << "] Running MM..." << std::flush;
-    // MM
-    {
+    if (ShouldSkipAlgorithm(i, "MM")) {
+      result.mmTime = SKIPPED_TIME;
+      std::cout << "[" << i << "] Skipping MM by skip table\n" << std::flush;
+    } else {
+      std::cout << "[" << i << "] Running MM..." << std::flush;
+      // MM
       MM<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> mm;
       std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
       try {
@@ -263,6 +289,11 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   double maxBaselineTime = std::max({result.aStarTime, result.revAStarTime, result.baeTime, result.nbsTime,
                                      result.mmTime, result.idaTime, result.revIdaTime});
   double bihsTimeLimit = std::max(maxBaselineTime * 20.0, 120.0); // Set a minimum time limit of 120 seconds for BiHS-Bloom
+  if (frontierSize == 0) {
+    frontierSize = std::max<size_t>(1, minSize);
+    std::cout << "[" << i << "] MM frontier unavailable; using minSize fallback for BiHS k estimate: "
+              << frontierSize << "\n" << std::flush;
+  }
   std::cout << "[" << i << "] BiHS-Bloom timeout limit: " << bihsTimeLimit << "s\n" << std::flush;
 
   using STPBiHSBloom = BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>>;
