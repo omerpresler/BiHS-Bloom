@@ -17,8 +17,12 @@ if "k_mode" not in df.columns:
     df["k_mode"] = "optk"
 else:
     df["k_mode"] = df["k_mode"].fillna("optk")
+if "split_mode" not in df.columns:
+    df["split_mode"] = "fixed"
+else:
+    df["split_mode"] = df["split_mode"].fillna("fixed")
 
-# Load converged flag and k per (instance, ratio, k_mode) from the benchmark CSV
+# Load converged flag and k per (instance, ratio, k_mode, split_mode) from the benchmark CSV
 converged_map = {}
 k_hashes_map = {}
 if os.path.exists(BENCH_CSV):
@@ -27,7 +31,8 @@ if os.path.exists(BENCH_CSV):
             if line.startswith("BIHS_PARAM"):
                 parts = line.strip().split(",")
                 k_mode = parts[9] if len(parts) > 9 else "optk"
-                key = (int(parts[1]), round(float(parts[2]), 3), k_mode)
+                split_mode = parts[10] if len(parts) > 10 else "fixed"
+                key = (int(parts[1]), round(float(parts[2]), 3), k_mode, split_mode)
                 converged_map[key] = bool(int(parts[8]))
                 k_hashes_map[key] = int(parts[4])
 
@@ -35,19 +40,21 @@ RATIOS      = [0.5, 0.1, 0.01]
 RATIO_NAMES = {0.5: "50%", 0.1: "10%", 0.01: "1%"}
 RATIO_SLUGS = {0.5: "50pct", 0.1: "10pct", 0.01: "1pct"}
 K_MODE_NAMES = {"k1": "k=1", "optk": "opt-k"}
+SPLIT_MODE_NAMES = {"fixed": "fixed split", "dynamic": "dynamic split"}
 
 available_runs = {
-    (float(row.ratio), str(row.k_mode))
-    for row in df[["ratio", "k_mode"]].drop_duplicates().itertuples(index=False)
+    (float(row.ratio), str(row.k_mode), str(row.split_mode))
+    for row in df[["ratio", "k_mode", "split_mode"]].drop_duplicates().itertuples(index=False)
 }
 RUNS = [
-    (ratio, k_mode)
+    (ratio, k_mode, split_mode)
     for ratio in RATIOS
     for k_mode in ["k1", "optk"]
-    if (ratio, k_mode) in available_runs
+    for split_mode in ["fixed", "dynamic"]
+    if (ratio, k_mode, split_mode) in available_runs
 ]
 if not RUNS:
-    RUNS = [(ratio, "optk") for ratio in RATIOS]
+    RUNS = [(ratio, "optk", "fixed") for ratio in RATIOS]
 
 HAS_BITS = "bits_set" in df.columns
 HAS_FILL = "fill_ratio" in df.columns
@@ -67,13 +74,13 @@ def format_log_tick(value, _):
 def format_count(value):
     return f"{int(value):,}"
 
-def run_title_label(puzzle_id, ratio, k_mode, rdata):
-    mem_label = f"{RATIO_NAMES[ratio]} {K_MODE_NAMES.get(k_mode, k_mode)}"
+def run_title_label(puzzle_id, ratio, k_mode, split_mode, rdata):
+    mem_label = f"{RATIO_NAMES[ratio]} {K_MODE_NAMES.get(k_mode, k_mode)} {SPLIT_MODE_NAMES.get(split_mode, split_mode)}"
     k_hashes = None
     if "k_hashes" in rdata.columns and not rdata.empty:
         k_hashes = int(rdata["k_hashes"].iloc[0])
     else:
-        k_hashes = k_hashes_map.get((puzzle_id, ratio, k_mode))
+        k_hashes = k_hashes_map.get((puzzle_id, ratio, k_mode, split_mode))
     if k_hashes is not None:
         mem_label = f"{mem_label} (k={k_hashes})"
     return mem_label
@@ -210,15 +217,27 @@ for puzzle_id in instances:
     # Main figure: n_inserted (left) and fill percentage (right) per ratio
     # -----------------------------------------------------------------------
     BAR_W = 0.25
-    fig, axes = plt.subplots(1, len(RUNS), figsize=(8 * len(RUNS), 6), squeeze=False)
+    overview_cols = min(6, len(RUNS))
+    overview_rows = int(np.ceil(len(RUNS) / overview_cols))
+    fig, axes = plt.subplots(
+        overview_rows,
+        overview_cols,
+        figsize=(7.2 * overview_cols, 5.8 * overview_rows),
+        squeeze=False,
+    )
+    axes_flat = axes.ravel()
     fig.suptitle(f"Puzzle #{puzzle_id} — Bloom Convergence", fontsize=14, fontweight="bold")
 
-    for col, (ratio, k_mode) in enumerate(RUNS):
-        ax  = axes[0][col]
+    for col, (ratio, k_mode, split_mode) in enumerate(RUNS):
+        ax  = axes_flat[col]
         ax2 = ax.twinx()
 
-        rdata = pdata[(pdata["ratio"] == ratio) & (pdata["k_mode"] == k_mode)].copy()
-        mem_label = run_title_label(puzzle_id, ratio, k_mode, rdata)
+        rdata = pdata[
+            (pdata["ratio"] == ratio) &
+            (pdata["k_mode"] == k_mode) &
+            (pdata["split_mode"] == split_mode)
+        ].copy()
+        mem_label = run_title_label(puzzle_id, ratio, k_mode, split_mode, rdata)
 
         if rdata.empty:
             ax.set_title(f"Memory {mem_label}")
@@ -298,6 +317,9 @@ for puzzle_id in instances:
             labels.append("hash-type split")
         ax.legend(handles, labels, fontsize=7, loc="upper right")
 
+    for ax in axes_flat[len(RUNS):]:
+        ax.axis("off")
+
     plt.tight_layout()
     save_convergence_plot(f"puzzle_{puzzle_id:03d}.png")
     plt.close()
@@ -306,12 +328,16 @@ for puzzle_id in instances:
     # Focus figures: one per ratio, 2 subplots (fill / n_inserted)
     # x-axis = total_depth, one colored line per iteration
     # -----------------------------------------------------------------------
-    for ratio, k_mode in RUNS:
-        rdata = pdata[(pdata["ratio"] == ratio) & (pdata["k_mode"] == k_mode)].copy()
-        mem_label = run_title_label(puzzle_id, ratio, k_mode, rdata)
-        slug      = f"{RATIO_SLUGS[ratio]}_{k_mode}"
+    for ratio, k_mode, split_mode in RUNS:
+        rdata = pdata[
+            (pdata["ratio"] == ratio) &
+            (pdata["k_mode"] == k_mode) &
+            (pdata["split_mode"] == split_mode)
+        ].copy()
+        mem_label = run_title_label(puzzle_id, ratio, k_mode, split_mode, rdata)
+        slug      = f"{RATIO_SLUGS[ratio]}_{k_mode}_{split_mode}"
 
-        conv = converged_map.get((puzzle_id, ratio, k_mode))
+        conv = converged_map.get((puzzle_id, ratio, k_mode, split_mode))
         conv_tag = ""
         if conv is True:
             conv_tag = "  ✓ Converged"

@@ -112,11 +112,12 @@ enum class TerminationCondition {
 template <class state, class action, class environment>
 class BiHSBloom {
 public:
-    BiHSBloom(int size_in_KiB, int k_hashes, double time_limit_seconds = 0)
+    BiHSBloom(int size_in_KiB, int k_hashes, double time_limit_seconds = 0, bool dynamic_splitting = false)
         : size_in_KiB(size_in_KiB),
           k_hashes(k_hashes),
           stab_tail_len(4),
           time_limit(time_limit_seconds),
+          dynamicSplitting(dynamic_splitting),
           timed_out(false),
           env() // default-construct environment
     {
@@ -901,7 +902,6 @@ public:
         Timer globalTimer;
         globalTimer.StartTimer();
         bool hasLearnedSplit = false;
-        bool dynamicSplitting = false;
 
         while(true){
             // Check time limit at each depth iteration
@@ -988,6 +988,7 @@ private:
     int min_f_value = -1;
 
     double time_limit; // seconds, 0 = no limit
+    bool dynamicSplitting;
     bool timed_out;
     int type_split_target_load = 25;
     int max_type_splits = 8;

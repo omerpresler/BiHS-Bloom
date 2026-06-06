@@ -30,7 +30,7 @@
 #include <memory>
 
 static constexpr double SKIPPED_TIME = -3.0;
-static constexpr int NUM_BIHS_RUNS = 6;
+static constexpr int NUM_BIHS_RUNS = 12;
 
 struct AlgorithmSkipEntry {
   int instance;
@@ -57,15 +57,23 @@ struct BiHSRunConfig {
   const char *ratioSlug;
   const char *kMode;
   bool useOptimizedK;
+  const char *splitMode;
+  bool useDynamicSplit;
 };
 
 static constexpr BiHSRunConfig BIHS_RUNS[NUM_BIHS_RUNS] = {
-    {0.5,  "50%", "50pct", "k1",   false},
-    {0.5,  "50%", "50pct", "optk", true},
-    {0.1,  "10%", "10pct", "k1",   false},
-    {0.1,  "10%", "10pct", "optk", true},
-    {0.01, "1%",  "1pct",  "k1",   false},
-    {0.01, "1%",  "1pct",  "optk", true},
+    {0.5,  "50%", "50pct", "k1",   false, "fixed",   false},
+    {0.5,  "50%", "50pct", "optk", true,  "fixed",   false},
+    {0.5,  "50%", "50pct", "k1",   false, "dynamic", true},
+    {0.5,  "50%", "50pct", "optk", true,  "dynamic", true},
+    {0.1,  "10%", "10pct", "k1",   false, "fixed",   false},
+    {0.1,  "10%", "10pct", "optk", true,  "fixed",   false},
+    {0.1,  "10%", "10pct", "k1",   false, "dynamic", true},
+    {0.1,  "10%", "10pct", "optk", true,  "dynamic", true},
+    {0.01, "1%",  "1pct",  "k1",   false, "fixed",   false},
+    {0.01, "1%",  "1pct",  "optk", true,  "fixed",   false},
+    {0.01, "1%",  "1pct",  "k1",   false, "dynamic", true},
+    {0.01, "1%",  "1pct",  "optk", true,  "dynamic", true},
 };
 
 struct STPResult {
@@ -299,6 +307,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   using STPBiHSBloom = BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>>;
   std::vector<STPBiHSBloom::IterationStat> lastK1Stats;
   double lastK1Ratio = -1.0;
+  const char *lastK1SplitMode = "";
   bool lastK1Available = false;
   bool lastK1Converged = false;
   int lastK1PathLength = -1;
@@ -321,18 +330,20 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     // FP rate: (1 - e^(-k*n/m))^k where n=estimated items, m=Bloom bits.
     double fp_rate = std::pow(1.0 - std::exp(-(double)k_hashes * estimatedFrontierItems / bloomBits), k_hashes);
 
-    if (run.useOptimizedK && k_hashes == 1 && lastK1Available && std::abs(lastK1Ratio - ratio) < 1e-9) {
+    if (run.useOptimizedK && k_hashes == 1 && lastK1Available &&
+        std::abs(lastK1Ratio - ratio) < 1e-9 &&
+        std::strcmp(lastK1SplitMode, run.splitMode) == 0) {
       result.bihsTime[runIdx] = result.bihsTime[runIdx - 1];
       result.bihsNodeExpanded[runIdx] = result.bihsNodeExpanded[runIdx - 1];
 
       std::cout << "[" << i << "] Reusing BiHS-Bloom(" << run.ratioLabel
-                << ", k1) result for optk because optimized k=1\n" << std::flush;
+                << ", k1, " << run.splitMode << ") result for optk because optimized k=1\n" << std::flush;
 
       {
         std::lock_guard<std::mutex> lk(logMutex);
         log << "BIHS_PARAM," << i << "," << ratio << "," << size_in_KiB << "," << k_hashes << ","
             << result.bihsTime[runIdx] << "," << result.bihsNodeExpanded[runIdx] << ","
-            << fp_rate << "," << lastK1Converged << "," << run.kMode << "\n";
+            << fp_rate << "," << lastK1Converged << "," << run.kMode << "," << run.splitMode << "\n";
       }
       {
         std::lock_guard<std::mutex> lk(convMutex);
@@ -345,7 +356,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
                   << s.materializedTotalStates << ","
                   << (s.isTypeSplit ? "type" : "iter") << ","
                   << s.typeIndex << "," << s.typeCount << ","
-                  << run.kMode << "," << k_hashes << "\n";
+                  << run.kMode << "," << k_hashes << "," << run.splitMode << "\n";
         convLog.flush();
       }
       if (lastK1Converged)
@@ -354,10 +365,11 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     }
 
     std::cout << "[" << i << "] Running BiHS-Bloom(" << run.ratioLabel << ", " << run.kMode
+              << ", " << run.splitMode
               << ", size=" << size_in_KiB << "KiB, k=" << k_hashes << ", fp_est=" << fp_rate
               << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
 
-    STPBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit);
+    STPBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit, run.useDynamicSplit);
     bool bihsOutOfMemory = false;
     std::vector<slideDir> pathBiHS;
     try {
@@ -386,7 +398,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       std::lock_guard<std::mutex> lk(logMutex);
       log << "BIHS_PARAM," << i << "," << ratio << "," << size_in_KiB << "," << k_hashes << ","
           << result.bihsTime[runIdx] << "," << result.bihsNodeExpanded[runIdx] << ","
-          << fp_rate << "," << converged << "," << run.kMode << "\n";
+          << fp_rate << "," << converged << "," << run.kMode << "," << run.splitMode << "\n";
     }
     {
       std::lock_guard<std::mutex> lk(convMutex);
@@ -399,7 +411,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
                 << s.materializedTotalStates << ","
                 << (s.isTypeSplit ? "type" : "iter") << ","
                 << s.typeIndex << "," << s.typeCount << ","
-                << run.kMode << "," << k_hashes << "\n";
+                << run.kMode << "," << k_hashes << "," << run.splitMode << "\n";
       convLog.flush();
     }
     if (converged)
@@ -408,6 +420,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     if (!run.useOptimizedK && k_hashes == 1) {
       lastK1Stats = bihs.GetIterStats();
       lastK1Ratio = ratio;
+      lastK1SplitMode = run.splitMode;
       lastK1Available = true;
       lastK1Converged = converged;
       lastK1PathLength = static_cast<int>(pathBiHS.size());
@@ -421,13 +434,13 @@ void solveSTP(){
   std::ofstream log("benchmark_stp_korf100.csv");
   std::vector<std::string> headers = {"instance", "solution_length",
       "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "rev_ida_time",
-      "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "rev_ida_nodes",
-      "bihs_bloom_time_50pct_k1", "bihs_bloom_time_50pct_optk",
-      "bihs_bloom_time_10pct_k1", "bihs_bloom_time_10pct_optk",
-      "bihs_bloom_time_1pct_k1", "bihs_bloom_time_1pct_optk",
-      "bihs_bloom_nodes_50pct_k1", "bihs_bloom_nodes_50pct_optk",
-      "bihs_bloom_nodes_10pct_k1", "bihs_bloom_nodes_10pct_optk",
-      "bihs_bloom_nodes_1pct_k1", "bihs_bloom_nodes_1pct_optk"};
+      "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "rev_ida_nodes"};
+  for (const auto &run : BIHS_RUNS) {
+    headers.push_back(std::string("bihs_bloom_time_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
+  }
+  for (const auto &run : BIHS_RUNS) {
+    headers.push_back(std::string("bihs_bloom_nodes_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
+  }
   for(size_t i = 0; i < headers.size(); ++i) {
     log << headers[i];
     if (i < headers.size() - 1) log << ",";
@@ -435,7 +448,7 @@ void solveSTP(){
   log << "\n";
 
   std::ofstream convLog("bloom_convergence.csv");
-  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes\n";
+  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
 
   std::mutex logMutex;
   std::mutex convMutex;
@@ -464,15 +477,13 @@ void solveSTP(){
                   << " | NBS: " << r.nbsTime << "s/" << r.nbsNodeExpanded << "n"
                   << " | MM: " << r.mmTime << "s/" << r.mmNodeExpanded << "n"
                   << " | IDA*: " << r.idaTime << "s/" << r.idaNodeExpanded << "n"
-                  << " | Rev-IDA*: " << r.revIdaTime << "s/" << r.revIdaNodeExpanded << "n"
-                  << " | BiHS-Bloom(50%,k1): " << r.bihsTime[0] << "s/" << r.bihsNodeExpanded[0] << "n"
-                  << " | BiHS-Bloom(50%,optk): " << r.bihsTime[1] << "s/" << r.bihsNodeExpanded[1] << "n"
-                  << " | BiHS-Bloom(10%,k1): " << r.bihsTime[2] << "s/" << r.bihsNodeExpanded[2] << "n"
-                  << " | BiHS-Bloom(10%,optk): " << r.bihsTime[3] << "s/" << r.bihsNodeExpanded[3] << "n"
-                  << " | BiHS-Bloom(1%,k1): " << r.bihsTime[4] << "s/" << r.bihsNodeExpanded[4] << "n"
-                  << " | BiHS-Bloom(1%,optk): " << r.bihsTime[5] << "s/" << r.bihsNodeExpanded[5] << "n"
-                  << " | Length: " << r.solutionLength
-                  << std::endl;
+                  << " | Rev-IDA*: " << r.revIdaTime << "s/" << r.revIdaNodeExpanded << "n";
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx) {
+          const auto &run = BIHS_RUNS[runIdx];
+          std::cout << " | BiHS-Bloom(" << run.ratioLabel << "," << run.kMode << "," << run.splitMode
+                    << "): " << r.bihsTime[runIdx] << "s/" << r.bihsNodeExpanded[runIdx] << "n";
+        }
+        std::cout << " | Length: " << r.solutionLength << std::endl;
       }
 
       {
@@ -488,12 +499,14 @@ void solveSTP(){
             << r.aStarNodeExpanded << "," << r.revAStarNodeExpanded << ","
             << r.baeNodeExpanded << "," << r.nbsNodeExpanded << "," << r.mmNodeExpanded << ","
             << r.idaNodeExpanded << "," << r.revIdaNodeExpanded << ","
-            << r.bihsTime[0] << "," << r.bihsTime[1] << ","
-            << r.bihsTime[2] << "," << r.bihsTime[3] << ","
-            << r.bihsTime[4] << "," << r.bihsTime[5] << ","
-            << r.bihsNodeExpanded[0] << "," << r.bihsNodeExpanded[1] << ","
-            << r.bihsNodeExpanded[2] << "," << r.bihsNodeExpanded[3] << ","
-            << r.bihsNodeExpanded[4] << "," << r.bihsNodeExpanded[5] << "\n";
+            << r.bihsTime[0];
+        for (int runIdx = 1; runIdx < NUM_BIHS_RUNS; ++runIdx) {
+          log << "," << r.bihsTime[runIdx];
+        }
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx) {
+          log << "," << r.bihsNodeExpanded[runIdx];
+        }
+        log << "\n";
         log.flush();
       }
     }

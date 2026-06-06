@@ -79,6 +79,7 @@ def load_results(path):
                         "fp_rate": float(parts[7]) if len(parts) > 7 else np.nan,
                         "converged": int(parts[8]) if len(parts) > 8 else np.nan,
                         "k_mode": parts[9] if len(parts) > 9 else "optk",
+                        "split_mode": parts[10] if len(parts) > 10 else "fixed",
                     }
                 )
             else:
@@ -95,13 +96,16 @@ def discover_algorithms(df):
     seen_bihs = []
 
     for col in df.columns:
-        match = re.fullmatch(r"bihs_bloom_time_(50pct|10pct|1pct)(?:_(k1|optk))?", col)
+        match = re.fullmatch(r"bihs_bloom_time_(50pct|10pct|1pct)(?:_(k1|optk))?(?:_(fixed|dynamic))?", col)
         if not match:
             continue
 
         ratio_slug = match.group(1)
         k_mode = match.group(2)
+        split_mode = match.group(3) or "fixed"
         suffix = f"_{k_mode}" if k_mode else ""
+        if match.group(3):
+            suffix += f"_{split_mode}"
         nodes_col = f"bihs_bloom_nodes_{ratio_slug}{suffix}"
         if nodes_col not in df.columns:
             continue
@@ -111,14 +115,17 @@ def discover_algorithms(df):
             label += " k=1"
         elif k_mode == "optk":
             label += " opt-k"
+        if match.group(3):
+            label += f" {split_mode}"
 
-        seen_bihs.append((ratio_slug, k_mode or "old", label, col, nodes_col))
+        seen_bihs.append((ratio_slug, k_mode or "old", split_mode, label, col, nodes_col))
 
     ratio_order = {"50pct": 0, "10pct": 1, "1pct": 2}
     mode_order = {"k1": 0, "optk": 1, "old": 1}
-    for ratio_slug, k_mode, label, time_col, nodes_col in sorted(
+    split_order = {"fixed": 0, "dynamic": 1}
+    for ratio_slug, k_mode, split_mode, label, time_col, nodes_col in sorted(
         seen_bihs,
-        key=lambda item: (ratio_order[item[0]], mode_order[item[1]]),
+        key=lambda item: (ratio_order[item[0]], mode_order[item[1]], split_order.get(item[2], 9)),
     ):
         algos[label] = (time_col, nodes_col)
         colors[label] = BIHS_COLORS.get((ratio_slug, k_mode), BIHS_COLORS.get((ratio_slug, "optk"), "#9c755f"))
@@ -311,17 +318,21 @@ def make_bihs_params(params):
     params = params.copy()
     params["ratio"] = params["ratio"].round(3)
     params["k_mode"] = params["k_mode"].fillna("optk")
+    params["split_mode"] = params["split_mode"].fillna("fixed") if "split_mode" in params.columns else "fixed"
     ratio_labels = {0.5: "50%", 0.1: "10%", 0.01: "1%"}
     mode_labels = {"k1": "k=1", "optk": "opt-k"}
     groups_meta = []
     for ratio in [0.5, 0.1, 0.01]:
-        ratio_modes = params.loc[params["ratio"] == ratio, "k_mode"].dropna().unique()
+        ratio_rows = params[params["ratio"] == ratio]
+        ratio_modes = ratio_rows["k_mode"].dropna().unique()
         for mode in ["k1", "optk"]:
-            if mode in ratio_modes:
-                groups_meta.append((ratio, mode, f"{ratio_labels[ratio]}\n{mode_labels[mode]}"))
+            mode_rows = ratio_rows[ratio_rows["k_mode"] == mode]
+            for split_mode in ["fixed", "dynamic"]:
+                if split_mode in mode_rows["split_mode"].dropna().unique():
+                    groups_meta.append((ratio, mode, split_mode, f"{ratio_labels[ratio]}\n{mode_labels[mode]}\n{split_mode}"))
         if not any(mode in ratio_modes for mode in ["k1", "optk"]) and len(ratio_modes):
             mode = ratio_modes[0]
-            groups_meta.append((ratio, mode, ratio_labels[ratio]))
+            groups_meta.append((ratio, mode, "fixed", ratio_labels[ratio]))
 
     for ax, metric, title, ylabel in [
         (axes[0], "size_kib", "Bloom Size", "KiB"),
@@ -331,8 +342,13 @@ def make_bihs_params(params):
         groups = []
         labels = []
         colors = []
-        for ratio, mode, label in groups_meta:
-            values = params.loc[(params["ratio"] == ratio) & (params["k_mode"] == mode), metric].dropna()
+        for ratio, mode, split_mode, label in groups_meta:
+            values = params.loc[
+                (params["ratio"] == ratio) &
+                (params["k_mode"] == mode) &
+                (params["split_mode"] == split_mode),
+                metric
+            ].dropna()
             if values.empty:
                 continue
             groups.append(values)
@@ -359,13 +375,14 @@ def table_html(summary):
 
 
 def bihs_label_metadata(name):
-    match = re.fullmatch(r"BiHS (50%|10%|1%)(?: (k=1|opt-k))?", name)
+    match = re.fullmatch(r"BiHS (50%|10%|1%)(?: (k=1|opt-k))?(?: (fixed|dynamic))?", name)
     if not match:
         return None
     ratio = {"50%": 0.5, "10%": 0.1, "1%": 0.01}[match.group(1)]
     mode_label = match.group(2)
     k_mode = "k1" if mode_label == "k=1" else "optk"
-    return ratio, k_mode
+    split_mode = match.group(3) or "fixed"
+    return ratio, k_mode, split_mode
 
 
 def build_k_lookup(params):
@@ -374,8 +391,9 @@ def build_k_lookup(params):
     normalized = params.copy()
     normalized["ratio"] = normalized["ratio"].round(3)
     normalized["k_mode"] = normalized["k_mode"].fillna("optk")
+    normalized["split_mode"] = normalized["split_mode"].fillna("fixed") if "split_mode" in normalized.columns else "fixed"
     return {
-        (int(row.instance), round(float(row.ratio), 3), str(row.k_mode)): int(row.k_hashes)
+        (int(row.instance), round(float(row.ratio), 3), str(row.k_mode), str(row.split_mode)): int(row.k_hashes)
         for row in normalized.itertuples(index=False)
     }
 
@@ -413,8 +431,8 @@ def detail_table_html(df, params):
                 k_text = ""
                 meta = bihs_label_metadata(name)
                 if meta is not None:
-                    ratio, k_mode = meta
-                    k_hashes = k_lookup.get((int(row["instance"]), round(ratio, 3), k_mode))
+                    ratio, k_mode, split_mode = meta
+                    k_hashes = k_lookup.get((int(row["instance"]), round(ratio, 3), k_mode, split_mode))
                     if k_hashes is not None:
                         k_text = f'<span class="cell-note">k={k_hashes}</span>'
                 cell = f"{time_text}{k_text}"
@@ -464,8 +482,9 @@ def render_html(df, params, summary, image_paths):
     if not params.empty:
         params_for_note = params.copy()
         params_for_note["k_mode"] = params_for_note["k_mode"].fillna("optk")
-        k_summary = params_for_note.groupby(["ratio", "k_mode"])["k_hashes"].median().sort_index(ascending=False)
-        parts = [f"{int(r * 100)}% {mode} median k={int(v)}" for (r, mode), v in k_summary.items()]
+        params_for_note["split_mode"] = params_for_note["split_mode"].fillna("fixed") if "split_mode" in params_for_note.columns else "fixed"
+        k_summary = params_for_note.groupby(["ratio", "k_mode", "split_mode"])["k_hashes"].median().sort_index(ascending=False)
+        parts = [f"{int(r * 100)}% {mode} {split} median k={int(v)}" for (r, mode, split), v in k_summary.items()]
         bihs_note = "BiHS parameter medians: " + ", ".join(parts) + "."
 
     return f"""<!doctype html>
