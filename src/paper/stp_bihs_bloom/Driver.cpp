@@ -29,6 +29,24 @@
 #include <atomic>
 #include <memory>
 
+static constexpr int NUM_BIHS_RUNS = 6;
+
+struct BiHSRunConfig {
+  double ratio;
+  const char *ratioLabel;
+  const char *ratioSlug;
+  const char *kMode;
+  bool useOptimizedK;
+};
+
+static constexpr BiHSRunConfig BIHS_RUNS[NUM_BIHS_RUNS] = {
+    {0.5,  "50%", "50pct", "k1",   false},
+    {0.5,  "50%", "50pct", "optk", true},
+    {0.1,  "10%", "10pct", "k1",   false},
+    {0.1,  "10%", "10pct", "optk", true},
+    {0.01, "1%",  "1pct",  "k1",   false},
+    {0.01, "1%",  "1pct",  "optk", true},
+};
 
 struct STPResult {
   int instance;
@@ -40,7 +58,7 @@ struct STPResult {
   double nbsTime;
   double idaTime;
   double revIdaTime;
-  std::array<double, 3> bihsTime;
+  std::array<double, NUM_BIHS_RUNS> bihsTime;
 
   size_t aStarNodeExpanded;
   size_t revAStarNodeExpanded;
@@ -49,7 +67,7 @@ struct STPResult {
   size_t nbsNodeExpanded;
   size_t idaNodeExpanded;
   size_t revIdaNodeExpanded;
-  std::array<size_t, 3> bihsNodeExpanded;
+  std::array<size_t, NUM_BIHS_RUNS> bihsNodeExpanded;
 };
 
 static constexpr int NUM_WORKERS = 1;
@@ -247,28 +265,68 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   double bihsTimeLimit = std::max(maxBaselineTime * 20.0, 120.0); // Set a minimum time limit of 120 seconds for BiHS-Bloom
   std::cout << "[" << i << "] BiHS-Bloom timeout limit: " << bihsTimeLimit << "s\n" << std::flush;
 
-  double percentages[] = {0.5, 0.1, 0.01};
+  using STPBiHSBloom = BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>>;
+  std::vector<STPBiHSBloom::IterationStat> lastK1Stats;
+  double lastK1Ratio = -1.0;
+  bool lastK1Available = false;
+  bool lastK1Converged = false;
+  int lastK1PathLength = -1;
+
   // BiHS-Bloom
-  for(int pIdx = 0; pIdx < 3; ++pIdx)
+  for(int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
   {
-    double ratio = percentages[pIdx];
+    const BiHSRunConfig &run = BIHS_RUNS[runIdx];
+    double ratio = run.ratio;
     int size_in_KiB = std::max(1, static_cast<int>(
         std::round((static_cast<double>(minSize) * get_state_size(puzzle) / 8192.0) * ratio))); // Convert bits to KiB
 
     // Estimate the best Bloom hash count as ln(2) * (m / n).
     double bloomBits = size_in_KiB * 8192.0;
     double estimatedFrontierItems = std::max(1.0, static_cast<double>(frontierSize));
-    int k_hashes = std::max(1, static_cast<int>(
+    int optimized_k_hashes = std::max(1, static_cast<int>(
         std::round(std::log(2.0) * bloomBits / estimatedFrontierItems)));
+    int k_hashes = run.useOptimizedK ? optimized_k_hashes : 1;
 
     // FP rate: (1 - e^(-k*n/m))^k where n=estimated items, m=Bloom bits.
     double fp_rate = std::pow(1.0 - std::exp(-(double)k_hashes * estimatedFrontierItems / bloomBits), k_hashes);
 
-    std::cout << "[" << i << "] Running BiHS-Bloom(" << (ratio*100) << "%, size=" << size_in_KiB
-              << "KiB, k=" << k_hashes << ", fp_est=" << fp_rate
+    if (run.useOptimizedK && k_hashes == 1 && lastK1Available && std::abs(lastK1Ratio - ratio) < 1e-9) {
+      result.bihsTime[runIdx] = result.bihsTime[runIdx - 1];
+      result.bihsNodeExpanded[runIdx] = result.bihsNodeExpanded[runIdx - 1];
+
+      std::cout << "[" << i << "] Reusing BiHS-Bloom(" << run.ratioLabel
+                << ", k1) result for optk because optimized k=1\n" << std::flush;
+
+      {
+        std::lock_guard<std::mutex> lk(logMutex);
+        log << "BIHS_PARAM," << i << "," << ratio << "," << size_in_KiB << "," << k_hashes << ","
+            << result.bihsTime[runIdx] << "," << result.bihsNodeExpanded[runIdx] << ","
+            << fp_rate << "," << lastK1Converged << "," << run.kMode << "\n";
+      }
+      {
+        std::lock_guard<std::mutex> lk(convMutex);
+        for (const auto &s : lastK1Stats)
+          convLog << i << "," << size_in_KiB << "," << ratio << ","
+                  << s.totalDepth << "," << s.iteration << ","
+                  << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << ","
+                  << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << ","
+                  << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
+                  << s.materializedTotalStates << ","
+                  << (s.isTypeSplit ? "type" : "iter") << ","
+                  << s.typeIndex << "," << s.typeCount << ","
+                  << run.kMode << "," << k_hashes << "\n";
+        convLog.flush();
+      }
+      if (lastK1Converged)
+        result.solutionLength = lastK1PathLength;
+      continue;
+    }
+
+    std::cout << "[" << i << "] Running BiHS-Bloom(" << run.ratioLabel << ", " << run.kMode
+              << ", size=" << size_in_KiB << "KiB, k=" << k_hashes << ", fp_est=" << fp_rate
               << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
 
-    BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> bihs(size_in_KiB, k_hashes, bihsTimeLimit);
+    STPBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit);
     bool bihsOutOfMemory = false;
     std::vector<slideDir> pathBiHS;
     try {
@@ -282,22 +340,22 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       printf("BiHS-Bloom ran out of memory\n");
     }
 
-    result.bihsTime[pIdx] = bihsOutOfMemory ? -2.0 : (bihs.hasTimedOut() ? -1.0 : t.GetElapsedTime());
-    result.bihsNodeExpanded[pIdx] = bihs.GetTotalNodesExpanded();
+    result.bihsTime[runIdx] = bihsOutOfMemory ? -2.0 : (bihs.hasTimedOut() ? -1.0 : t.GetElapsedTime());
+    result.bihsNodeExpanded[runIdx] = bihs.GetTotalNodesExpanded();
     bool converged = !bihsOutOfMemory && !bihs.hasTimedOut();
 
     if (bihsOutOfMemory)
-      std::cout << " OUT OF MEMORY (" << result.bihsNodeExpanded[pIdx] << "n)\n" << std::flush;
+      std::cout << " OUT OF MEMORY (" << result.bihsNodeExpanded[runIdx] << "n)\n" << std::flush;
     else if (!converged)
-      std::cout << " TIMED OUT (" << result.bihsNodeExpanded[pIdx] << "n)\n" << std::flush;
+      std::cout << " TIMED OUT (" << result.bihsNodeExpanded[runIdx] << "n)\n" << std::flush;
     else
-      std::cout << " done (" << result.bihsTime[pIdx] << "s, " << result.bihsNodeExpanded[pIdx] << "n)\n" << std::flush;
+      std::cout << " done (" << result.bihsTime[runIdx] << "s, " << result.bihsNodeExpanded[runIdx] << "n)\n" << std::flush;
 
     {
       std::lock_guard<std::mutex> lk(logMutex);
       log << "BIHS_PARAM," << i << "," << ratio << "," << size_in_KiB << "," << k_hashes << ","
-          << result.bihsTime[pIdx] << "," << result.bihsNodeExpanded[pIdx] << ","
-          << fp_rate << "," << converged << "\n";
+          << result.bihsTime[runIdx] << "," << result.bihsNodeExpanded[runIdx] << ","
+          << fp_rate << "," << converged << "," << run.kMode << "\n";
     }
     {
       std::lock_guard<std::mutex> lk(convMutex);
@@ -307,11 +365,22 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
                 << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << ","
                 << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << ","
                 << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
-                << s.materializedTotalStates << "\n";
+                << s.materializedTotalStates << ","
+                << (s.isTypeSplit ? "type" : "iter") << ","
+                << s.typeIndex << "," << s.typeCount << ","
+                << run.kMode << "," << k_hashes << "\n";
       convLog.flush();
     }
-    if (bihs.hasTimedOut()) break;
-    result.solutionLength = static_cast<int>(pathBiHS.size());
+    if (converged)
+      result.solutionLength = static_cast<int>(pathBiHS.size());
+
+    if (!run.useOptimizedK && k_hashes == 1) {
+      lastK1Stats = bihs.GetIterStats();
+      lastK1Ratio = ratio;
+      lastK1Available = true;
+      lastK1Converged = converged;
+      lastK1PathLength = static_cast<int>(pathBiHS.size());
+    }
   }
 
   return result;
@@ -322,8 +391,12 @@ void solveSTP(){
   std::vector<std::string> headers = {"instance", "solution_length",
       "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "rev_ida_time",
       "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "rev_ida_nodes",
-      "bihs_bloom_time_50pct", "bihs_bloom_time_10pct", "bihs_bloom_time_1pct",
-      "bihs_bloom_nodes_50pct", "bihs_bloom_nodes_10pct", "bihs_bloom_nodes_1pct"};
+      "bihs_bloom_time_50pct_k1", "bihs_bloom_time_50pct_optk",
+      "bihs_bloom_time_10pct_k1", "bihs_bloom_time_10pct_optk",
+      "bihs_bloom_time_1pct_k1", "bihs_bloom_time_1pct_optk",
+      "bihs_bloom_nodes_50pct_k1", "bihs_bloom_nodes_50pct_optk",
+      "bihs_bloom_nodes_10pct_k1", "bihs_bloom_nodes_10pct_optk",
+      "bihs_bloom_nodes_1pct_k1", "bihs_bloom_nodes_1pct_optk"};
   for(size_t i = 0; i < headers.size(); ++i) {
     log << headers[i];
     if (i < headers.size() - 1) log << ",";
@@ -331,7 +404,7 @@ void solveSTP(){
   log << "\n";
 
   std::ofstream convLog("bloom_convergence.csv");
-  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total\n";
+  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes\n";
 
   std::mutex logMutex;
   std::mutex convMutex;
@@ -361,9 +434,12 @@ void solveSTP(){
                   << " | MM: " << r.mmTime << "s/" << r.mmNodeExpanded << "n"
                   << " | IDA*: " << r.idaTime << "s/" << r.idaNodeExpanded << "n"
                   << " | Rev-IDA*: " << r.revIdaTime << "s/" << r.revIdaNodeExpanded << "n"
-                  << " | BiHS-Bloom(50%): " << r.bihsTime[0] << "s/" << r.bihsNodeExpanded[0] << "n"
-                  << " | BiHS-Bloom(10%): " << r.bihsTime[1] << "s/" << r.bihsNodeExpanded[1] << "n"
-                  << " | BiHS-Bloom(1%): " << r.bihsTime[2] << "s/" << r.bihsNodeExpanded[2] << "n"
+                  << " | BiHS-Bloom(50%,k1): " << r.bihsTime[0] << "s/" << r.bihsNodeExpanded[0] << "n"
+                  << " | BiHS-Bloom(50%,optk): " << r.bihsTime[1] << "s/" << r.bihsNodeExpanded[1] << "n"
+                  << " | BiHS-Bloom(10%,k1): " << r.bihsTime[2] << "s/" << r.bihsNodeExpanded[2] << "n"
+                  << " | BiHS-Bloom(10%,optk): " << r.bihsTime[3] << "s/" << r.bihsNodeExpanded[3] << "n"
+                  << " | BiHS-Bloom(1%,k1): " << r.bihsTime[4] << "s/" << r.bihsNodeExpanded[4] << "n"
+                  << " | BiHS-Bloom(1%,optk): " << r.bihsTime[5] << "s/" << r.bihsNodeExpanded[5] << "n"
                   << " | Length: " << r.solutionLength
                   << std::endl;
       }
@@ -381,8 +457,12 @@ void solveSTP(){
             << r.aStarNodeExpanded << "," << r.revAStarNodeExpanded << ","
             << r.baeNodeExpanded << "," << r.nbsNodeExpanded << "," << r.mmNodeExpanded << ","
             << r.idaNodeExpanded << "," << r.revIdaNodeExpanded << ","
-            << r.bihsTime[0] << "," << r.bihsTime[1] << "," << r.bihsTime[2] << ","
-            << r.bihsNodeExpanded[0] << "," << r.bihsNodeExpanded[1] << "," << r.bihsNodeExpanded[2] << "\n";
+            << r.bihsTime[0] << "," << r.bihsTime[1] << ","
+            << r.bihsTime[2] << "," << r.bihsTime[3] << ","
+            << r.bihsTime[4] << "," << r.bihsTime[5] << ","
+            << r.bihsNodeExpanded[0] << "," << r.bihsNodeExpanded[1] << ","
+            << r.bihsNodeExpanded[2] << "," << r.bihsNodeExpanded[3] << ","
+            << r.bihsNodeExpanded[4] << "," << r.bihsNodeExpanded[5] << "\n";
         log.flush();
       }
     }

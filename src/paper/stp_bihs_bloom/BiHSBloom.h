@@ -144,6 +144,9 @@ public:
         size_t materializedForwardStates;
         size_t materializedBackwardStates;
         size_t materializedTotalStates;
+        bool   isTypeSplit;
+        size_t typeIndex;
+        size_t typeCount;
     };
 
     bool hasTimedOut() const { return timed_out; }
@@ -656,7 +659,10 @@ public:
                 bf->expected_fill_ratio(),
                 0,
                 0,
-                0
+                0,
+                true,
+                typeIndex,
+                typeCount
             });
 
             if (bf->get_n_inserted() == 0) {
@@ -732,7 +738,10 @@ public:
                 typedForward->expected_fill_ratio(),
                 0,
                 0,
-                0
+                0,
+                true,
+                typeIndex,
+                typeCount
             });
 
             if (typedForward->get_n_inserted() == 0) {
@@ -814,7 +823,10 @@ public:
                 bf->expected_fill_ratio(),
                 0,
                 0,
-                0
+                0,
+                false,
+                0,
+                1
             });
 
             
