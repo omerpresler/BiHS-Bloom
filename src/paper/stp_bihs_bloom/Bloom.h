@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <unordered_set>
 #include <array>
-#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -19,7 +18,7 @@
 template <typename Key>
 class BloomFilter {
 public:
-    BloomFilter(size_t m_bits, size_t k_hashes) : m_bits(m_bits), k_hashes(k_hashes), n_inserted(0), bits_set_count(0)
+    BloomFilter(size_t m_bits, size_t k_hashes) : m_bits(m_bits), k_hashes(k_hashes), n_inserted(0)
     {
         if (m_bits == 0 || k_hashes == 0) {
             bits = nullptr;
@@ -57,7 +56,6 @@ public:
         size_t bytes = (m_bits + 7) / 8;
         memset(bits, 0, bytes);
         n_inserted = 0;
-        bits_set_count = 0;
         //unique_set.clear();
     }
 
@@ -78,16 +76,13 @@ public:
         for (size_t i = 0; i < k_hashes; i++) {
             uint64_t h = h1 + i * h2;
             size_t idx = (size_t)(mix64(h) % m_bits);
-            if (!get_bit(bits, idx)) {
-                bits_set_count++;
-            }
             set_bit(bits, idx);
         }
         n_inserted++;
         //unique_set.insert(fingerprint);
     }
 
-    size_t get_n_unique() const { return -1; } //return unique_set.size(); } //only for debugging
+    size_t get_n_unique() const { return n_inserted; } // exact unique tracking is disabled
     virtual bool maybe_contains(const Key &key) const
     {
         return maybe_contains_hash(stable_fingerprint(key));
@@ -121,6 +116,7 @@ public:
         static const std::array<std::array<uint64_t, W * H>, W * H> table = build_zobrist_table<W, H>();
         return table[pos][tile];
     }
+    #if 0
     double estimate_fp() const
     {
         if (m_bits == 0 || k_hashes == 0) return 1.0;
@@ -141,16 +137,17 @@ public:
         return 1.0 - std::exp(-((double)k_hashes * (double)get_n_unique()) / (double)m_bits);
     }
 
-    size_t get_n_inserted() const { return n_inserted; }
-
     size_t get_bits_set() const { return bits_set_count; }
+    #endif
+
+    size_t get_n_inserted() const { return n_inserted; }
 
 protected:
     uint8_t *bits;      /* bit array */
     size_t   m_bits;    /* number of bits */
     size_t   k_hashes;  /* number of hash functions */
     size_t   n_inserted; /* number of inserted items (counts duplicates) */
-    size_t   bits_set_count; /* number of 1 bits in the filter */
+    //size_t   bits_set_count; /* number of 1 bits in the filter */
     uint64_t seed;      /* random seed */
     //std::unordered_set<uint64_t> unique_set; /* exact unique state fingerprints */
 

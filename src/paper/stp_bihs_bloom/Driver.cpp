@@ -30,7 +30,8 @@
 #include <memory>
 
 static constexpr double SKIPPED_TIME = -3.0;
-static constexpr int NUM_BIHS_RUNS = 12;
+static constexpr int NUM_BIHS_RUNS = 3;
+static constexpr bool WRITE_BIHS_PARAM_LOG = true;
 
 struct AlgorithmSkipEntry {
   int instance;
@@ -63,17 +64,8 @@ struct BiHSRunConfig {
 };
 
 static constexpr BiHSRunConfig BIHS_RUNS[NUM_BIHS_RUNS] = {
-    {0.5,  "50%", "50pct", "k1",   false, "fixed",   false},
-    {0.5,  "50%", "50pct", "optk", true,  "fixed",   false},
-    {0.5,  "50%", "50pct", "k1",   false, "dynamic", true},
     {0.5,  "50%", "50pct", "optk", true,  "dynamic", true},
-    {0.1,  "10%", "10pct", "k1",   false, "fixed",   false},
-    {0.1,  "10%", "10pct", "optk", true,  "fixed",   false},
-    {0.1,  "10%", "10pct", "k1",   false, "dynamic", true},
     {0.1,  "10%", "10pct", "optk", true,  "dynamic", true},
-    {0.01, "1%",  "1pct",  "k1",   false, "fixed",   false},
-    {0.01, "1%",  "1pct",  "optk", true,  "fixed",   false},
-    {0.01, "1%",  "1pct",  "k1",   false, "dynamic", true},
     {0.01, "1%",  "1pct",  "optk", true,  "dynamic", true},
 };
 
@@ -101,7 +93,7 @@ struct STPResult {
 
 static constexpr int NUM_WORKERS = 1;
 
-STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std::ofstream &convLog, std::mutex &convMutex) {
+STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
   STPResult result;
   result.instance = i;
   result.solutionLength = -1;
@@ -306,12 +298,6 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   std::cout << "[" << i << "] BiHS-Bloom timeout limit: " << bihsTimeLimit << "s\n" << std::flush;
 
   using STPBiHSBloom = BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>>;
-  std::vector<STPBiHSBloom::IterationStat> lastK1Stats;
-  double lastK1Ratio = -1.0;
-  const char *lastK1SplitMode = "";
-  bool lastK1Available = false;
-  bool lastK1Converged = false;
-  int lastK1PathLength = -1;
 
   // BiHS-Bloom
   for(int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
@@ -330,40 +316,6 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
 
     // FP rate: (1 - e^(-k*n/m))^k where n=estimated items, m=Bloom bits.
     double fp_rate = std::pow(1.0 - std::exp(-(double)k_hashes * estimatedFrontierItems / bloomBits), k_hashes);
-
-    if (run.useOptimizedK && k_hashes == 1 && lastK1Available &&
-        std::abs(lastK1Ratio - ratio) < 1e-9 &&
-        std::strcmp(lastK1SplitMode, run.splitMode) == 0) {
-      result.bihsTime[runIdx] = result.bihsTime[runIdx - 1];
-      result.bihsNodeExpanded[runIdx] = result.bihsNodeExpanded[runIdx - 1];
-
-      std::cout << "[" << i << "] Reusing BiHS-Bloom(" << run.ratioLabel
-                << ", k1, " << run.splitMode << ") result for optk because optimized k=1\n" << std::flush;
-
-      {
-        std::lock_guard<std::mutex> lk(logMutex);
-        log << "BIHS_PARAM," << i << "," << ratio << "," << size_in_KiB << "," << k_hashes << ","
-            << result.bihsTime[runIdx] << "," << result.bihsNodeExpanded[runIdx] << ","
-            << fp_rate << "," << lastK1Converged << "," << run.kMode << "," << run.splitMode << "\n";
-      }
-      {
-        std::lock_guard<std::mutex> lk(convMutex);
-        for (const auto &s : lastK1Stats)
-          convLog << i << "," << size_in_KiB << "," << ratio << ","
-                  << s.totalDepth << "," << s.iteration << ","
-                  << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << ","
-                  << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << ","
-                  << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
-                  << s.materializedTotalStates << ","
-                  << (s.isTypeSplit ? "type" : "iter") << ","
-                  << s.typeIndex << "," << s.typeCount << ","
-                  << run.kMode << "," << k_hashes << "," << run.splitMode << "\n";
-        convLog.flush();
-      }
-      if (lastK1Converged)
-        result.solutionLength = lastK1PathLength;
-      continue;
-    }
 
     std::cout << "[" << i << "] Running BiHS-Bloom(" << run.ratioLabel << ", " << run.kMode
               << ", " << run.splitMode
@@ -386,7 +338,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
 
     result.bihsTime[runIdx] = bihsOutOfMemory ? -2.0 : (bihs.hasTimedOut() ? -1.0 : t.GetElapsedTime());
     result.bihsNodeExpanded[runIdx] = bihs.GetTotalNodesExpanded();
-    bool converged = !bihsOutOfMemory && !bihs.hasTimedOut();
+    bool converged = !bihsOutOfMemory && !bihs.hasTimedOut() && !pathBiHS.empty();
 
     if (bihsOutOfMemory)
       std::cout << " OUT OF MEMORY (" << result.bihsNodeExpanded[runIdx] << "n)\n" << std::flush;
@@ -395,37 +347,14 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     else
       std::cout << " done (" << result.bihsTime[runIdx] << "s, " << result.bihsNodeExpanded[runIdx] << "n)\n" << std::flush;
 
-    {
+    if (WRITE_BIHS_PARAM_LOG) {
       std::lock_guard<std::mutex> lk(logMutex);
       log << "BIHS_PARAM," << i << "," << ratio << "," << size_in_KiB << "," << k_hashes << ","
           << result.bihsTime[runIdx] << "," << result.bihsNodeExpanded[runIdx] << ","
           << fp_rate << "," << converged << "," << run.kMode << "," << run.splitMode << "\n";
     }
-    {
-      std::lock_guard<std::mutex> lk(convMutex);
-      for (const auto &s : bihs.GetIterStats())
-        convLog << i << "," << size_in_KiB << "," << ratio << ","
-                << s.totalDepth << "," << s.iteration << ","
-                << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << ","
-                << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << ","
-                << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
-                << s.materializedTotalStates << ","
-                << (s.isTypeSplit ? "type" : "iter") << ","
-                << s.typeIndex << "," << s.typeCount << ","
-                << run.kMode << "," << k_hashes << "," << run.splitMode << "\n";
-      convLog.flush();
-    }
     if (converged)
       result.solutionLength = static_cast<int>(pathBiHS.size());
-
-    if (!run.useOptimizedK && k_hashes == 1) {
-      lastK1Stats = bihs.GetIterStats();
-      lastK1Ratio = ratio;
-      lastK1SplitMode = run.splitMode;
-      lastK1Available = true;
-      lastK1Converged = converged;
-      lastK1PathLength = static_cast<int>(pathBiHS.size());
-    }
   }
 
   return result;
@@ -448,11 +377,7 @@ void solveSTP(){
   }
   log << "\n";
 
-  std::ofstream convLog("bloom_convergence.csv");
-  convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
-
   std::mutex logMutex;
-  std::mutex convMutex;
   std::mutex coutMutex;
   std::atomic<int> nextInstance{0};
   int totalInstances = 100;
@@ -467,7 +392,7 @@ void solveSTP(){
         std::cout << "Starting Korf's Puzzle #" << i << std::endl;
       }
 
-      STPResult r = solveOneInstance(i, log, logMutex, convLog, convMutex);
+      STPResult r = solveOneInstance(i, log, logMutex);
 
       {
         std::lock_guard<std::mutex> lk(coutMutex);

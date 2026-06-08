@@ -1,13 +1,11 @@
 #include <type_traits>
 #include <algorithm>
-#include <iostream>
 #include <cmath>
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include <array>
 #include <unordered_map>
-#include <fstream>
 #include <memory>
 
 #include "Bloom.h"
@@ -129,30 +127,10 @@ public:
         }
 
         this->min_items = int((long long)size_in_KiB * 1024 * 8 / get_state_size(state{}));
-        //debug
-        std::cout << "Bloom filter size: " << size_in_KiB << " KiB, k_hashes: " << k_hashes << ", min_items: " << this->min_items << std::endl;
     }
-
-    struct IterationStat {
-        int    totalDepth;
-        int    iteration;
-        size_t nInserted;
-        size_t nUnique;
-        double estimatedFP;
-        size_t bitsSet;
-        double fillRatio;
-        double expectedFillRatio;
-        size_t materializedForwardStates;
-        size_t materializedBackwardStates;
-        size_t materializedTotalStates;
-        bool   isTypeSplit;
-        size_t typeIndex;
-        size_t typeCount;
-    };
 
     bool hasTimedOut() const { return timed_out; }
     uint64_t GetTotalNodesExpanded() const { return totalNodesExpanded; }
-    const std::vector<IterationStat>& GetIterStats() const { return iterStats; }
 
     void InitBloom(BloomFilter<state> *&bf) {
         size_t m_bits = size_in_KiB * 1024 * 8ULL;
@@ -395,7 +373,6 @@ public:
             int f_value = static_cast<int>(std::ceil(env.HCost(curr, goal))) + depth;
             if (f_value > upperBound) {
                 if (this->min_f_value == -1 || this->min_f_value > f_value){
-                    // std::cout << "New Min F Value: " << f_value << std::endl;
                     this->min_f_value = f_value;
                 }
                 
@@ -515,7 +492,6 @@ public:
             int f_value = static_cast<int>(std::ceil(env.HCost(curr, goal))) + depth;
             if (f_value > upperBound) {
                 if (this->min_f_value == -1 || this->min_f_value > f_value){
-                    // std::cout << "New Min F Value: " << f_value << std::endl;
                     this->min_f_value = f_value;
                 }
                 
@@ -649,23 +625,6 @@ public:
                 haveBackward = true;
             }
 
-            iterStats.push_back({
-                forwardDepth + backwardDepth,
-                i,
-                bf->get_n_inserted(),
-                bf->get_n_unique(),
-                bf->estimate_fp(),
-                bf->get_bits_set(),
-                bf->get_fill_ratio(),
-                bf->expected_fill_ratio(),
-                0,
-                0,
-                0,
-                true,
-                typeIndex,
-                typeCount
-            });
-
             if (bf->get_n_inserted() == 0) {
                 return {};
             }
@@ -683,11 +642,6 @@ public:
                                                            lastBackwardInserted,
                                                            typeIndex, typeCount);
         path = extraction.path;
-        if (!iterStats.empty()) {
-            iterStats.back().materializedForwardStates = extraction.forwardStates;
-            iterStats.back().materializedBackwardStates = extraction.backwardStates;
-            iterStats.back().materializedTotalStates = extraction.forwardStates + extraction.backwardStates;
-        }
         return path;
     }
 
@@ -728,23 +682,6 @@ public:
                 GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound,
                                                seed.get(), typeIndex, typeCount));
 
-            iterStats.push_back({
-                forwardDepth + backwardDepth,
-                static_cast<int>(typeIndex),
-                typedForward->get_n_inserted(),
-                typedForward->get_n_unique(),
-                typedForward->estimate_fp(),
-                typedForward->get_bits_set(),
-                typedForward->get_fill_ratio(),
-                typedForward->expected_fill_ratio(),
-                0,
-                0,
-                0,
-                true,
-                typeIndex,
-                typeCount
-            });
-
             if (typedForward->get_n_inserted() == 0) {
                 continue;
             }
@@ -752,13 +689,6 @@ public:
             PathExtractionResult extraction =
                 GetPathFromForwardBloom(start, goal, forwardDepth, backwardDepth,
                                         typedForward.get(), typeIndex, typeCount);
-
-            if (!iterStats.empty()) {
-                iterStats.back().materializedForwardStates = extraction.forwardStates;
-                iterStats.back().materializedBackwardStates = extraction.backwardStates;
-                iterStats.back().materializedTotalStates =
-                    extraction.forwardStates + extraction.backwardStates;
-            }
 
             if (!extraction.path.empty()) {
                 return extraction.path;
@@ -782,8 +712,6 @@ public:
         this->firstForwardNodeExpanded = 0;
         this->firstBackwardNodeExpanded = 0;
 
-        //std::cout << "[PROF] Starting SolveAtDepth fd=" << forwardDepth << " bd=" << backwardDepth << " ub=" << upperBound << std::endl;
-
         // Keep iterating until we either time out or shrink the bloom to min_items.
         for(int i = 0; term == TerminationCondition::NOT_TERMINATED; i++) {
             // Check time limit
@@ -794,9 +722,6 @@ public:
                     return {};
                 }
             }
-
-            Timer iterTimer;
-            iterTimer.StartTimer();
 
             if (i % 2 == 0){
                 bf.reset(GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound, bf.get()));
@@ -812,34 +737,6 @@ public:
                 if(this->firstBackwardNodeExpanded == 0)
                     this->firstBackwardNodeExpanded = this->nodeExpanded;
             }
-                
-            iterStats.push_back({
-                forwardDepth + backwardDepth,
-                i,
-                bf->get_n_inserted(),
-                bf->get_n_unique(),
-                bf->estimate_fp(),
-                bf->get_bits_set(),
-                bf->get_fill_ratio(),
-                bf->expected_fill_ratio(),
-                0,
-                0,
-                0,
-                false,
-                0,
-                1
-            });
-
-            
-            iterTimer.EndTimer();
-            {
-                std::ofstream proof_log("proof_unique.csv", std::ios::app);
-                proof_log << (forwardDepth + backwardDepth) << "," << i << ","
-                          << bf->get_n_inserted() << "," << bf->get_n_unique() << ","
-                          << bf->get_bits_set() << "," << bf->get_fill_ratio() << ","
-                          << bf->expected_fill_ratio() << "\n";
-            }
-
             if (bf->get_n_inserted() == 0) {
                 return {};
             }
@@ -848,38 +745,21 @@ public:
                 (lastForwardInserted <= static_cast<size_t>(this->min_items) || 
                 lastBackwardInserted <= static_cast<size_t>(this->min_items) )) {
                 term = TerminationCondition::MIN_ITEMS;
-                //std::cout << "[PROF] Min items reached at iter " << i << std::endl;
                 break;
             }
 
             if (i == 1 && haveForward && haveBackward) {
                 size_t typeCount = ChooseTypeCount(lastForwardInserted, lastBackwardInserted);
                 if (typeCount > 1) {
-                    std::cout << "[TYPE] Splitting depth " << (forwardDepth + backwardDepth)
-                              << " into " << typeCount << " hash types"
-                              << " (Ff=" << lastForwardInserted
-                              << ", Fb=" << lastBackwardInserted
-                              << ", min_items=" << this->min_items << ")\n" << std::flush;
                     return SolveAtDepthByTypesFromSeed(start, goal, forwardDepth, backwardDepth,
                                                        globalTimer, std::move(bf), typeCount);
                 }
             }
         }
 
-        //std::cout << "[PROF] BuildBloom loop finished. Starting GetPathFromBloom." << std::endl;
-
-        Timer pathTimer;
-        pathTimer.StartTimer();
         PathExtractionResult extraction = GetPathFromBloom(start, goal, forwardDepth, backwardDepth, bf.get(),
                                                         lastForwardInserted, lastBackwardInserted);
         path = extraction.path;
-        if (!iterStats.empty()) {
-            iterStats.back().materializedForwardStates = extraction.forwardStates;
-            iterStats.back().materializedBackwardStates = extraction.backwardStates;
-            iterStats.back().materializedTotalStates = extraction.forwardStates + extraction.backwardStates;
-        }
-        pathTimer.EndTimer();
-        //std::cout << "[PROF] GetPathFromBloom time=" << pathTimer.GetElapsedTime() << "s" << std::endl;
 
         return path;
     }
@@ -887,7 +767,6 @@ public:
     std::vector<action> GetPath(state start, state goal) {
         timed_out = false;
         totalNodesExpanded = 0;
-        iterStats.clear();
         BiHSBloomHelper::store_goal(env, goal, 0);
         int fh = env.HCost(start, goal);
         BiHSBloomHelper::store_goal(env, start, 0);
@@ -913,20 +792,15 @@ public:
                 }
             }
 
-            //std::cout << "[PROF] Trying depth: " << forwardDepth << " + " << backwardDepth << " = " << (forwardDepth + backwardDepth) << std::endl;
             std::vector<action> path = SolveAtDepth(start, goal, forwardDepth, backwardDepth, globalTimer);
 
             if (timed_out) return {};
 
             if (path.size() > 0){
                 //SanityCheck(start, goal, path);
-                //totalTimer.EndTimer();
-                //std::cout << "[PROF] Total GetPath time=" << totalTimer.GetElapsedTime() << "s" << std::endl;
                 return path;
             }
             
-            //std::cout << "Forward Node Expanded: " << this->firstForwardNodeExpanded << " Backward Node Expanded: " << this->firstBackwardNodeExpanded << std::endl;
-
             int totalDepth = this->min_f_value;
             if (totalDepth <= 1) {
                 totalDepth = forwardDepth + backwardDepth + 2;
@@ -943,8 +817,6 @@ public:
                 double B = std::max(1.0, static_cast<double>(this->firstBackwardNodeExpanded));
                 
                 double forwardRatio = B / (B + F);
-
-                //std::cout << "fr: " << forwardRatio << std::endl;
 
                 if (!hasLearnedSplit){
                     forwardDepth = static_cast<int>(std::round(totalDepth * forwardRatio));
@@ -982,7 +854,6 @@ private:
     uint64_t  firstBackwardNodeExpanded = 0;
     uint64_t  nodeExpanded = 0;
     uint64_t totalNodesExpanded = 0;
-    std::vector<IterationStat> iterStats;
     double depthRatio = 1.0;
 
     int min_f_value = -1;

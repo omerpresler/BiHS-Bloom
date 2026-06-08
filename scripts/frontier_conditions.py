@@ -25,6 +25,8 @@ def load_bihs_params(path):
                 "size_kib": int(p[3]),
                 "k_hashes": int(p[4]),
                 "converged": bool(int(p[8])),
+                "k_mode": p[9] if len(p) > 9 else "",
+                "split_mode": p[10] if len(p) > 10 else "",
             })
     return pd.DataFrame(rows)
 
@@ -34,7 +36,10 @@ conv["ratio"] = conv["ratio"].round(3)
 bench = load_bihs_params(BENCH_CSV)
 
 records = []
-for (inst, ratio), group in conv.groupby(["instance", "ratio"]):
+RUN_KEYS = ["instance", "ratio", "k_mode", "split_mode"]
+
+for key, group in conv.groupby(RUN_KEYS):
+    inst, ratio, k_mode, split_mode = key
     group = group.sort_values(["total_depth", "iteration"])
     last_depth = group["total_depth"].max()
     last_depth_rows = group[group["total_depth"] == last_depth]
@@ -49,7 +54,12 @@ for (inst, ratio), group in conv.groupby(["instance", "ratio"]):
     if forward_frontier == 0 or backward_frontier == 0:
         continue
 
-    bench_row = bench[(bench["instance"] == inst) & (bench["ratio"] == ratio)]
+    bench_row = bench[
+        (bench["instance"] == inst) &
+        (bench["ratio"] == ratio) &
+        (bench["k_mode"] == k_mode) &
+        (bench["split_mode"] == split_mode)
+    ]
     if bench_row.empty:
         continue
 
@@ -61,6 +71,8 @@ for (inst, ratio), group in conv.groupby(["instance", "ratio"]):
     records.append({
         "instance": inst,
         "ratio": ratio,
+        "k_mode": k_mode,
+        "split_mode": split_mode,
         "total_depth": int(last_depth),
         "m_bits": m_bits,
         "m_states": m_states,

@@ -37,6 +37,8 @@ with open(BENCH_CSV) as f:
                 "size_kib":  int(p[3]),
                 "k_hashes":  int(p[4]),
                 "converged": bool(int(p[8])),
+                "k_mode": p[9] if len(p) > 9 else "",
+                "split_mode": p[10] if len(p) > 10 else "",
             })
 bench = pd.DataFrame(rows)
 
@@ -45,13 +47,14 @@ bench = pd.DataFrame(rows)
 # ---------------------------------------------------------------------------
 # For each (instance, ratio), use the last depth's iteration-0 row
 # (that's where the real challenge is — the hardest depth attempted)
+RUN_KEYS = ["instance", "ratio", "k_mode", "split_mode"]
 last_depth = (
-    iter0.groupby(["instance", "ratio"])["total_depth"].max().reset_index()
+    iter0.groupby(RUN_KEYS)["total_depth"].max().reset_index()
 )
-iter0_last = iter0.merge(last_depth, on=["instance", "ratio", "total_depth"])
+iter0_last = iter0.merge(last_depth, on=RUN_KEYS + ["total_depth"])
 
-df = iter0_last.merge(bench[["instance", "ratio", "k_hashes", "converged"]],
-                      on=["instance", "ratio"])
+df = iter0_last.merge(bench[RUN_KEYS + ["converged"]],
+                      on=RUN_KEYS)
 
 df["true_fp"] = df["fill_ratio"] ** df["k_hashes"] if "fill_ratio" in df.columns else (
     df["bits_set"] / (df["size_kib"] * 1024 * 8)

@@ -32,6 +32,8 @@ def load(path):
                 if len(parts) > 7:
                     row["fp_rate"]   = float(parts[7])
                     row["converged"] = int(parts[8])
+                    row["k_mode"] = parts[9] if len(parts) > 9 else ""
+                    row["split_mode"] = parts[10] if len(parts) > 10 else ""
                 rows_param.append(row)
             else:
                 vals = line.split(",")
@@ -246,16 +248,17 @@ if os.path.exists(CONV_FILE) and len(params) > 0 and "converged" in params.colum
     conv_df = pd.read_csv(CONV_FILE)
     conv_df["ratio"] = conv_df["ratio"].round(3)
 
-    # For each (instance, ratio): take the FIRST iteration's FP as a predictor
+    # For each BiHS run: take the FIRST iteration's FP as a predictor
+    run_keys = ["instance", "ratio", "k_mode", "split_mode"]
     last_fp = (conv_df.sort_values("iteration")
-                      .groupby(["instance", "ratio"])
+                      .groupby(run_keys)
                       .first()
-                      .reset_index()[["instance", "ratio", "estimated_fp"]]
+                      .reset_index()[run_keys + ["estimated_fp"]]
                       .rename(columns={"estimated_fp": "actual_fp_at_end"}))
 
     params = params.copy()
     params["ratio"] = params["ratio"].round(3)
-    params = params.merge(last_fp, on=["instance", "ratio"], how="left")
+    params = params.merge(last_fp, on=run_keys, how="left")
 
     print("\n=== First-Iteration FP Rate as Convergence Predictor ===")
     for ratio in [0.5, 0.1, 0.01]:

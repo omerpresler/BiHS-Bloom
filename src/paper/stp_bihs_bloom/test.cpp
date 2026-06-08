@@ -52,7 +52,6 @@ void testRegularBloomFilterTracksInsertedValues() {
   require(bloom.maybe_contains(goal), "regular Bloom lost an inserted value");
   require(bloom.get_n_inserted() == 1, "regular Bloom inserted count is wrong");
   require(bloom.get_n_unique() == 1, "regular Bloom unique count is wrong");
-  require(bloom.get_bits_set() > 0, "regular Bloom did not set any bits");
 
   bloom.clear();
   require(bloom.get_n_inserted() == 0, "regular Bloom clear did not reset inserted count");
@@ -78,32 +77,28 @@ void testDepthZeroBloomContainsStart() {
   require(bloom->maybe_contains(start), "depth-zero Bloom does not contain start");
 }
 
-void testBloomCapacityTracksFilledBits() {
+void testBloomTracksAcceptedItems() {
   constexpr size_t bloomBytes = 100;
   constexpr size_t bloomBits = bloomBytes * 8;
-  constexpr size_t expectedBitsOn = 100;
+  constexpr size_t expectedItems = 100;
 
   BloomFilter<std::array<int, MN_SIZE * MN_SIZE>> bloom(bloomBits, 1);
 
   size_t acceptedItems = 0;
-  for (uint64_t candidate = 0; acceptedItems < expectedBitsOn; ++candidate) {
+  for (uint64_t candidate = 0; acceptedItems < expectedItems; ++candidate) {
     const auto item = deterministicItem(candidate);
     if (bloom.maybe_contains(item)) {
       continue;
     }
 
-    const size_t bitsBefore = bloom.get_bits_set();
     bloom.add(item);
     ++acceptedItems;
 
-    require(bloom.get_bits_set() == bitsBefore + 1,
-            "k=1 Bloom accepted item did not turn on exactly one new bit");
+    require(bloom.maybe_contains(item), "Bloom lost an accepted item");
   }
 
-  require(bloom.get_n_inserted() == expectedBitsOn,
-          "Bloom capacity test inserted count is wrong");
-  require(bloom.get_bits_set() == expectedBitsOn,
-          "Bloom capacity test has the wrong number of bits on");
+  require(bloom.get_n_inserted() == expectedItems,
+          "Bloom accepted-item test inserted count is wrong");
 }
 
 void testBiHSBloomCollectsZeroDepthState() {
@@ -161,7 +156,7 @@ int main() {
   const auto tests = {
       testRegularBloomFilterTracksInsertedValues,
       testDepthZeroBloomContainsStart,
-      testBloomCapacityTracksFilledBits,
+      testBloomTracksAcceptedItems,
       testBiHSBloomCollectsZeroDepthState,
       testBiHSBloomSolvesOneMovePuzzle,
   };
