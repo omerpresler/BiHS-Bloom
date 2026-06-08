@@ -5,6 +5,7 @@
 #include "STPInstances.h"
 #include "Timer.h"
 #include "BiHSBloom.h"
+#include "IDTHSwTrans.h"
 #include "BAE.h"
 #include "MM.h"
 #include "IDAStar.h"
@@ -83,6 +84,7 @@ struct STPResult {
   double parallelIdaTime;
   double revIdaTime;
   std::array<double, NUM_BIHS_RUNS> bihsTime;
+  std::array<double, NUM_BIHS_RUNS> idthsTransTime;
 
   size_t aStarNodeExpanded;
   size_t revAStarNodeExpanded;
@@ -93,6 +95,9 @@ struct STPResult {
   size_t parallelIdaNodeExpanded;
   size_t revIdaNodeExpanded;
   std::array<size_t, NUM_BIHS_RUNS> bihsNodeExpanded;
+  std::array<size_t, NUM_BIHS_RUNS> idthsTransNodeExpanded;
+  std::array<size_t, NUM_BIHS_RUNS> idthsTransNecessaryExpanded;
+  std::array<unsigned long, NUM_BIHS_RUNS> idthsTransStorage;
 };
 
 static constexpr int NUM_WORKERS = 1;
@@ -110,7 +115,11 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   result.parallelIdaTime = -1;
   result.revIdaTime = -1;
   result.bihsTime.fill(-1);
+  result.idthsTransTime.fill(-1);
   result.bihsNodeExpanded.fill(0);
+  result.idthsTransNodeExpanded.fill(0);
+  result.idthsTransNecessaryExpanded.fill(0);
+  result.idthsTransStorage.fill(0);
   result.aStarNodeExpanded = 0;
   result.revAStarNodeExpanded = 0;
   result.baeNodeExpanded = 0;
@@ -324,6 +333,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   std::cout << "[" << i << "] BiHS-Bloom timeout limit: " << bihsTimeLimit << "s\n" << std::flush;
 
   using STPBiHSBloom = BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>>;
+  int searchTimeLimit = static_cast<int>(std::ceil(bihsTimeLimit));
 
   // BiHS-Bloom
   for(int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
@@ -395,6 +405,45 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     }
     if (converged)
       result.solutionLength = static_cast<int>(pathBiHS.size());
+
+    unsigned long idthsStorage = std::max<unsigned long>(
+        1,
+        static_cast<unsigned long>(
+            std::floor((static_cast<double>(size_in_KiB) * 1024.0 * 8.0) /
+                       std::max<size_t>(1, get_state_size(puzzle)))));
+    result.idthsTransStorage[runIdx] = idthsStorage;
+
+    std::cout << "[" << i << "] Running IDTHSwTrans(" << run.ratioLabel
+              << ", states=" << idthsStorage << ", limit=" << searchTimeLimit << "s)..."
+              << std::flush;
+
+    IDTHSwTrans<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> idthsTrans(false, true, true, 1, false);
+    bool idthsSolved = false;
+    bool idthsOutOfMemory = false;
+    try {
+      t.StartTimer();
+      idthsSolved = idthsTrans.GetPath(&mnp, puzzle, goal, searchTimeLimit, idthsStorage);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      idthsOutOfMemory = true;
+      printf("IDTHSwTrans ran out of memory\n");
+    }
+
+    result.idthsTransTime[runIdx] = idthsOutOfMemory ? -2.0 : (idthsSolved ? t.GetElapsedTime() : -1.0);
+    result.idthsTransNodeExpanded[runIdx] = idthsTrans.GetNodesExpanded();
+    result.idthsTransNecessaryExpanded[runIdx] = idthsTrans.GetNecessaryExpansions();
+
+    if (idthsOutOfMemory)
+      std::cout << " OUT OF MEMORY (" << result.idthsTransNodeExpanded[runIdx] << "n)\n" << std::flush;
+    else if (!idthsSolved)
+      std::cout << " TIMED OUT (" << result.idthsTransNodeExpanded[runIdx] << "n)\n" << std::flush;
+    else {
+      result.solutionLength = static_cast<int>(idthsTrans.getPathLength());
+      std::cout << " done (" << result.idthsTransTime[runIdx] << "s, "
+                << result.idthsTransNodeExpanded[runIdx] << "n)\n" << std::flush;
+    }
   }
 
   return result;
@@ -404,12 +453,25 @@ void solveSTP(){
   std::ofstream log("benchmark_stp_korf100.csv");
   std::vector<std::string> headers = {"instance", "solution_length",
       "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "parallel_ida_time", "rev_ida_time",
-      "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "parallel_ida_nodes", "rev_ida_nodes"};
+      "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "parallel_ida_nodes", "rev_ida_nodes",
+      };
   for (const auto &run : BIHS_RUNS) {
     headers.push_back(std::string("bihs_bloom_time_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
   }
   for (const auto &run : BIHS_RUNS) {
     headers.push_back(std::string("bihs_bloom_nodes_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
+  }
+  for (const auto &run : BIHS_RUNS) {
+    headers.push_back(std::string("idths_trans_time_") + run.ratioSlug);
+  }
+  for (const auto &run : BIHS_RUNS) {
+    headers.push_back(std::string("idths_trans_nodes_") + run.ratioSlug);
+  }
+  for (const auto &run : BIHS_RUNS) {
+    headers.push_back(std::string("idths_trans_necessary_nodes_") + run.ratioSlug);
+  }
+  for (const auto &run : BIHS_RUNS) {
+    headers.push_back(std::string("idths_trans_storage_states_") + run.ratioSlug);
   }
   for(size_t i = 0; i < headers.size(); ++i) {
     log << headers[i];
@@ -456,6 +518,9 @@ void solveSTP(){
           const auto &run = BIHS_RUNS[runIdx];
           std::cout << " | BiHS-Bloom(" << run.ratioLabel << "," << run.kMode << "," << run.splitMode
                     << "): " << r.bihsTime[runIdx] << "s/" << r.bihsNodeExpanded[runIdx] << "n";
+          std::cout << " | IDTHSwTrans(" << run.ratioLabel
+                    << "): " << r.idthsTransTime[runIdx] << "s/"
+                    << r.idthsTransNodeExpanded[runIdx] << "n";
         }
         std::cout << " | Length: " << r.solutionLength << std::endl;
       }
@@ -480,6 +545,18 @@ void solveSTP(){
         }
         for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx) {
           log << "," << r.bihsNodeExpanded[runIdx];
+        }
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx) {
+          log << "," << r.idthsTransTime[runIdx];
+        }
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx) {
+          log << "," << r.idthsTransNodeExpanded[runIdx];
+        }
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx) {
+          log << "," << r.idthsTransNecessaryExpanded[runIdx];
+        }
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx) {
+          log << "," << r.idthsTransStorage[runIdx];
         }
         log << "\n";
         log.flush();
