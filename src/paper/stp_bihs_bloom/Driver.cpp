@@ -40,6 +40,7 @@ struct AlgorithmSkipEntry {
 static constexpr AlgorithmSkipEntry SKIPPED_ALGORITHMS[] = {
     {59, "NBS"},
     {59, "MM"},
+    {81, "MM"}
 };
 
 static bool ShouldSkipAlgorithm(int instance, const char *algorithm) {
