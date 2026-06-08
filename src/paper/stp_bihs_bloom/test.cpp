@@ -1,5 +1,8 @@
 #include "Driver.h"
 #include "BiHSBloom.h"
+#include "AStarOpenClosed.h"
+#include <ext/hash_map>
+#include "IDTHSwTrans.h"
 
 #include <array>
 #include <cstdint>
@@ -150,6 +153,25 @@ void testBiHSBloomSolvesOneMovePuzzle() {
   require(check == goal, "BiHS-Bloom one-move solution does not reach goal");
 }
 
+void testIDTHSwTransSolvesOneMovePuzzle() {
+  MNPuzzleState<MN_SIZE, MN_SIZE> start;
+  MNPuzzleState<MN_SIZE, MN_SIZE> goal;
+  MNPuzzle<MN_SIZE, MN_SIZE> env;
+  start.Reset();
+  goal.Reset();
+
+  std::vector<slideDir> actions;
+  env.GetActions(start, actions);
+  require(!actions.empty(), "goal state unexpectedly has no actions");
+  env.ApplyAction(start, actions.front());
+
+  IDTHSwTrans<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> solver(false, true, true, 1, false);
+  bool solved = solver.GetPath(&env, start, goal, 5, 128);
+
+  require(solved, "IDTHSwTrans failed to solve a one-move puzzle");
+  require(solver.getPathLength() == 1, "IDTHSwTrans one-move solution cost is wrong");
+}
+
 } // namespace
 
 int main() {
@@ -159,6 +181,7 @@ int main() {
       testBloomTracksAcceptedItems,
       testBiHSBloomCollectsZeroDepthState,
       testBiHSBloomSolvesOneMovePuzzle,
+      testIDTHSwTransSolvesOneMovePuzzle,
   };
 
   int passed = 0;

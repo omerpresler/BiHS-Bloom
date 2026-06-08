@@ -5,6 +5,7 @@
 #include "STPInstances.h"
 #include "Timer.h"
 #include "BiHSBloom.h"
+#include <ext/hash_map>
 #include "IDTHSwTrans.h"
 #include "BAE.h"
 #include "MM.h"
@@ -35,6 +36,9 @@ static constexpr double SKIPPED_TIME = -3.0;
 static constexpr int NUM_BIHS_RUNS = 3;
 static constexpr bool WRITE_BIHS_PARAM_LOG = true;
 static constexpr bool WRITE_CONVERGENCE_LOG = true;
+static constexpr unsigned long IDTHS_DEFAULT_STATES_BOUND = 1000000;
+static constexpr unsigned long IDTHS_MIN_STATES_BOUND = 2;
+static constexpr int IDTHS_SECONDS_LIMIT = 1800;
 
 struct AlgorithmSkipEntry {
   int instance;
@@ -330,10 +334,14 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     std::cout << "[" << i << "] MM frontier unavailable; using minSize fallback for BiHS k estimate: "
               << frontierSize << "\n" << std::flush;
   }
+  unsigned long idthsStatesQuantityBound = minSize > 0
+      ? static_cast<unsigned long>(minSize)
+      : IDTHS_DEFAULT_STATES_BOUND;
   std::cout << "[" << i << "] BiHS-Bloom timeout limit: " << bihsTimeLimit << "s\n" << std::flush;
+  std::cout << "[" << i << "] IDTHSwTrans state bound baseline: "
+            << idthsStatesQuantityBound << "\n" << std::flush;
 
   using STPBiHSBloom = BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>>;
-  int searchTimeLimit = static_cast<int>(std::ceil(bihsTimeLimit));
 
   // BiHS-Bloom
   for(int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
@@ -407,22 +415,20 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       result.solutionLength = static_cast<int>(pathBiHS.size());
 
     unsigned long idthsStorage = std::max<unsigned long>(
-        1,
-        static_cast<unsigned long>(
-            std::floor((static_cast<double>(size_in_KiB) * 1024.0 * 8.0) /
-                       std::max<size_t>(1, get_state_size(puzzle)))));
+        static_cast<unsigned long>(idthsStatesQuantityBound * run.ratio),
+        IDTHS_MIN_STATES_BOUND);
     result.idthsTransStorage[runIdx] = idthsStorage;
 
     std::cout << "[" << i << "] Running IDTHSwTrans(" << run.ratioLabel
-              << ", states=" << idthsStorage << ", limit=" << searchTimeLimit << "s)..."
+              << ", states=" << idthsStorage << ", limit=" << IDTHS_SECONDS_LIMIT << "s)..."
               << std::flush;
 
-    IDTHSwTrans<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> idthsTrans(false, true, true, 1, false);
+    IDTHSwTrans<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> idthsTrans(true, true, true, 1, false);
     bool idthsSolved = false;
     bool idthsOutOfMemory = false;
     try {
       t.StartTimer();
-      idthsSolved = idthsTrans.GetPath(&mnp, puzzle, goal, searchTimeLimit, idthsStorage);
+      idthsSolved = idthsTrans.GetPath(&mnp, puzzle, goal, IDTHS_SECONDS_LIMIT, idthsStorage);
       t.EndTimer();
     }
     catch (const std::bad_alloc&) {

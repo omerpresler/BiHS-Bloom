@@ -10,7 +10,6 @@
 
 #include <iostream>
 #include <unordered_set>
-#include <unordered_map>
 #include "SearchEnvironment.h"
 #include <math.h>
 
@@ -72,7 +71,7 @@ private:
 
 	unsigned long availableStorage = 0;
 
-	typedef std::unordered_map<uint64_t, double, AHash64> IndexTable;
+	typedef __gnu_cxx::hash_map<uint64_t, double, AHash64> IndexTable;
 	IndexTable hashTable;
 	table transTable;
 	bool readyOpenLists = false;
