@@ -8,6 +8,7 @@
 #include "BAE.h"
 #include "MM.h"
 #include "IDAStar.h"
+#include "ParallelIDAStar.h"
 #include "NBS.h"
 
 #include "PancakeInstances.h"
@@ -32,6 +33,7 @@
 static constexpr double SKIPPED_TIME = -3.0;
 static constexpr int NUM_BIHS_RUNS = 3;
 static constexpr bool WRITE_BIHS_PARAM_LOG = true;
+static constexpr bool WRITE_CONVERGENCE_LOG = true;
 
 struct AlgorithmSkipEntry {
   int instance;
@@ -78,6 +80,7 @@ struct STPResult {
   double mmTime;
   double nbsTime;
   double idaTime;
+  double parallelIdaTime;
   double revIdaTime;
   std::array<double, NUM_BIHS_RUNS> bihsTime;
 
@@ -87,13 +90,14 @@ struct STPResult {
   size_t mmNodeExpanded;
   size_t nbsNodeExpanded;
   size_t idaNodeExpanded;
+  size_t parallelIdaNodeExpanded;
   size_t revIdaNodeExpanded;
   std::array<size_t, NUM_BIHS_RUNS> bihsNodeExpanded;
 };
 
 static constexpr int NUM_WORKERS = 1;
 
-STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
+STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std::ofstream &convLog, std::mutex &convMutex) {
   STPResult result;
   result.instance = i;
   result.solutionLength = -1;
@@ -103,6 +107,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
   result.mmTime = -1;
   result.nbsTime = -1;
   result.idaTime = -1;
+  result.parallelIdaTime = -1;
   result.revIdaTime = -1;
   result.bihsTime.fill(-1);
   result.bihsNodeExpanded.fill(0);
@@ -112,6 +117,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
   result.mmNodeExpanded = 0;
   result.nbsNodeExpanded = 0;
   result.idaNodeExpanded = 0;
+  result.parallelIdaNodeExpanded = 0;
   result.revIdaNodeExpanded = 0;
   size_t minSize = 0;
   size_t frontierSize = 0;
@@ -287,8 +293,28 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
     std::cout << " done (" << result.revIdaTime << "s, " << result.revIdaNodeExpanded << "n)\n" << std::flush;
   }
 
+  std::cout << "[" << i << "] Running Parallel IDA*..." << std::flush;
+  // Parallel IDA*
+  {
+    ParallelIDAStar<MNPuzzle<MN_SIZE, MN_SIZE>, MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir> ida;
+    std::vector<slideDir> path;
+    try {
+      t.StartTimer();
+      ida.GetPath(&mnp, puzzle, goal, path);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      printf("Parallel IDA* ran out of memory\n");
+    }
+    result.parallelIdaTime = t.GetElapsedTime();
+    result.parallelIdaNodeExpanded = ida.GetNodesExpanded();
+    result.solutionLength = static_cast<int>(path.size());
+    std::cout << " done (" << result.parallelIdaTime << "s, " << result.parallelIdaNodeExpanded << "n)\n" << std::flush;
+  }
+
   double maxBaselineTime = std::max({result.aStarTime, result.revAStarTime, result.baeTime, result.nbsTime,
-                                     result.mmTime, result.idaTime, result.revIdaTime});
+                                     result.mmTime, result.idaTime, result.revIdaTime, result.parallelIdaTime});
   double bihsTimeLimit = std::max(maxBaselineTime * 20.0, 120.0); // Set a minimum time limit of 120 seconds for BiHS-Bloom
   if (frontierSize == 0) {
     frontierSize = std::max<size_t>(1, minSize);
@@ -353,6 +379,20 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
           << result.bihsTime[runIdx] << "," << result.bihsNodeExpanded[runIdx] << ","
           << fp_rate << "," << converged << "," << run.kMode << "," << run.splitMode << "\n";
     }
+    if (WRITE_CONVERGENCE_LOG) {
+      std::lock_guard<std::mutex> lk(convMutex);
+      for (const auto &s : bihs.GetIterStats())
+        convLog << i << "," << size_in_KiB << "," << ratio << ","
+                << s.totalDepth << "," << s.iteration << ","
+                << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << ","
+                << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << ","
+                << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
+                << s.materializedTotalStates << ","
+                << (s.isTypeSplit ? "type" : "iter") << ","
+                << s.typeIndex << "," << s.typeCount << ","
+                << run.kMode << "," << k_hashes << "," << run.splitMode << "\n";
+      convLog.flush();
+    }
     if (converged)
       result.solutionLength = static_cast<int>(pathBiHS.size());
   }
@@ -363,8 +403,8 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex) {
 void solveSTP(){
   std::ofstream log("benchmark_stp_korf100.csv");
   std::vector<std::string> headers = {"instance", "solution_length",
-      "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "rev_ida_time",
-      "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "rev_ida_nodes"};
+      "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "parallel_ida_time", "rev_ida_time",
+      "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "parallel_ida_nodes", "rev_ida_nodes"};
   for (const auto &run : BIHS_RUNS) {
     headers.push_back(std::string("bihs_bloom_time_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
   }
@@ -377,7 +417,14 @@ void solveSTP(){
   }
   log << "\n";
 
+  std::ofstream convLog;
+  if (WRITE_CONVERGENCE_LOG) {
+    convLog.open("bloom_convergence.csv");
+    convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
+  }
+
   std::mutex logMutex;
+  std::mutex convMutex;
   std::mutex coutMutex;
   std::atomic<int> nextInstance{0};
   int totalInstances = 100;
@@ -392,7 +439,7 @@ void solveSTP(){
         std::cout << "Starting Korf's Puzzle #" << i << std::endl;
       }
 
-      STPResult r = solveOneInstance(i, log, logMutex);
+      STPResult r = solveOneInstance(i, log, logMutex, convLog, convMutex);
 
       {
         std::lock_guard<std::mutex> lk(coutMutex);
@@ -403,6 +450,7 @@ void solveSTP(){
                   << " | NBS: " << r.nbsTime << "s/" << r.nbsNodeExpanded << "n"
                   << " | MM: " << r.mmTime << "s/" << r.mmNodeExpanded << "n"
                   << " | IDA*: " << r.idaTime << "s/" << r.idaNodeExpanded << "n"
+                  << " | Parallel IDA*: " << r.parallelIdaTime << "s/" << r.parallelIdaNodeExpanded << "n"
                   << " | Rev-IDA*: " << r.revIdaTime << "s/" << r.revIdaNodeExpanded << "n";
         for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx) {
           const auto &run = BIHS_RUNS[runIdx];
@@ -421,10 +469,11 @@ void solveSTP(){
             << r.nbsTime << ","
             << r.mmTime << ","
             << r.idaTime << ","
+            << r.parallelIdaTime << ","
             << r.revIdaTime << ","
             << r.aStarNodeExpanded << "," << r.revAStarNodeExpanded << ","
             << r.baeNodeExpanded << "," << r.nbsNodeExpanded << "," << r.mmNodeExpanded << ","
-            << r.idaNodeExpanded << "," << r.revIdaNodeExpanded << ","
+            << r.idaNodeExpanded << "," << r.parallelIdaNodeExpanded << "," << r.revIdaNodeExpanded << ","
             << r.bihsTime[0];
         for (int runIdx = 1; runIdx < NUM_BIHS_RUNS; ++runIdx) {
           log << "," << r.bihsTime[runIdx];

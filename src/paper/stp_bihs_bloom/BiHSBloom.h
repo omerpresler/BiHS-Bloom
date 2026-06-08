@@ -1,11 +1,13 @@
 #include <type_traits>
 #include <algorithm>
+#include <iostream>
 #include <cmath>
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include <array>
 #include <unordered_map>
+#include <fstream>
 #include <memory>
 
 #include "Bloom.h"
@@ -127,10 +129,29 @@ public:
         }
 
         this->min_items = int((long long)size_in_KiB * 1024 * 8 / get_state_size(state{}));
+        std::cout << "Bloom filter size: " << size_in_KiB << " KiB, k_hashes: " << k_hashes << ", min_items: " << this->min_items << std::endl;
     }
+
+    struct IterationStat {
+        int    totalDepth;
+        int    iteration;
+        size_t nInserted;
+        size_t nUnique;
+        double estimatedFP;
+        size_t bitsSet;
+        double fillRatio;
+        double expectedFillRatio;
+        size_t materializedForwardStates;
+        size_t materializedBackwardStates;
+        size_t materializedTotalStates;
+        bool   isTypeSplit;
+        size_t typeIndex;
+        size_t typeCount;
+    };
 
     bool hasTimedOut() const { return timed_out; }
     uint64_t GetTotalNodesExpanded() const { return totalNodesExpanded; }
+    const std::vector<IterationStat>& GetIterStats() const { return iterStats; }
 
     void InitBloom(BloomFilter<state> *&bf) {
         size_t m_bits = size_in_KiB * 1024 * 8ULL;
@@ -625,6 +646,23 @@ public:
                 haveBackward = true;
             }
 
+            iterStats.push_back({
+                forwardDepth + backwardDepth,
+                i,
+                bf->get_n_inserted(),
+                bf->get_n_unique(),
+                bf->estimate_fp(),
+                bf->get_bits_set(),
+                bf->get_fill_ratio(),
+                bf->expected_fill_ratio(),
+                0,
+                0,
+                0,
+                true,
+                typeIndex,
+                typeCount
+            });
+
             if (bf->get_n_inserted() == 0) {
                 return {};
             }
@@ -642,6 +680,11 @@ public:
                                                            lastBackwardInserted,
                                                            typeIndex, typeCount);
         path = extraction.path;
+        if (!iterStats.empty()) {
+            iterStats.back().materializedForwardStates = extraction.forwardStates;
+            iterStats.back().materializedBackwardStates = extraction.backwardStates;
+            iterStats.back().materializedTotalStates = extraction.forwardStates + extraction.backwardStates;
+        }
         return path;
     }
 
@@ -682,6 +725,23 @@ public:
                 GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound,
                                                seed.get(), typeIndex, typeCount));
 
+            iterStats.push_back({
+                forwardDepth + backwardDepth,
+                static_cast<int>(typeIndex),
+                typedForward->get_n_inserted(),
+                typedForward->get_n_unique(),
+                typedForward->estimate_fp(),
+                typedForward->get_bits_set(),
+                typedForward->get_fill_ratio(),
+                typedForward->expected_fill_ratio(),
+                0,
+                0,
+                0,
+                true,
+                typeIndex,
+                typeCount
+            });
+
             if (typedForward->get_n_inserted() == 0) {
                 continue;
             }
@@ -689,6 +749,13 @@ public:
             PathExtractionResult extraction =
                 GetPathFromForwardBloom(start, goal, forwardDepth, backwardDepth,
                                         typedForward.get(), typeIndex, typeCount);
+
+            if (!iterStats.empty()) {
+                iterStats.back().materializedForwardStates = extraction.forwardStates;
+                iterStats.back().materializedBackwardStates = extraction.backwardStates;
+                iterStats.back().materializedTotalStates =
+                    extraction.forwardStates + extraction.backwardStates;
+            }
 
             if (!extraction.path.empty()) {
                 return extraction.path;
@@ -737,6 +804,24 @@ public:
                 if(this->firstBackwardNodeExpanded == 0)
                     this->firstBackwardNodeExpanded = this->nodeExpanded;
             }
+
+            iterStats.push_back({
+                forwardDepth + backwardDepth,
+                i,
+                bf->get_n_inserted(),
+                bf->get_n_unique(),
+                bf->estimate_fp(),
+                bf->get_bits_set(),
+                bf->get_fill_ratio(),
+                bf->expected_fill_ratio(),
+                0,
+                0,
+                0,
+                false,
+                0,
+                1
+            });
+
             if (bf->get_n_inserted() == 0) {
                 return {};
             }
@@ -751,6 +836,11 @@ public:
             if (i == 1 && haveForward && haveBackward) {
                 size_t typeCount = ChooseTypeCount(lastForwardInserted, lastBackwardInserted);
                 if (typeCount > 1) {
+                    std::cout << "[TYPE] Splitting depth " << (forwardDepth + backwardDepth)
+                              << " into " << typeCount << " hash types"
+                              << " (Ff=" << lastForwardInserted
+                              << ", Fb=" << lastBackwardInserted
+                              << ", min_items=" << this->min_items << ")\n" << std::flush;
                     return SolveAtDepthByTypesFromSeed(start, goal, forwardDepth, backwardDepth,
                                                        globalTimer, std::move(bf), typeCount);
                 }
@@ -760,6 +850,11 @@ public:
         PathExtractionResult extraction = GetPathFromBloom(start, goal, forwardDepth, backwardDepth, bf.get(),
                                                         lastForwardInserted, lastBackwardInserted);
         path = extraction.path;
+        if (!iterStats.empty()) {
+            iterStats.back().materializedForwardStates = extraction.forwardStates;
+            iterStats.back().materializedBackwardStates = extraction.backwardStates;
+            iterStats.back().materializedTotalStates = extraction.forwardStates + extraction.backwardStates;
+        }
 
         return path;
     }
@@ -767,6 +862,7 @@ public:
     std::vector<action> GetPath(state start, state goal) {
         timed_out = false;
         totalNodesExpanded = 0;
+        iterStats.clear();
         BiHSBloomHelper::store_goal(env, goal, 0);
         int fh = env.HCost(start, goal);
         BiHSBloomHelper::store_goal(env, start, 0);
@@ -854,6 +950,7 @@ private:
     uint64_t  firstBackwardNodeExpanded = 0;
     uint64_t  nodeExpanded = 0;
     uint64_t totalNodesExpanded = 0;
+    std::vector<IterationStat> iterStats;
     double depthRatio = 1.0;
 
     int min_f_value = -1;
