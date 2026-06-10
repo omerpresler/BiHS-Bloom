@@ -423,7 +423,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
               << ", states=" << idthsStorage << ", limit=" << IDTHS_SECONDS_LIMIT << "s)..."
               << std::flush;
 
-    IDTHSwTrans<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> idthsTrans(true, true, true, 1, false);
+    IDTHSwTrans<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, true> idthsTrans(true, true, true, 1, false);
     bool idthsSolved = false;
     bool idthsOutOfMemory = false;
     try {

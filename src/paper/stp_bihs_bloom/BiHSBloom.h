@@ -901,11 +901,7 @@ public:
             }
             
             int totalDepth = GetNextSearchBound(currentBound);
-            std::cout << "Expanding depth " << totalDepth
-                      << " (Ff=" << this->firstForwardNodeExpanded
-                      << ", Fb=" << this->firstBackwardNodeExpanded
-                      << ", ratio=" << (this->firstBackwardNodeExpanded == 0 ? 0.0 : static_cast<double>(this->firstForwardNodeExpanded) / this->firstBackwardNodeExpanded)
-                      << ")\n" << std::flush;
+            std::cout << "Expanding depth " << totalDepth << "\n" << std::flush;
 
             if (!dynamicSplitting ||
                 this->firstForwardNodeExpanded == 0 ||
