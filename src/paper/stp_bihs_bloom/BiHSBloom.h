@@ -186,7 +186,11 @@ public:
                                      std::unordered_map<uint64_t, StateWithPath> &states,
                                      action lastMove, size_t typeIndex = 0, size_t typeCount = 1) {
 
-        if (env.HCost(curr, goal) + depth > upperBound) return;
+        int f_value = static_cast<int>(std::ceil(env.HCost(curr, goal))) + depth;
+        if (f_value > upperBound) {
+            UpdateNextSearchBound(f_value);
+            return;
+        }
 
         if (depth == targetDepth) {
             if (HashMatchesType(currHash, typeIndex, typeCount) && bf && bf->maybe_contains_hash(currHash)) {
@@ -393,9 +397,7 @@ public:
 
             int f_value = static_cast<int>(std::ceil(env.HCost(curr, goal))) + depth;
             if (f_value > upperBound) {
-                if (this->min_f_value == -1 || this->min_f_value > f_value){
-                    this->min_f_value = f_value;
-                }
+                UpdateNextSearchBound(f_value);
                 
                 // backtrack
                 if (st.size() == 1) break;
@@ -512,9 +514,7 @@ public:
 
             int f_value = static_cast<int>(std::ceil(env.HCost(curr, goal))) + depth;
             if (f_value > upperBound) {
-                if (this->min_f_value == -1 || this->min_f_value > f_value){
-                    this->min_f_value = f_value;
-                }
+                UpdateNextSearchBound(f_value);
                 
                 // backtrack
                 if (st.size() == 1) break;
@@ -879,6 +879,9 @@ public:
         bool hasLearnedSplit = false;
 
         while(true){
+            const int currentBound = forwardDepth + backwardDepth;
+            ResetNextSearchBound(currentBound);
+
             // Check time limit at each depth iteration
             if (time_limit > 0) {
                 globalTimer.EndTimer();
@@ -897,10 +900,12 @@ public:
                 return path;
             }
             
-            int totalDepth = this->min_f_value;
-            if (totalDepth <= 1) {
-                totalDepth = forwardDepth + backwardDepth + 2;
-            }
+            int totalDepth = GetNextSearchBound(currentBound);
+            std::cout << "Expanding depth " << totalDepth
+                      << " (Ff=" << this->firstForwardNodeExpanded
+                      << ", Fb=" << this->firstBackwardNodeExpanded
+                      << ", ratio=" << (this->firstBackwardNodeExpanded == 0 ? 0.0 : static_cast<double>(this->firstForwardNodeExpanded) / this->firstBackwardNodeExpanded)
+                      << ")\n" << std::flush;
 
             if (!dynamicSplitting ||
                 this->firstForwardNodeExpanded == 0 ||
@@ -936,11 +941,31 @@ public:
             
 
 
-            this->min_f_value = -1;
         }
     }
 
 private:
+    void ResetNextSearchBound(int currentBound) {
+        this->currentSearchBound = currentBound;
+        this->nextSearchBound = -1;
+    }
+
+    void UpdateNextSearchBound(int fValue) {
+        if (fValue <= this->currentSearchBound) {
+            return;
+        }
+        if (this->nextSearchBound == -1 || fValue < this->nextSearchBound) {
+            this->nextSearchBound = fValue;
+        }
+    }
+
+    int GetNextSearchBound(int currentBound) const {
+        if (this->nextSearchBound > currentBound) {
+            return this->nextSearchBound;
+        }
+        return currentBound + 2;
+    }
+
     int size_in_KiB;
     int k_hashes;
     int stab_tail_len;
@@ -953,7 +978,8 @@ private:
     std::vector<IterationStat> iterStats;
     double depthRatio = 1.0;
 
-    int min_f_value = -1;
+    int currentSearchBound = -1;
+    int nextSearchBound = -1;
 
     double time_limit; // seconds, 0 = no limit
     bool dynamicSplitting;

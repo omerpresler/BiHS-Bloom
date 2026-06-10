@@ -50,6 +50,12 @@ BIHS_COLORS = {
     ("1pct", "optk"): "#9c755f",
 }
 
+IDTHS_COLORS = {
+    "50pct": "#5f8fbd",
+    "10pct": "#67a772",
+    "1pct": "#c58b43",
+}
+
 RATIO_LABELS = {
     "50pct": "50%",
     "10pct": "10%",
@@ -94,31 +100,38 @@ def discover_algorithms(df):
     algos = dict(BASE_ALGOS)
     colors = dict(BASE_COLORS)
     seen_bihs = []
+    seen_idths = []
 
     for col in df.columns:
         match = re.fullmatch(r"bihs_bloom_time_(50pct|10pct|1pct)(?:_(k1|optk))?(?:_(fixed|dynamic))?", col)
-        if not match:
+        if match:
+            ratio_slug = match.group(1)
+            k_mode = match.group(2)
+            split_mode = match.group(3) or "fixed"
+            suffix = f"_{k_mode}" if k_mode else ""
+            if match.group(3):
+                suffix += f"_{split_mode}"
+            nodes_col = f"bihs_bloom_nodes_{ratio_slug}{suffix}"
+            if nodes_col not in df.columns:
+                continue
+
+            label = f"BiHS {RATIO_LABELS[ratio_slug]}"
+            if k_mode == "k1":
+                label += " k=1"
+            elif k_mode == "optk":
+                label += " opt-k"
+            if match.group(3):
+                label += f" {split_mode}"
+
+            seen_bihs.append((ratio_slug, k_mode or "old", split_mode, label, col, nodes_col))
             continue
 
-        ratio_slug = match.group(1)
-        k_mode = match.group(2)
-        split_mode = match.group(3) or "fixed"
-        suffix = f"_{k_mode}" if k_mode else ""
-        if match.group(3):
-            suffix += f"_{split_mode}"
-        nodes_col = f"bihs_bloom_nodes_{ratio_slug}{suffix}"
-        if nodes_col not in df.columns:
-            continue
-
-        label = f"BiHS {RATIO_LABELS[ratio_slug]}"
-        if k_mode == "k1":
-            label += " k=1"
-        elif k_mode == "optk":
-            label += " opt-k"
-        if match.group(3):
-            label += f" {split_mode}"
-
-        seen_bihs.append((ratio_slug, k_mode or "old", split_mode, label, col, nodes_col))
+        match = re.fullmatch(r"idths_trans_time_(50pct|10pct|1pct)", col)
+        if match:
+            ratio_slug = match.group(1)
+            nodes_col = f"idths_trans_nodes_{ratio_slug}"
+            if nodes_col in df.columns:
+                seen_idths.append((ratio_slug, f"IDTHSwTrans {RATIO_LABELS[ratio_slug]}", col, nodes_col))
 
     ratio_order = {"50pct": 0, "10pct": 1, "1pct": 2}
     mode_order = {"k1": 0, "optk": 1, "old": 1}
@@ -129,6 +142,10 @@ def discover_algorithms(df):
     ):
         algos[label] = (time_col, nodes_col)
         colors[label] = BIHS_COLORS.get((ratio_slug, k_mode), BIHS_COLORS.get((ratio_slug, "optk"), "#9c755f"))
+
+    for ratio_slug, label, time_col, nodes_col in sorted(seen_idths, key=lambda item: ratio_order[item[0]]):
+        algos[label] = (time_col, nodes_col)
+        colors[label] = IDTHS_COLORS.get(ratio_slug, "#5f8fbd")
 
     return algos, colors
 
@@ -399,8 +416,12 @@ def build_k_lookup(params):
 
 
 def detail_table_html(df, params):
+    return comparison_table_html(df, params, [name for name, cols in ALGOS.items() if cols[0] in df.columns])
+
+
+def comparison_table_html(df, params, algorithm_names):
     rows = []
-    available = [(name, cols[0]) for name, cols in ALGOS.items() if cols[0] in df.columns]
+    available = [(name, ALGOS[name][0]) for name in algorithm_names if name in ALGOS and ALGOS[name][0] in df.columns]
     k_lookup = build_k_lookup(params)
 
     for _, row in df.sort_values(["solution_length", "instance"]).iterrows():
@@ -440,6 +461,218 @@ def detail_table_html(df, params):
         rows.append(detail)
 
     return pd.DataFrame(rows).to_html(index=False, classes="detail-table", border=0, escape=False)
+
+
+def idths_vs_ida_algorithms():
+    return [
+        name
+        for name in ["IDA*", "Rev-IDA*", "IDTHSwTrans 50%", "IDTHSwTrans 10%", "IDTHSwTrans 1%"]
+        if name in ALGOS
+    ]
+
+
+def bihs_vs_idths_algorithms():
+    names = []
+    for ratio in ["50%", "10%", "1%"]:
+        bihs_names = [name for name in ALGOS if name.startswith(f"BiHS {ratio}")]
+        names.extend(bihs_names)
+        idths_name = f"IDTHSwTrans {ratio}"
+        if idths_name in ALGOS:
+            names.append(idths_name)
+    return names
+
+
+def solved_time(value):
+    if pd.isna(value) or value in {TIMEOUT, OUT_OF_MEMORY, SKIPPED}:
+        return np.nan
+    return value
+
+
+def bihs_vs_idths_winner_table_html(df):
+    rows = []
+    totals = {
+        "both_solved": 0,
+        "bihs_wins": 0,
+        "idths_wins": 0,
+        "ties": 0,
+        "bihs_only": 0,
+        "idths_only": 0,
+    }
+    speedups = []
+
+    for ratio in ["50%", "10%", "1%"]:
+        idths_name = f"IDTHSwTrans {ratio}"
+        if idths_name not in ALGOS:
+            continue
+        idths_col = ALGOS[idths_name][0]
+        for bihs_name in [name for name in ALGOS if name.startswith(f"BiHS {ratio}")]:
+            bihs_col = ALGOS[bihs_name][0]
+            both_solved = 0
+            bihs_wins = 0
+            idths_wins = 0
+            ties = 0
+            bihs_only = 0
+            idths_only = 0
+            row_speedups = []
+
+            for _, result in df.iterrows():
+                bihs_time = solved_time(result[bihs_col])
+                idths_time = solved_time(result[idths_col])
+                bihs_solved = not pd.isna(bihs_time)
+                idths_solved = not pd.isna(idths_time)
+
+                if bihs_solved and idths_solved:
+                    both_solved += 1
+                    if np.isclose(bihs_time, idths_time):
+                        ties += 1
+                    elif bihs_time < idths_time:
+                        bihs_wins += 1
+                    else:
+                        idths_wins += 1
+                    row_speedups.append(idths_time / bihs_time)
+                elif bihs_solved:
+                    bihs_only += 1
+                elif idths_solved:
+                    idths_only += 1
+
+            for key, value in [
+                ("both_solved", both_solved),
+                ("bihs_wins", bihs_wins),
+                ("idths_wins", idths_wins),
+                ("ties", ties),
+                ("bihs_only", bihs_only),
+                ("idths_only", idths_only),
+            ]:
+                totals[key] += value
+            speedups.extend(row_speedups)
+
+            bihs_score = bihs_wins + bihs_only
+            idths_score = idths_wins + idths_only
+            if bihs_score > idths_score:
+                winner = "BiHS-Bloom"
+            elif idths_score > bihs_score:
+                winner = "IDTHSwTrans"
+            else:
+                winner = "Tie"
+
+            rows.append(
+                {
+                    "Comparison": f"{bihs_name} vs {idths_name}",
+                    "Winner": winner,
+                    "Both solved": both_solved,
+                    "BiHS faster": bihs_wins,
+                    "IDTHS faster": idths_wins,
+                    "Ties": ties,
+                    "BiHS solved only": bihs_only,
+                    "IDTHS solved only": idths_only,
+                    "Median IDTHS/BiHS speedup": np.median(row_speedups) if row_speedups else np.nan,
+                }
+            )
+
+    if rows:
+        bihs_score = totals["bihs_wins"] + totals["bihs_only"]
+        idths_score = totals["idths_wins"] + totals["idths_only"]
+        if bihs_score > idths_score:
+            winner = "BiHS-Bloom"
+        elif idths_score > bihs_score:
+            winner = "IDTHSwTrans"
+        else:
+            winner = "Tie"
+        rows.append(
+            {
+                "Comparison": "Overall",
+                "Winner": f"<strong>{winner}</strong>",
+                "Both solved": totals["both_solved"],
+                "BiHS faster": totals["bihs_wins"],
+                "IDTHS faster": totals["idths_wins"],
+                "Ties": totals["ties"],
+                "BiHS solved only": totals["bihs_only"],
+                "IDTHS solved only": totals["idths_only"],
+                "Median IDTHS/BiHS speedup": np.median(speedups) if speedups else np.nan,
+            }
+        )
+
+    display = pd.DataFrame(rows)
+    if display.empty:
+        return "<p class=\"note\">No matched BiHS-Bloom and IDTHSwTrans columns were found.</p>"
+    display["Median IDTHS/BiHS speedup"] = display["Median IDTHS/BiHS speedup"].map(
+        lambda value: "-" if pd.isna(value) else f"{value:.2f}x"
+    )
+    return display.to_html(index=False, classes="summary-table", border=0, escape=False)
+
+
+def bihs_win_pattern_table_html(df):
+    rows = []
+    ratios = [
+        ("50%", "bihs_bloom_time_50pct_optk_dynamic", "idths_trans_time_50pct", "idths_trans_storage_states_50pct"),
+        ("10%", "bihs_bloom_time_10pct_optk_dynamic", "idths_trans_time_10pct", "idths_trans_storage_states_10pct"),
+        ("1%", "bihs_bloom_time_1pct_optk_dynamic", "idths_trans_time_1pct", "idths_trans_storage_states_1pct"),
+    ]
+
+    for label, bihs_col, idths_col, storage_col in ratios:
+        if bihs_col not in df.columns or idths_col not in df.columns:
+            continue
+        sub = df[(df[bihs_col] > 0) & (df[idths_col] > 0)].copy()
+        if sub.empty:
+            continue
+        sub["winner"] = np.where(sub[bihs_col] < sub[idths_col], "BiHS wins", "IDTHS wins")
+        sub["idths_bihs_speedup"] = sub[idths_col] / sub[bihs_col]
+
+        for winner in ["BiHS wins", "IDTHS wins"]:
+            group = sub[sub["winner"] == winner]
+            if group.empty:
+                continue
+            rows.append(
+                {
+                    "Ratio": label,
+                    "Group": winner,
+                    "Count": len(group),
+                    "Median solution length": group["solution_length"].median(),
+                    "Median A* nodes": group["a_star_nodes"].median(),
+                    "Median Rev-A* nodes": group["rev_a_star_nodes"].median(),
+                    "Median IDA* nodes": group["ida_nodes"].median(),
+                    "Median IDTHS storage": group[storage_col].median() if storage_col in group.columns else np.nan,
+                    "Median IDTHS/BiHS speedup": group["idths_bihs_speedup"].median(),
+                }
+            )
+
+    display = pd.DataFrame(rows)
+    if display.empty:
+        return "<p class=\"note\">No solved BiHS-Bloom and IDTHSwTrans pairs were found.</p>"
+    for col in ["Median solution length", "Median A* nodes", "Median Rev-A* nodes", "Median IDA* nodes", "Median IDTHS storage"]:
+        display[col] = display[col].map(fmt_num)
+    display["Median IDTHS/BiHS speedup"] = display["Median IDTHS/BiHS speedup"].map(lambda value: f"{value:.2f}x")
+    return display.to_html(index=False, classes="summary-table", border=0, escape=False)
+
+
+def bihs_win_length_bins_html(df):
+    rows = []
+    bins = [0, 50, 55, 60, 65, 70, 100]
+    ratios = [
+        ("50%", "bihs_bloom_time_50pct_optk_dynamic", "idths_trans_time_50pct"),
+        ("10%", "bihs_bloom_time_10pct_optk_dynamic", "idths_trans_time_10pct"),
+        ("1%", "bihs_bloom_time_1pct_optk_dynamic", "idths_trans_time_1pct"),
+    ]
+    comparisons = []
+    for label, bihs_col, idths_col in ratios:
+        if bihs_col not in df.columns or idths_col not in df.columns:
+            continue
+        sub = df[(df[bihs_col] > 0) & (df[idths_col] > 0)].copy()
+        sub["Ratio"] = label
+        sub["Winner"] = np.where(sub[bihs_col] < sub[idths_col], "BiHS", "IDTHS")
+        comparisons.append(sub[["solution_length", "Ratio", "Winner"]])
+
+    if not comparisons:
+        return ""
+    combined = pd.concat(comparisons)
+    combined["Length bin"] = pd.cut(combined["solution_length"], bins=bins, include_lowest=True)
+    counts = pd.crosstab(combined["Length bin"], combined["Winner"])
+    for winner in ["BiHS", "IDTHS"]:
+        if winner not in counts.columns:
+            counts[winner] = 0
+    counts = counts[["BiHS", "IDTHS"]].reset_index()
+    counts["Length bin"] = counts["Length bin"].astype(str)
+    return counts.to_html(index=False, classes="summary-table", border=0, escape=False)
 
 
 def render_html(df, params, summary, image_paths):
@@ -684,8 +917,29 @@ def render_html(df, params, summary, image_paths):
       {table_html(summary)}
       <p class="note">Timeout and out-of-memory markers are excluded from runtime aggregates. {html.escape(bihs_note)}</p>
     </section>
+    <section class="table-panel">
+      <h2>BiHS-Bloom vs IDTHSwTrans Winner</h2>
+      {bihs_vs_idths_winner_table_html(df)}
+      <p class="note">The winner is based on solved-only advantages plus faster runtimes on instances both methods solved. Median speedup is IDTHSwTrans time divided by BiHS-Bloom time, so values above 1.00x favor BiHS-Bloom.</p>
+    </section>
+    <section class="table-panel">
+      <h2>BiHS Win Pattern</h2>
+      {bihs_win_pattern_table_html(df)}
+      <p class="note">Pattern: BiHS-Bloom wins skew toward easier instances: shorter median solution lengths, fewer baseline A*/Rev-A*/IDA* expansions, and smaller IDTHSwTrans storage budgets. IDTHSwTrans gains ground as instances become larger and the transposition table has more useful states to reuse.</p>
+      {bihs_win_length_bins_html(df)}
+    </section>
     <section class="table-panel detail-panel">
-      <h2>Challenge Runtimes</h2>
+      <h2>IDTHSwTrans vs IDA*</h2>
+      {comparison_table_html(df, params, idths_vs_ida_algorithms())}
+      <p class="note">Rows are sorted by solution length. Green pills mark the fastest algorithm among IDA*, Rev-IDA*, and the IDTHSwTrans runs for that challenge.</p>
+    </section>
+    <section class="table-panel detail-panel">
+      <h2>BiHS-Bloom vs IDTHSwTrans</h2>
+      {comparison_table_html(df, params, bihs_vs_idths_algorithms())}
+      <p class="note">Each BiHS-Bloom memory ratio is shown next to the matching IDTHSwTrans storage ratio. BiHS cells include the actual k used for that run.</p>
+    </section>
+    <section class="table-panel detail-panel">
+      <h2>All Challenge Runtimes</h2>
       {detail_table_html(df, params)}
       <p class="note">Rows are sorted by solution length. Green pills mark the fastest algorithm for that challenge. BiHS cells include the actual k used for that run.</p>
     </section>
