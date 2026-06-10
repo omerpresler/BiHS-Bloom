@@ -901,7 +901,6 @@ public:
             }
             
             int totalDepth = GetNextSearchBound(currentBound);
-            std::cout << "Expanding depth " << totalDepth << "\n" << std::flush;
 
             if (!dynamicSplitting ||
                 this->firstForwardNodeExpanded == 0 ||

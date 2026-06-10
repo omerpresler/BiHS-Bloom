@@ -77,7 +77,7 @@ public:
 
         for (size_t i = 0; i < k_hashes; i++) {
             uint64_t h = h1 + i * h2;
-            size_t idx = (size_t)(mix64(h) % m_bits);
+            size_t idx = index_from_hash(h);
             if (!get_bit(bits, idx)) {
                 bits_set_count++;
             }
@@ -102,7 +102,7 @@ public:
 
         for (size_t i = 0; i < k_hashes; i++) {
             uint64_t h = h1 + i * h2;
-            size_t idx = (size_t)(mix64(h) % m_bits);
+            size_t idx = index_from_hash(h);
             if (!get_bit(bits, idx)) {
                 return false; /* definitely not present */
             }
@@ -211,6 +211,11 @@ protected:
         if (*h2 == 0) {
             *h2 = 0x27d4eb2d; /* avoid zero step */
         }
+    }
+
+    size_t index_from_hash(uint64_t h) const
+    {
+        return static_cast<size_t>(h % m_bits);
     }
 
     /* bit helpers */
