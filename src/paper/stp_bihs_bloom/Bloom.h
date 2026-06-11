@@ -80,8 +80,8 @@ public:
             size_t idx = index_from_hash(h);
             if (!get_bit(bits, idx)) {
                 bits_set_count++;
+                set_bit(bits, idx);
             }
-            set_bit(bits, idx);
         }
         n_inserted++;
         //unique_set.insert(fingerprint);

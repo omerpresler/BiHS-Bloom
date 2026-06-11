@@ -48,7 +48,8 @@ struct AlgorithmSkipEntry {
 static constexpr AlgorithmSkipEntry SKIPPED_ALGORITHMS[] = {
     {59, "NBS"},
     {59, "MM"},
-    {81, "MM"}
+    {81, "MM"},
+    {87, "NBS"}
 };
 
 static bool ShouldSkipAlgorithm(int instance, const char *algorithm) {
@@ -75,6 +76,28 @@ static constexpr BiHSRunConfig BIHS_RUNS[NUM_BIHS_RUNS] = {
     {0.1,  "10%", "10pct", "optk", true,  "dynamic", true},
     {0.01, "1%",  "1pct",  "optk", true,  "dynamic", true},
 };
+
+static double fp_rate(int k, double n, double m) {
+  return std::pow(1.0 - std::exp(-static_cast<double>(k) * n / m), k);
+}
+
+static int choose_k(double n, double m, double target = 0.1) {
+  n = std::max(1.0, n);
+  m = std::max(1.0, m);
+  int k_opt = std::max(1, static_cast<int>(std::round((m / n) * std::log(2.0))));
+
+  if (fp_rate(k_opt, n, m) > target) {
+    return k_opt;
+  }
+
+  for (int k = 1; k <= k_opt; ++k) {
+    if (fp_rate(k, n, m) <= target) {
+      return k;
+    }
+  }
+
+  return k_opt;
+}
 
 struct STPResult {
   int instance;
@@ -354,16 +377,15 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     // Estimate the best Bloom hash count as ln(2) * (m / n).
     double bloomBits = size_in_KiB * 8192.0;
     double estimatedFrontierItems = std::max(1.0, static_cast<double>(frontierSize));
-    int optimized_k_hashes = std::max(1, static_cast<int>(
-        std::round(std::log(2.0) * bloomBits / estimatedFrontierItems)));
+    int optimized_k_hashes = choose_k(estimatedFrontierItems, bloomBits);
     int k_hashes = run.useOptimizedK ? optimized_k_hashes : 1;
 
     // FP rate: (1 - e^(-k*n/m))^k where n=estimated items, m=Bloom bits.
-    double fp_rate = std::pow(1.0 - std::exp(-(double)k_hashes * estimatedFrontierItems / bloomBits), k_hashes);
+    double fp_est = fp_rate(k_hashes, estimatedFrontierItems, bloomBits);
 
     std::cout << "[" << i << "] Running BiHS-Bloom(" << run.ratioLabel << ", " << run.kMode
               << ", " << run.splitMode
-              << ", size=" << size_in_KiB << "KiB, k=" << k_hashes << ", fp_est=" << fp_rate
+              << ", size=" << size_in_KiB << "KiB, k=" << k_hashes << ", fp_est=" << fp_est
               << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
 
     STPBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit, run.useDynamicSplit);
@@ -395,7 +417,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       std::lock_guard<std::mutex> lk(logMutex);
       log << "BIHS_PARAM," << i << "," << ratio << "," << size_in_KiB << "," << k_hashes << ","
           << result.bihsTime[runIdx] << "," << result.bihsNodeExpanded[runIdx] << ","
-          << fp_rate << "," << converged << "," << run.kMode << "," << run.splitMode << "\n";
+          << fp_est << "," << converged << "," << run.kMode << "," << run.splitMode << "\n";
     }
     if (WRITE_CONVERGENCE_LOG) {
       std::lock_guard<std::mutex> lk(convMutex);

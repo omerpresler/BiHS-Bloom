@@ -246,6 +246,7 @@ public:
 
         uint64_t startHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
         std::unordered_map<uint64_t, StateWithPath> states;
+        states.reserve(bf->get_n_inserted());
         if (targetDepth == 0) {
             if (HashMatchesType(startHash, typeIndex, typeCount) && bf && bf->maybe_contains_hash(startHash) && env.HCost(start, goal) <= upperBound) {
                 states.emplace(startHash, StateWithPath{start, {}});
