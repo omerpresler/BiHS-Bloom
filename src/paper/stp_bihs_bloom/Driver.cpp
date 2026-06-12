@@ -49,7 +49,8 @@ static constexpr AlgorithmSkipEntry SKIPPED_ALGORITHMS[] = {
     {59, "NBS"},
     {59, "MM"},
     {81, "MM"},
-    {87, "NBS"}
+    {87, "NBS"},
+    {87, "MM"},
 };
 
 static bool ShouldSkipAlgorithm(int instance, const char *algorithm) {
@@ -81,7 +82,7 @@ static double fp_rate(int k, double n, double m) {
   return std::pow(1.0 - std::exp(-static_cast<double>(k) * n / m), k);
 }
 
-static int choose_k(double n, double m, double target = 0.1) {
+static int choose_k(double n, double m, double target = 0.01) {
   n = std::max(1.0, n);
   m = std::max(1.0, m);
   int k_opt = std::max(1, static_cast<int>(std::round((m / n) * std::log(2.0))));
