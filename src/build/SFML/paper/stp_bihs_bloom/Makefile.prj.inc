@@ -26,9 +26,9 @@ PROJ_DBG_LNFLAGS = -L$(DBG_BINDIR)
 PROJ_REL_LNFLAGS = -L$(REL_BINDIR)
 PROJ_TEST_LNFLAGS = -L$(TEST_BINDIR)
 
-PROJ_DBG_LIB = -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lgui -lgraph -lutils -lenvutil -lenvironments
-PROJ_REL_LIB = -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lgui -lgraph -lutils -lenvutil -lenvironments
-PROJ_TEST_LIB = -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lgui -lgraph -lutils -lenvutil -lenvironments
+PROJ_DBG_LIB = -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lgui -lgraph -lutils -lenvutil -lenvironments -lutils
+PROJ_REL_LIB = -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lgui -lgraph -lutils -lenvutil -lenvironments -lutils
+PROJ_TEST_LIB = -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lgui -lgraph -lutils -lenvutil -lenvironments -lutils
 
 PROJ_DBG_DEP = \
   $(DBG_BINDIR)/libutils.a \
