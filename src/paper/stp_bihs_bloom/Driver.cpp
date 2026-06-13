@@ -1388,7 +1388,7 @@ void solveRubik(){
                 << ", states=" << idthsStorage << ", limit=" << IDTHS_SECONDS_LIMIT << "s)..."
                 << std::flush;
 
-      IDTHSwTrans<RCState, RCAction, false> idthsTrans(true, true, true, 1, false);
+      IDTHSwTrans<RCState, RCAction, false> idthsTrans(true, true, true, 1, true);
       bool idthsSolved = false;
       bool idthsOutOfMemory = false;
       try {
