@@ -18,7 +18,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <random>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -33,6 +32,10 @@
 #include <atomic>
 #include <memory>
 
+namespace RubiksCubeInstances {
+void GetKorfRubikInstance(RCState &start, int which);
+}
+
 static constexpr double SKIPPED_TIME = -3.0;
 static constexpr int NUM_BIHS_RUNS = 3;
 static constexpr bool WRITE_BIHS_PARAM_LOG = true;
@@ -41,7 +44,7 @@ static constexpr unsigned long IDTHS_DEFAULT_STATES_BOUND = 1000000;
 static constexpr unsigned long IDTHS_MIN_STATES_BOUND = 2;
 static constexpr int IDTHS_SECONDS_LIMIT = 1800;
 static constexpr int RUBIK_TOTAL_INSTANCES = 10;
-static constexpr int RUBIK_SCRAMBLE_DEPTH = 3;
+static constexpr const char *RUBIK_INSTANCE_SET = "korf";
 
 struct AlgorithmSkipEntry {
   int instance;
@@ -101,33 +104,6 @@ static int choose_k(double n, double m, double target = 0.01) {
   }
 
   return k_opt;
-}
-
-static void GetDeterministicRubikScramble(RC &env, RCState &state, int depth, int which)
-{
-  state.Reset();
-  std::mt19937 rng(static_cast<unsigned>(0x9e3779b9U + which * 104729U + depth * 8191U));
-  RCAction lastAction = -1;
-
-  for (int step = 0; step < depth; ++step) {
-    std::vector<RCAction> actions;
-    env.GetActions(state, actions);
-
-    if (lastAction >= 0) {
-      actions.erase(std::remove_if(actions.begin(), actions.end(),
-          [lastAction](RCAction action) {
-            return action / 3 == lastAction / 3;
-          }), actions.end());
-    }
-
-    if (actions.empty()) {
-      env.GetActions(state, actions);
-    }
-
-    RCAction action = actions[rng() % actions.size()];
-    env.ApplyAction(state, action);
-    lastAction = action;
-  }
 }
 
 class BenchmarkRC : public RC {
@@ -920,8 +896,8 @@ void solvePancake(){
                 << ", " << run.splitMode
                 << ", size=" << size_in_KiB << "KiB, k=" << k_hashes << ", fp_est=" << fp_est
                 << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
-
       PancakeBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit, run.useDynamicSplit);
+
       bool bihsOutOfMemory = false;
       std::vector<PancakePuzzleAction> pathBiHS;
       try {
@@ -934,13 +910,13 @@ void solvePancake(){
         bihsOutOfMemory = true;
         printf("BiHS-Bloom ran out of memory\n");
       }
-
       result.bihsTime[runIdx] = bihsOutOfMemory ? -2.0 : (bihs.hasTimedOut() ? -1.0 : t.GetElapsedTime());
       result.bihsNodeExpanded[runIdx] = bihs.GetTotalNodesExpanded();
-      bool converged = !bihsOutOfMemory && !bihs.hasTimedOut() && !pathBiHS.empty();
 
+      bool converged = !bihsOutOfMemory && !bihs.hasTimedOut() && !pathBiHS.empty();
       if (bihsOutOfMemory)
-        std::cout << " OUT OF MEMORY (" << result.bihsNodeExpanded[runIdx] << "n)\n" << std::flush;
+      std::cout << " OUT OF MEMORY (" << result.bihsNodeExpanded[runIdx] << "n)\n" << std::flush;
+
       else if (!converged)
         std::cout << " TIMED OUT (" << result.bihsNodeExpanded[runIdx] << "n)\n" << std::flush;
       else
@@ -1069,8 +1045,8 @@ void solvePancake(){
 }
 
 void solveRubik(){
-  const std::string benchmarkFile = "benchmark_rubik_depth" + std::to_string(RUBIK_SCRAMBLE_DEPTH) + "_" + std::to_string(RUBIK_TOTAL_INSTANCES) + ".csv";
-  const std::string convergenceFile = "bloom_convergence_rubik_depth" + std::to_string(RUBIK_SCRAMBLE_DEPTH) + ".csv";
+  const std::string benchmarkFile = "benchmark_rubik_" + std::string(RUBIK_INSTANCE_SET) + "_" + std::to_string(RUBIK_TOTAL_INSTANCES) + ".csv";
+  const std::string convergenceFile = "bloom_convergence_rubik_" + std::string(RUBIK_INSTANCE_SET) + ".csv";
   std::ofstream log(benchmarkFile);
   std::vector<std::string> headers = {"instance", "solution_length",
       "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "parallel_ida_time", "rev_ida_time",
@@ -1137,7 +1113,7 @@ void solveRubik(){
     RCState goal;
     RCState puzzle;
     goal.Reset();
-    GetDeterministicRubikScramble(rubik, puzzle, RUBIK_SCRAMBLE_DEPTH, i);
+    RubiksCubeInstances::GetKorfRubikInstance(puzzle, i);
     Timer t;
 
     std::cout << "[" << i << "] Running Rubik A*..." << std::flush;
