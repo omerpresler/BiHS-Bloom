@@ -129,6 +129,7 @@ struct STPResult {
 };
 
 static constexpr int NUM_WORKERS = 1;
+static constexpr int PANCAKE_SIZE = 28;
 
 STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std::ofstream &convLog, std::mutex &convMutex) {
   STPResult result;
@@ -607,7 +608,9 @@ void solveSTP(){
 }
 
 void solvePancake(){
-  std::ofstream log("benchmark_pancake16_100.csv");
+  const std::string benchmarkFile = "benchmark_pancake" + std::to_string(PANCAKE_SIZE) + "_100.csv";
+  const std::string convergenceFile = "bloom_convergence_pancake" + std::to_string(PANCAKE_SIZE) + ".csv";
+  std::ofstream log(benchmarkFile);
   std::vector<std::string> headers = {"instance", "solution_length",
       "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "parallel_ida_time", "rev_ida_time",
       "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "parallel_ida_nodes", "rev_ida_nodes",
@@ -638,7 +641,7 @@ void solvePancake(){
 
   std::ofstream convLog;
   if (WRITE_CONVERGENCE_LOG) {
-    convLog.open("bloom_convergence_pancake16.csv");
+    convLog.open(convergenceFile);
     convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
   }
 
@@ -676,10 +679,10 @@ void solvePancake(){
     size_t minSize = 0;
     size_t frontierSize = 0;
 
-    PancakePuzzle<16> pancake;
-    PancakePuzzleState<16> goal;
+    PancakePuzzle<PANCAKE_SIZE> pancake;
+    PancakePuzzleState<PANCAKE_SIZE> goal;
     goal.Reset();
-    PancakePuzzleState<16> puzzle;
+    PancakePuzzleState<PANCAKE_SIZE> puzzle;
     if (!GetPancakeInstance(puzzle, i)) {
       std::cerr << "Unable to load Pancake challenge #" << i << std::endl;
       continue;
@@ -688,8 +691,8 @@ void solvePancake(){
 
     std::cout << "[" << i << "] Running Pancake A*..." << std::flush;
     {
-      TemplateAStar<PancakePuzzleState<16>, PancakePuzzleAction, PancakePuzzle<16>> astar;
-      std::vector<PancakePuzzleState<16>> path;
+      TemplateAStar<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, PancakePuzzle<PANCAKE_SIZE>> astar;
+      std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
       try {
         t.StartTimer();
         astar.GetPath(&pancake, puzzle, goal, path);
@@ -708,8 +711,8 @@ void solvePancake(){
 
     std::cout << "[" << i << "] Running Pancake Rev-A*..." << std::flush;
     {
-      TemplateAStar<PancakePuzzleState<16>, PancakePuzzleAction, PancakePuzzle<16>> astar;
-      std::vector<PancakePuzzleState<16>> path;
+      TemplateAStar<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, PancakePuzzle<PANCAKE_SIZE>> astar;
+      std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
       try {
         t.StartTimer();
         astar.GetPath(&pancake, goal, puzzle, path);
@@ -729,8 +732,8 @@ void solvePancake(){
 
     std::cout << "[" << i << "] Running Pancake BAE*..." << std::flush;
     {
-      BAE<PancakePuzzleState<16>, PancakePuzzleAction, PancakePuzzle<16>> bae;
-      std::vector<PancakePuzzleState<16>> path;
+      BAE<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, PancakePuzzle<PANCAKE_SIZE>> bae;
+      std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
       try {
         t.StartTimer();
         bae.GetPath(&pancake, puzzle, goal, &pancake, &pancake, path);
@@ -748,8 +751,8 @@ void solvePancake(){
 
     std::cout << "[" << i << "] Running Pancake NBS..." << std::flush;
     {
-      NBS<PancakePuzzleState<16>, PancakePuzzleAction, PancakePuzzle<16>> nbs;
-      std::vector<PancakePuzzleState<16>> path;
+      NBS<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, PancakePuzzle<PANCAKE_SIZE>> nbs;
+      std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
       try {
         t.StartTimer();
         nbs.GetPath(&pancake, puzzle, goal, &pancake, &pancake, path);
@@ -767,8 +770,8 @@ void solvePancake(){
 
     std::cout << "[" << i << "] Running Pancake MM..." << std::flush;
     {
-      MM<PancakePuzzleState<16>, PancakePuzzleAction, PancakePuzzle<16>> mm;
-      std::vector<PancakePuzzleState<16>> path;
+      MM<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, PancakePuzzle<PANCAKE_SIZE>> mm;
+      std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
       try {
         t.StartTimer();
         mm.GetPath(&pancake, puzzle, goal, &pancake, &pancake, path);
@@ -790,8 +793,8 @@ void solvePancake(){
 
     std::cout << "[" << i << "] Running Pancake IDA*..." << std::flush;
     {
-      IDAStar<PancakePuzzleState<16>, PancakePuzzleAction, false> ida;
-      std::vector<PancakePuzzleState<16>> path;
+      IDAStar<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, false> ida;
+      std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
       try {
         t.StartTimer();
         ida.GetPath(&pancake, puzzle, goal, path);
@@ -809,8 +812,8 @@ void solvePancake(){
 
     std::cout << "[" << i << "] Running Pancake Rev-IDA*..." << std::flush;
     {
-      IDAStar<PancakePuzzleState<16>, PancakePuzzleAction, false> ida;
-      std::vector<PancakePuzzleState<16>> path;
+      IDAStar<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, false> ida;
+      std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
       try {
         t.StartTimer();
         ida.GetPath(&pancake, goal, puzzle, path);
@@ -828,7 +831,7 @@ void solvePancake(){
 
     std::cout << "[" << i << "] Running Pancake Parallel IDA*..." << std::flush;
     {
-      ParallelIDAStar<PancakePuzzle<16>, PancakePuzzleState<16>, PancakePuzzleAction> ida;
+      ParallelIDAStar<PancakePuzzle<PANCAKE_SIZE>, PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction> ida;
       std::vector<PancakePuzzleAction> path;
       try {
         t.StartTimer();
@@ -860,7 +863,7 @@ void solvePancake(){
     std::cout << "[" << i << "] Pancake IDTHSwTrans state bound baseline: "
               << idthsStatesQuantityBound << "\n" << std::flush;
 
-    using PancakeBiHSBloom = BiHSBloom<PancakePuzzleState<16>, PancakePuzzleAction, PancakePuzzle<16>>;
+    using PancakeBiHSBloom = BiHSBloom<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, PancakePuzzle<PANCAKE_SIZE>>;
 
     for(int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
     {
@@ -937,7 +940,7 @@ void solvePancake(){
                 << ", states=" << idthsStorage << ", limit=" << IDTHS_SECONDS_LIMIT << "s)..."
                 << std::flush;
 
-      IDTHSwTrans<PancakePuzzleState<16>, PancakePuzzleAction, false> idthsTrans(true, true, true, 1, false);
+      IDTHSwTrans<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, false> idthsTrans(true, true, true, 1, false);
       bool idthsSolved = false;
       bool idthsOutOfMemory = false;
       try {
@@ -1024,7 +1027,7 @@ void solvePancake(){
   }
 
   log.close();
-  std::cout << "Results written to benchmark_pancake16_100.csv" << std::endl;
+  std::cout << "Results written to " << benchmarkFile << std::endl;
 }
 
 
