@@ -115,10 +115,10 @@ public:
         return stable_fingerprint_impl(key);
     }
 
-    template <int W, int H>
+    template <int Size>
     static uint64_t zobrist_value(unsigned pos, unsigned tile)
     {
-        static const std::array<std::array<uint64_t, W * H>, W * H> table = build_zobrist_table<W, H>();
+        static const std::array<std::array<uint64_t, Size>, Size> table = build_zobrist_table<Size>();
         return table[pos][tile];
     }
     double estimate_fp() const
@@ -259,13 +259,13 @@ protected:
         return x ^ (x >> 31);
     }
 
-    template <int W, int H>
-    static std::array<std::array<uint64_t, W * H>, W * H> build_zobrist_table()
+    template <int Size>
+    static std::array<std::array<uint64_t, Size>, Size> build_zobrist_table()
     {
-        std::array<std::array<uint64_t, W * H>, W * H> table{};
-        uint64_t x = 0x7f4a7c159e3779b9ULL ^ (uint64_t)(W * 131 + H * 977);
-        for (unsigned pos = 0; pos < W * H; ++pos) {
-            for (unsigned tile = 0; tile < W * H; ++tile) {
+        std::array<std::array<uint64_t, Size>, Size> table{};
+        uint64_t x = 0x7f4a7c159e3779b9ULL ^ (uint64_t)(Size * 104729);
+        for (unsigned pos = 0; pos < Size; ++pos) {
+            for (unsigned tile = 0; tile < Size; ++tile) {
                 x = splitmix64(x);
                 table[pos][tile] = x;
             }
@@ -299,7 +299,17 @@ protected:
     {
         uint64_t h = 0;
         for (unsigned pos = 0; pos < W * H; ++pos) {
-            h ^= zobrist_value<W, H>(pos, (unsigned)state.puzzle[pos]);
+            h ^= zobrist_value<W * H>(pos, (unsigned)state.puzzle[pos]);
+        }
+        return h;
+    }
+
+    template <int N>
+    static uint64_t stable_fingerprint_impl(const PancakePuzzleState<N> &state)
+    {
+        uint64_t h = 0;
+        for (unsigned pos = 0; pos < N; ++pos) {
+            h ^= zobrist_value<N>(pos, (unsigned)state.puzzle[pos]);
         }
         return h;
     }

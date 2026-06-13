@@ -36,7 +36,7 @@ namespace BiHSBloomHelper {
 
         static uint64_t zobrist(unsigned pos, unsigned tile)
         {
-            return BloomFilter<MNPuzzleState<W, H>>::template zobrist_value<W, H>(pos, tile);
+            return BloomFilter<MNPuzzleState<W, H>>::template zobrist_value<W * H>(pos, tile);
         }
 
         static uint64_t hash(const MNPuzzleState<W, H>& state)
@@ -61,6 +61,42 @@ namespace BiHSBloomHelper {
             h ^= zobrist(tile_pos, tile);
             h ^= zobrist(blank, tile);
             h ^= zobrist(tile_pos, 0);
+            return h;
+        }
+    };
+
+    template <int N>
+    struct StateFingerprint<PancakePuzzleState<N>, PancakePuzzleAction> {
+        static constexpr bool incremental = true;
+
+        static uint64_t zobrist(unsigned pos, unsigned tile)
+        {
+            return BloomFilter<PancakePuzzleState<N>>::template zobrist_value<N>(pos, tile);
+        }
+
+        static uint64_t hash(const PancakePuzzleState<N>& state)
+        {
+            return BloomFilter<PancakePuzzleState<N>>::stable_fingerprint(state);
+        }
+
+        static uint64_t apply(uint64_t h, const PancakePuzzleState<N>& state, PancakePuzzleAction action)
+        {
+            if (action <= 1) {
+                return h;
+            }
+
+            unsigned upper = 0;
+            unsigned lower = std::min<unsigned>(action - 1, N - 1);
+            while (upper < lower) {
+                unsigned upperTile = static_cast<unsigned>(state.puzzle[upper]);
+                unsigned lowerTile = static_cast<unsigned>(state.puzzle[lower]);
+                h ^= zobrist(upper, upperTile);
+                h ^= zobrist(lower, lowerTile);
+                h ^= zobrist(upper, lowerTile);
+                h ^= zobrist(lower, upperTile);
+                ++upper;
+                --lower;
+            }
             return h;
         }
     };

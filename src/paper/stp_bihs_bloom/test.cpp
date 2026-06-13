@@ -153,6 +153,37 @@ void testBiHSBloomSolvesOneMovePuzzle() {
   require(check == goal, "BiHS-Bloom one-move solution does not reach goal");
 }
 
+void testPancakeZobristUpdateMatchesRecomputedHash() {
+  PancakePuzzle<16> env;
+  PancakePuzzleState<16> state;
+  state.Reset();
+  env.ApplyAction(state, 9);
+  env.ApplyAction(state, 4);
+
+  uint64_t tableValue =
+      BloomFilter<PancakePuzzleState<16>>::template zobrist_value<16>(0, 3);
+  require(tableValue ==
+              BloomFilter<PancakePuzzleState<16>>::template zobrist_value<16>(0, 3),
+          "Pancake Zobrist table is not stable");
+  require(tableValue !=
+              BloomFilter<PancakePuzzleState<16>>::template zobrist_value<16>(1, 3),
+          "Pancake Zobrist table does not distinguish positions");
+
+  const PancakePuzzleAction action = 7;
+  uint64_t startHash =
+      BiHSBloomHelper::StateFingerprint<PancakePuzzleState<16>, PancakePuzzleAction>::hash(state);
+  uint64_t incrementalHash =
+      BiHSBloomHelper::StateFingerprint<PancakePuzzleState<16>, PancakePuzzleAction>::apply(
+          startHash, state, action);
+
+  env.ApplyAction(state, action);
+  uint64_t recomputedHash =
+      BiHSBloomHelper::StateFingerprint<PancakePuzzleState<16>, PancakePuzzleAction>::hash(state);
+
+  require(incrementalHash == recomputedHash,
+          "Pancake incremental Zobrist hash does not match recomputed hash");
+}
+
 void testIDTHSwTransSolvesOneMovePuzzle() {
   MNPuzzleState<MN_SIZE, MN_SIZE> start;
   MNPuzzleState<MN_SIZE, MN_SIZE> goal;
@@ -181,6 +212,7 @@ int main() {
       testBloomTracksAcceptedItems,
       testBiHSBloomCollectsZeroDepthState,
       testBiHSBloomSolvesOneMovePuzzle,
+      testPancakeZobristUpdateMatchesRecomputedHash,
       testIDTHSwTransSolvesOneMovePuzzle,
   };
 
