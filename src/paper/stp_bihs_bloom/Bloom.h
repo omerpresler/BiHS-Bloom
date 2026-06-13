@@ -13,8 +13,14 @@
 
 #include "MNPuzzle.h"
 #include "PancakePuzzle.h"
+#include "RC.h"
 
 #define MN_SIZE 4
+
+static bool operator!=(const RCState &l1, const RCState &l2)
+{
+    return !(l1 == l2);
+}
 
 template <typename Key>
 class BloomFilter {
@@ -310,6 +316,20 @@ protected:
         uint64_t h = 0;
         for (unsigned pos = 0; pos < N; ++pos) {
             h ^= zobrist_value<N>(pos, (unsigned)state.puzzle[pos]);
+        }
+        return h;
+    }
+
+    static uint64_t stable_fingerprint_impl(const RCState &state)
+    {
+        uint64_t h = 0;
+        for (unsigned pos = 0; pos < 20; ++pos) {
+            unsigned piece = static_cast<unsigned>(state.indices[pos]);
+            unsigned rotation = static_cast<unsigned>(state.rotation[pos]);
+            unsigned tile = pos < 12
+                ? piece * 2 + (rotation % 2)
+                : (piece - 12) * 3 + (rotation % 3);
+            h ^= zobrist_value<40>(pos, tile);
         }
         return h;
     }

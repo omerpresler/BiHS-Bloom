@@ -14,6 +14,7 @@
 #include "NBS.h"
 
 #include "PancakeInstances.h"
+#include "RC.h"
 
 #include <algorithm>
 #include <cmath>
@@ -39,6 +40,8 @@ static constexpr bool WRITE_CONVERGENCE_LOG = true;
 static constexpr unsigned long IDTHS_DEFAULT_STATES_BOUND = 1000000;
 static constexpr unsigned long IDTHS_MIN_STATES_BOUND = 2;
 static constexpr int IDTHS_SECONDS_LIMIT = 1800;
+static constexpr int RUBIK_TOTAL_INSTANCES = 10;
+static constexpr int RUBIK_SCRAMBLE_DEPTH = 3;
 
 struct AlgorithmSkipEntry {
   int instance;
@@ -100,6 +103,41 @@ static int choose_k(double n, double m, double target = 0.01) {
   return k_opt;
 }
 
+static void GetDeterministicRubikScramble(RC &env, RCState &state, int depth, int which)
+{
+  state.Reset();
+  std::mt19937 rng(static_cast<unsigned>(0x9e3779b9U + which * 104729U + depth * 8191U));
+  RCAction lastAction = -1;
+
+  for (int step = 0; step < depth; ++step) {
+    std::vector<RCAction> actions;
+    env.GetActions(state, actions);
+
+    if (lastAction >= 0) {
+      actions.erase(std::remove_if(actions.begin(), actions.end(),
+          [lastAction](RCAction action) {
+            return action / 3 == lastAction / 3;
+          }), actions.end());
+    }
+
+    if (actions.empty()) {
+      env.GetActions(state, actions);
+    }
+
+    RCAction action = actions[rng() % actions.size()];
+    env.ApplyAction(state, action);
+    lastAction = action;
+  }
+}
+
+class BenchmarkRC : public RC {
+public:
+  uint64_t GetStateHash(const RCState &node) const
+  {
+    return BloomFilter<RCState>::stable_fingerprint(node);
+  }
+};
+
 struct STPResult {
   int instance;
   int solutionLength;
@@ -129,7 +167,7 @@ struct STPResult {
 };
 
 static constexpr int NUM_WORKERS = 1;
-static constexpr int PANCAKE_SIZE = 28;
+static constexpr int PANCAKE_SIZE = 20;
 
 STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std::ofstream &convLog, std::mutex &convMutex) {
   STPResult result;
@@ -1030,21 +1068,428 @@ void solvePancake(){
   std::cout << "Results written to " << benchmarkFile << std::endl;
 }
 
+void solveRubik(){
+  const std::string benchmarkFile = "benchmark_rubik_depth" + std::to_string(RUBIK_SCRAMBLE_DEPTH) + "_" + std::to_string(RUBIK_TOTAL_INSTANCES) + ".csv";
+  const std::string convergenceFile = "bloom_convergence_rubik_depth" + std::to_string(RUBIK_SCRAMBLE_DEPTH) + ".csv";
+  std::ofstream log(benchmarkFile);
+  std::vector<std::string> headers = {"instance", "solution_length",
+      "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "parallel_ida_time", "rev_ida_time",
+      "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "parallel_ida_nodes", "rev_ida_nodes",
+      };
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("bihs_bloom_time_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("bihs_bloom_nodes_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("idths_trans_time_") + run.ratioSlug);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("idths_trans_nodes_") + run.ratioSlug);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("idths_trans_necessary_nodes_") + run.ratioSlug);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("idths_trans_storage_states_") + run.ratioSlug);
+  for(size_t i = 0; i < headers.size(); ++i) {
+    log << headers[i];
+    if (i < headers.size() - 1) log << ",";
+  }
+  log << "\n";
+
+  std::ofstream convLog;
+  if (WRITE_CONVERGENCE_LOG) {
+    convLog.open(convergenceFile);
+    convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
+  }
+
+  std::mutex logMutex;
+  std::mutex convMutex;
+
+  for (int i = 0; i < RUBIK_TOTAL_INSTANCES; i++) {
+    STPResult result;
+    result.instance = i;
+    result.solutionLength = -1;
+    result.aStarTime = -1;
+    result.revAStarTime = -1;
+    result.baeTime = -1;
+    result.mmTime = -1;
+    result.nbsTime = -1;
+    result.idaTime = -1;
+    result.parallelIdaTime = -1;
+    result.revIdaTime = -1;
+    result.bihsTime.fill(-1);
+    result.idthsTransTime.fill(-1);
+    result.bihsNodeExpanded.fill(0);
+    result.idthsTransNodeExpanded.fill(0);
+    result.idthsTransNecessaryExpanded.fill(0);
+    result.idthsTransStorage.fill(0);
+    result.aStarNodeExpanded = 0;
+    result.revAStarNodeExpanded = 0;
+    result.baeNodeExpanded = 0;
+    result.mmNodeExpanded = 0;
+    result.nbsNodeExpanded = 0;
+    result.idaNodeExpanded = 0;
+    result.parallelIdaNodeExpanded = 0;
+    result.revIdaNodeExpanded = 0;
+
+    size_t minSize = 0;
+    size_t frontierSize = 0;
+
+    BenchmarkRC rubik;
+    RCState goal;
+    RCState puzzle;
+    goal.Reset();
+    GetDeterministicRubikScramble(rubik, puzzle, RUBIK_SCRAMBLE_DEPTH, i);
+    Timer t;
+
+    std::cout << "[" << i << "] Running Rubik A*..." << std::flush;
+    {
+      TemplateAStar<RCState, RCAction, BenchmarkRC> astar;
+      std::vector<RCState> path;
+      try {
+        t.StartTimer();
+        astar.GetPath(&rubik, puzzle, goal, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("A* ran out of memory\n");
+      }
+      result.aStarTime = t.GetElapsedTime();
+      result.aStarNodeExpanded = astar.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+      minSize = astar.GetNumItems();
+      std::cout << " done (" << result.aStarTime << "s, " << result.aStarNodeExpanded << "n)\n" << std::flush;
+    }
+
+    std::cout << "[" << i << "] Running Rubik Rev-A*..." << std::flush;
+    {
+      TemplateAStar<RCState, RCAction, BenchmarkRC> astar;
+      std::vector<RCState> path;
+      try {
+        t.StartTimer();
+        astar.GetPath(&rubik, goal, puzzle, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("Rev-A* ran out of memory\n");
+      }
+      result.revAStarTime = t.GetElapsedTime();
+      result.revAStarNodeExpanded = astar.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+      if (minSize == 0 || astar.GetNumItems() < minSize)
+        minSize = astar.GetNumItems();
+      std::cout << " done (" << result.revAStarTime << "s, " << result.revAStarNodeExpanded << "n)\n" << std::flush;
+    }
+
+    std::cout << "[" << i << "] Running Rubik BAE*..." << std::flush;
+    {
+      BAE<RCState, RCAction, BenchmarkRC> bae;
+      std::vector<RCState> path;
+      try {
+        t.StartTimer();
+        bae.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("BAE* ran out of memory\n");
+      }
+      result.baeTime = t.GetElapsedTime();
+      result.baeNodeExpanded = bae.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+      std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
+    }
+
+    std::cout << "[" << i << "] Running Rubik NBS..." << std::flush;
+    {
+      NBS<RCState, RCAction, BenchmarkRC> nbs;
+      std::vector<RCState> path;
+      try {
+        t.StartTimer();
+        nbs.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("NBS ran out of memory\n");
+      }
+      result.nbsTime = t.GetElapsedTime();
+      result.nbsNodeExpanded = nbs.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+      std::cout << " done (" << result.nbsTime << "s, " << result.nbsNodeExpanded << "n)\n" << std::flush;
+    }
+
+    std::cout << "[" << i << "] Running Rubik MM..." << std::flush;
+    {
+      MM<RCState, RCAction, BenchmarkRC> mm;
+      std::vector<RCState> path;
+      try {
+        t.StartTimer();
+        mm.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("MM ran out of memory\n");
+      }
+      result.mmTime = t.GetElapsedTime();
+      result.mmNodeExpanded = mm.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+      size_t mmSize = mm.GetNumForwardItems() + mm.GetNumBackwardItems();
+      if (minSize == 0 || mmSize < minSize)
+        minSize = mmSize;
+      frontierSize = mm.GetNumForwardItems();
+      std::cout << " done (" << result.mmTime << "s, " << result.mmNodeExpanded << "n)\n" << std::flush;
+    }
+
+    std::cout << "[" << i << "] Running Rubik IDA*..." << std::flush;
+    {
+      IDAStar<RCState, RCAction, false> ida;
+      std::vector<RCState> path;
+      try {
+        t.StartTimer();
+        ida.GetPath(&rubik, puzzle, goal, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("IDA* ran out of memory\n");
+      }
+      result.idaTime = t.GetElapsedTime();
+      result.idaNodeExpanded = ida.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+      std::cout << " done (" << result.idaTime << "s, " << result.idaNodeExpanded << "n)\n" << std::flush;
+    }
+
+    std::cout << "[" << i << "] Running Rubik Rev-IDA*..." << std::flush;
+    {
+      IDAStar<RCState, RCAction, false> ida;
+      std::vector<RCState> path;
+      try {
+        t.StartTimer();
+        ida.GetPath(&rubik, goal, puzzle, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("Rev-IDA* ran out of memory\n");
+      }
+      result.revIdaTime = t.GetElapsedTime();
+      result.revIdaNodeExpanded = ida.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+      std::cout << " done (" << result.revIdaTime << "s, " << result.revIdaNodeExpanded << "n)\n" << std::flush;
+    }
+
+    std::cout << "[" << i << "] Running Rubik Parallel IDA*..." << std::flush;
+    {
+      ParallelIDAStar<BenchmarkRC, RCState, RCAction> ida;
+      std::vector<RCAction> path;
+      try {
+        t.StartTimer();
+        ida.GetPath(&rubik, puzzle, goal, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("Parallel IDA* ran out of memory\n");
+      }
+      result.parallelIdaTime = t.GetElapsedTime();
+      result.parallelIdaNodeExpanded = ida.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size());
+      std::cout << " done (" << result.parallelIdaTime << "s, " << result.parallelIdaNodeExpanded << "n)\n" << std::flush;
+    }
+
+    double maxBaselineTime = std::max({result.aStarTime, result.revAStarTime, result.baeTime, result.nbsTime,
+                                       result.mmTime, result.idaTime, result.revIdaTime, result.parallelIdaTime});
+    double bihsTimeLimit = std::max(maxBaselineTime * 20.0, 120.0);
+    if (frontierSize == 0)
+      frontierSize = std::max<size_t>(1, minSize);
+    unsigned long idthsStatesQuantityBound = minSize > 0
+        ? static_cast<unsigned long>(minSize)
+        : IDTHS_DEFAULT_STATES_BOUND;
+    std::cout << "[" << i << "] Rubik BiHS-Bloom timeout limit: " << bihsTimeLimit << "s\n" << std::flush;
+    std::cout << "[" << i << "] Rubik IDTHSwTrans state bound baseline: "
+              << idthsStatesQuantityBound << "\n" << std::flush;
+
+    using RubikBiHSBloom = BiHSBloom<RCState, RCAction, BenchmarkRC>;
+
+    for(int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+    {
+      const BiHSRunConfig &run = BIHS_RUNS[runIdx];
+      double ratio = run.ratio;
+      int size_in_KiB = std::max(1, static_cast<int>(
+          std::round((static_cast<double>(std::max<size_t>(1, minSize)) * get_state_size(puzzle) / 8192.0) * ratio)));
+
+      double bloomBits = size_in_KiB * 8192.0;
+      double estimatedFrontierItems = std::max(1.0, static_cast<double>(frontierSize));
+      int optimized_k_hashes = static_cast<int>(std::round((bloomBits / estimatedFrontierItems) * std::log(2.0)));
+      int k_hashes = std::max(1, run.useOptimizedK ? optimized_k_hashes : 1);
+      double fp_est = fp_rate(k_hashes, estimatedFrontierItems, bloomBits);
+
+      std::cout << "[" << i << "] Running Rubik BiHS-Bloom(" << run.ratioLabel << ", " << run.kMode
+                << ", " << run.splitMode
+                << ", size=" << size_in_KiB << "KiB, k=" << k_hashes << ", fp_est=" << fp_est
+                << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
+
+      RubikBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit, run.useDynamicSplit);
+      bool bihsOutOfMemory = false;
+      std::vector<RCAction> pathBiHS;
+      try {
+        t.StartTimer();
+        pathBiHS = bihs.GetPath(puzzle, goal);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        bihsOutOfMemory = true;
+        printf("BiHS-Bloom ran out of memory\n");
+      }
+
+      result.bihsTime[runIdx] = bihsOutOfMemory ? -2.0 : (bihs.hasTimedOut() ? -1.0 : t.GetElapsedTime());
+      result.bihsNodeExpanded[runIdx] = bihs.GetTotalNodesExpanded();
+      bool converged = !bihsOutOfMemory && !bihs.hasTimedOut() && !pathBiHS.empty();
+
+      if (bihsOutOfMemory)
+        std::cout << " OUT OF MEMORY (" << result.bihsNodeExpanded[runIdx] << "n)\n" << std::flush;
+      else if (!converged)
+        std::cout << " TIMED OUT (" << result.bihsNodeExpanded[runIdx] << "n)\n" << std::flush;
+      else
+        std::cout << " done (" << result.bihsTime[runIdx] << "s, " << result.bihsNodeExpanded[runIdx] << "n)\n" << std::flush;
+
+      if (WRITE_BIHS_PARAM_LOG) {
+        std::lock_guard<std::mutex> lk(logMutex);
+        log << "BIHS_PARAM," << i << "," << ratio << "," << size_in_KiB << "," << k_hashes << ","
+            << result.bihsTime[runIdx] << "," << result.bihsNodeExpanded[runIdx] << ","
+            << fp_est << "," << converged << "," << run.kMode << "," << run.splitMode << "\n";
+      }
+      if (WRITE_CONVERGENCE_LOG) {
+        std::lock_guard<std::mutex> lk(convMutex);
+        for (const auto &s : bihs.GetIterStats())
+          convLog << i << "," << size_in_KiB << "," << ratio << ","
+                  << s.totalDepth << "," << s.iteration << ","
+                  << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << ","
+                  << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << ","
+                  << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
+                  << s.materializedTotalStates << ","
+                  << (s.isTypeSplit ? "type" : "iter") << ","
+                  << s.typeIndex << "," << s.typeCount << ","
+                  << run.kMode << "," << k_hashes << "," << run.splitMode << "\n";
+        convLog.flush();
+      }
+      if (converged)
+        result.solutionLength = static_cast<int>(pathBiHS.size());
+
+      unsigned long idthsStorage = std::max<unsigned long>(
+          static_cast<unsigned long>(idthsStatesQuantityBound * run.ratio),
+          IDTHS_MIN_STATES_BOUND);
+      result.idthsTransStorage[runIdx] = idthsStorage;
+
+      std::cout << "[" << i << "] Running Rubik IDTHSwTrans(" << run.ratioLabel
+                << ", states=" << idthsStorage << ", limit=" << IDTHS_SECONDS_LIMIT << "s)..."
+                << std::flush;
+
+      IDTHSwTrans<RCState, RCAction, false> idthsTrans(true, true, true, 1, false);
+      bool idthsSolved = false;
+      bool idthsOutOfMemory = false;
+      try {
+        t.StartTimer();
+        idthsSolved = idthsTrans.GetPath(&rubik, puzzle, goal, IDTHS_SECONDS_LIMIT, idthsStorage);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        idthsOutOfMemory = true;
+        printf("IDTHSwTrans ran out of memory\n");
+      }
+
+      result.idthsTransTime[runIdx] = idthsOutOfMemory ? -2.0 : (idthsSolved ? t.GetElapsedTime() : -1.0);
+      result.idthsTransNodeExpanded[runIdx] = idthsTrans.GetNodesExpanded();
+      result.idthsTransNecessaryExpanded[runIdx] = idthsTrans.GetNecessaryExpansions();
+
+      if (idthsOutOfMemory)
+        std::cout << " OUT OF MEMORY (" << result.idthsTransNodeExpanded[runIdx] << "n)\n" << std::flush;
+      else if (!idthsSolved)
+        std::cout << " TIMED OUT (" << result.idthsTransNodeExpanded[runIdx] << "n)\n" << std::flush;
+      else {
+        result.solutionLength = static_cast<int>(idthsTrans.getPathLength());
+        std::cout << " done (" << result.idthsTransTime[runIdx] << "s, "
+                  << result.idthsTransNodeExpanded[runIdx] << "n)\n" << std::flush;
+      }
+    }
+
+    std::cout << "Rubik #" << result.instance
+              << " | A*: " << result.aStarTime << "s/" << result.aStarNodeExpanded << "n"
+              << " | Rev-A*: " << result.revAStarTime << "s/" << result.revAStarNodeExpanded << "n"
+              << " | BAE*: " << result.baeTime << "s/" << result.baeNodeExpanded << "n"
+              << " | NBS: " << result.nbsTime << "s/" << result.nbsNodeExpanded << "n"
+              << " | MM: " << result.mmTime << "s/" << result.mmNodeExpanded << "n"
+              << " | IDA*: " << result.idaTime << "s/" << result.idaNodeExpanded << "n"
+              << " | Parallel IDA*: " << result.parallelIdaTime << "s/" << result.parallelIdaNodeExpanded << "n"
+              << " | Rev-IDA*: " << result.revIdaTime << "s/" << result.revIdaNodeExpanded << "n";
+    for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx) {
+      const auto &run = BIHS_RUNS[runIdx];
+      std::cout << " | BiHS-Bloom(" << run.ratioLabel << "," << run.kMode << "," << run.splitMode
+                << "): " << result.bihsTime[runIdx] << "s/" << result.bihsNodeExpanded[runIdx] << "n";
+      std::cout << " | IDTHSwTrans(" << run.ratioLabel
+                << "): " << result.idthsTransTime[runIdx] << "s/"
+                << result.idthsTransNodeExpanded[runIdx] << "n";
+    }
+    std::cout << " | Length: " << result.solutionLength << std::endl;
+
+    {
+      std::lock_guard<std::mutex> lk(logMutex);
+      log << result.instance << "," << result.solutionLength << ","
+          << result.aStarTime << ","
+          << result.revAStarTime << ","
+          << result.baeTime << ","
+          << result.nbsTime << ","
+          << result.mmTime << ","
+          << result.idaTime << ","
+          << result.parallelIdaTime << ","
+          << result.revIdaTime << ","
+          << result.aStarNodeExpanded << "," << result.revAStarNodeExpanded << ","
+          << result.baeNodeExpanded << "," << result.nbsNodeExpanded << "," << result.mmNodeExpanded << ","
+          << result.idaNodeExpanded << "," << result.parallelIdaNodeExpanded << "," << result.revIdaNodeExpanded << ","
+          << result.bihsTime[0];
+      for (int runIdx = 1; runIdx < NUM_BIHS_RUNS; ++runIdx)
+        log << "," << result.bihsTime[runIdx];
+      for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+        log << "," << result.bihsNodeExpanded[runIdx];
+      for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+        log << "," << result.idthsTransTime[runIdx];
+      for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+        log << "," << result.idthsTransNodeExpanded[runIdx];
+      for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+        log << "," << result.idthsTransNecessaryExpanded[runIdx];
+      for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+        log << "," << result.idthsTransStorage[runIdx];
+      log << "\n";
+      log.flush();
+    }
+  }
+
+  log.close();
+  std::cout << "Results written to " << benchmarkFile << std::endl;
+}
+
 
 #ifndef STP_BIHS_BLOOM_TEST
 int main(int argc, char **argv) {
   bool slidingTilePuzzle = false;
   bool pancake = false;
+  bool rubik = false;
 
   for (int i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--stp") == 0 )
       slidingTilePuzzle = true;
     else if (strcmp(argv[i], "--pancake") == 0)
       pancake = true;
+    else if (strcmp(argv[i], "--rubik") == 0)
+      rubik = true;
   }
 
   
-  if (!(pancake ^ slidingTilePuzzle)){
+  if ((pancake ? 1 : 0) + (slidingTilePuzzle ? 1 : 0) + (rubik ? 1 : 0) != 1){
     std::cerr << "Please choose exactly 1 domain";
     return 0;
   }
@@ -1056,6 +1501,10 @@ int main(int argc, char **argv) {
   else if (pancake) {
     std::cout << "Domain: Pancake Puzzle" << std::endl;
     solvePancake();
+  }
+  else if (rubik) {
+    std::cout << "Domain: Rubik Cube" << std::endl;
+    solveRubik();
   }
 } 
 #endif

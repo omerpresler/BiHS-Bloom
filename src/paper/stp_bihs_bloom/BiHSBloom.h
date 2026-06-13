@@ -101,6 +101,21 @@ namespace BiHSBloomHelper {
         }
     };
 
+    template <>
+    struct StateFingerprint<RCState, RCAction> {
+        static constexpr bool incremental = false;
+
+        static uint64_t hash(const RCState& state)
+        {
+            return BloomFilter<RCState>::stable_fingerprint(state);
+        }
+
+        static uint64_t apply(uint64_t, const RCState& state, RCAction)
+        {
+            return hash(state);
+        }
+    };
+
     template <typename Env, typename State, typename Action>
     auto get_actions(Env& env, const State& curr, std::vector<Action>& actions, Action last_action, int)
         -> decltype(env.GetActions(curr, actions, last_action), void())
@@ -136,8 +151,6 @@ namespace BiHSBloomHelper {
 }
 
 #define LOOP_LIMIT 200
-#define BRANCH_FACTOR 16
-
 enum class TerminationCondition {
     MAX_ITERATIONS,
     MIN_ITEMS,
@@ -237,20 +250,11 @@ public:
             return;
         }
 
-        std::array<action, BRANCH_FACTOR> moves;
         actionScratch.clear();
         BiHSBloomHelper::get_actions(env, curr, actionScratch, lastMove, 0);
-        if (actionScratch.size() > moves.size()) {
-            throw std::runtime_error("Frame action capacity exceeded");
-        }
+        std::vector<action> moves = actionScratch;
 
-        uint8_t actCount = static_cast<uint8_t>(actionScratch.size());
-        for (uint8_t i = 0; i < actCount; ++i) {
-            moves[i] = actionScratch[i];
-        }
-
-        for (uint8_t i = 0; i < actCount; ++i) {
-            action a = moves[i];
+        for (const action &a : moves) {
             uint64_t nextHash = currHash;
             if (BiHSBloomHelper::StateFingerprint<state, action>::incremental) {
                 nextHash = BiHSBloomHelper::StateFingerprint<state, action>::apply(currHash, curr, a);
@@ -292,7 +296,6 @@ public:
         std::vector<action> moves;
         std::vector<action> actionScratch;
         std::vector<action> movesSoFar;
-        actionScratch.reserve(BRANCH_FACTOR);
         movesSoFar.reserve(targetDepth);
 
         env.GetActions(start, moves);
@@ -375,16 +378,15 @@ public:
     }
 
     struct Frame {
-        std::array<action, BRANCH_FACTOR> acts;
+        std::vector<action> acts;
         uint64_t hash = 0;
-        uint8_t actCount = 0;
-        uint8_t next = 0;
+        size_t next = 0;
         action last;
         bool has_last;
 
-        Frame(uint64_t hash) : hash(hash), actCount(0), next(0), has_last(false) {}
+        Frame(uint64_t hash) : hash(hash), next(0), has_last(false) {}
 
-        Frame(action lastAction, uint64_t hash) : hash(hash), actCount(0), next(0), last(lastAction), has_last(true) {}
+        Frame(action lastAction, uint64_t hash) : hash(hash), next(0), last(lastAction), has_last(true) {}
     };
 
     void LoadFrameActions(Frame &f, const state &curr, std::vector<action> &scratch) {
@@ -395,14 +397,8 @@ public:
             env.GetActions(curr, scratch);
         }
 
-        if (scratch.size() > f.acts.size()) {
-            throw std::runtime_error("Frame action capacity exceeded");
-        }
-
-        f.actCount = static_cast<uint8_t>(scratch.size());
-        for (uint8_t i = 0; i < f.actCount; ++i) {
-            f.acts[i] = scratch[i];
-        }
+        f.acts = scratch;
+        f.next = 0;
     }
 
     StateWithPath FindFrontierIntersection(
@@ -422,7 +418,6 @@ public:
         std::vector<action> movesSoFar;
         movesSoFar.reserve(targetDepth);
         std::vector<action> actionScratch;
-        actionScratch.reserve(BRANCH_FACTOR);
         state curr = start;
         uint64_t currHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
         st.emplace_back(currHash);
@@ -491,12 +486,12 @@ public:
             }
 
             // If we just arrived to this frame, generate actions once
-            if (f.next == 0 && f.actCount == 0) {
+            if (f.next == 0 && f.acts.empty()) {
                 LoadFrameActions(f, curr, actionScratch);
             }
 
             // If exhausted actions, backtrack
-            if (f.next >= f.actCount) {
+            if (f.next >= f.acts.size()) {
                 if (st.size() == 1) break;
                 action undo = f.last;
                 st.pop_back();
@@ -539,7 +534,6 @@ public:
         std::vector<Frame> st;
         st.reserve(targetDepth + 1);
         std::vector<action> actionScratch;
-        actionScratch.reserve(BRANCH_FACTOR);
         state curr = start;
         uint64_t currHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
         st.emplace_back(currHash);
@@ -578,12 +572,12 @@ public:
             }
 
             // If we just arrived to this frame, generate actions once
-            if (f.next == 0 && f.actCount == 0) {
+            if (f.next == 0 && f.acts.empty()) {
                 LoadFrameActions(f, curr, actionScratch);
             }
 
             // If exhausted actions, backtrack
-            if (f.next >= f.actCount) {
+            if (f.next >= f.acts.size()) {
                 if (st.size() == 1) break;
                 action undo = f.last;
                 st.pop_back();
