@@ -37,7 +37,7 @@ void GetKorfRubikInstance(RCState &start, int which);
 }
 
 static constexpr double SKIPPED_TIME = -3.0;
-static constexpr int NUM_BIHS_RUNS = 3;
+static constexpr int NUM_BIHS_RUNS = 4;
 static constexpr bool WRITE_BIHS_PARAM_LOG = true;
 static constexpr bool WRITE_CONVERGENCE_LOG = true;
 static constexpr unsigned long IDTHS_DEFAULT_STATES_BOUND = 1000000;
@@ -82,6 +82,7 @@ static constexpr BiHSRunConfig BIHS_RUNS[NUM_BIHS_RUNS] = {
     {0.5,  "50%", "50pct", "optk", true,  "dynamic", true},
     {0.1,  "10%", "10pct", "optk", true,  "dynamic", true},
     {0.01, "1%",  "1pct",  "optk", true,  "dynamic", true},
+    {0.001, "0.1%", "0_1pct", "optk", true, "dynamic", true},
 };
 
 static double fp_rate(int k, double n, double m) {
@@ -395,7 +396,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     double estimatedFrontierItems = std::max(1.0, static_cast<double>(frontierSize));
     //int optimized_k_hashes = choose_k(estimatedFrontierItems, bloomBits);
     int optimized_k_hashes = static_cast<int>(std::round((bloomBits / estimatedFrontierItems) * std::log(2.0)));
-    int k_hashes = run.useOptimizedK ? optimized_k_hashes : 1;
+    int k_hashes = std::max(1, run.useOptimizedK ? optimized_k_hashes : 1);
 
     // FP rate: (1 - e^(-k*n/m))^k where n=estimated items, m=Bloom bits.
     double fp_est = fp_rate(k_hashes, estimatedFrontierItems, bloomBits);
