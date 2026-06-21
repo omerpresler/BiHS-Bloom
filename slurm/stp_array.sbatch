@@ -1,13 +1,20 @@
 #!/bin/bash
+#SBATCH --partition=main
 #SBATCH --job-name=bihs-stp
 #SBATCH --array=0-99%10
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=64G
 #SBATCH --time=1-00:00:00
 #SBATCH --output=results/logs/stp_%A_%a.out
-#SBATCH --error=results/logs/stp_%A_%a.er
+#SBATCH --error=results/logs/stp_%A_%a.err
+#SBATCH --mail-user=omerpr@post.bgu.ac.il
+#SBATCH --mail-type=FAIL
 
 set -euo pipefail
+
+echo "SLURM_JOB_ID=${SLURM_JOB_ID}"
+echo "SLURM_JOB_NODELIST=${SLURM_JOB_NODELIST}"
 
 ROOT="${SLURM_SUBMIT_DIR:-$PWD}"
 cd "$ROOT"
