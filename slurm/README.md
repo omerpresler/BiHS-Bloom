@@ -1,43 +1,49 @@
 # Running the STP benchmark on Slurm
 
-The workflow builds the Linux binary on the cluster, runs one Korf instance per
-Slurm array task, and merges the task CSVs after every task succeeds.
+The workflow uses a Linux binary compiled before it is pushed to Git, runs one
+Korf instance per Slurm array task, and merges the task CSVs after every task succeeds.
 
 ## 1. Compile locally
 
-On Linux or WSL, from the repository root:
+On a Linux machine or WSL, from the repository root:
 
 ```bash
-bash scripts/compile.sh
-src/bin/release/stp_bihs_bloom --stp --instance-start 0 --instance-end 1 \
+bash slurm/prepare_binary.sh
+slurm/bin/stp_bihs_bloom --stp --instance-start 0 --instance-end 1 \
   --benchmark-output /tmp/benchmark_0.csv \
   --convergence-output /tmp/convergence_0.csv
 ```
 
-The cluster build remains necessary when the local machine is Windows or has a
-different Linux ABI. `slurm/build.sbatch` performs that build automatically.
+The packaged file must be a Linux executable, not a Windows `.exe`. Build on the
+same CPU architecture as the cluster. For glibc compatibility, build on the same
+Linux distribution as the cluster or on an older compatible distribution.
 
 ## 2. Transfer through GitHub
 
-Commit and push the source and `slurm/` files locally. On a Slurm login node:
+Commit the source and packaged binary, then push them:
+
+```bash
+git add src scripts slurm .gitattributes .gitignore
+git commit -m "Add prebuilt Slurm benchmark workflow"
+git push
+```
+
+On a Slurm login node:
 
 ```bash
 git clone <your-repository-url> BiHS-Bloom
 cd BiHS-Bloom
 ```
 
-For later runs, use `git pull` in that clone. Build products and `results/` are
-ignored by Git; retrieve results with `scp`, `rsync`, or your cluster's file UI.
+For later runs, use `git pull` in that clone. General build products remain
+ignored; `slurm/bin/stp_bihs_bloom` is the one tracked binary. Retrieve results
+with `scp`, `rsync`, or your cluster's file UI.
 
 ## 3. Configure and submit
 
-Edit the `#SBATCH` resource lines in the three `.sbatch` files for your cluster.
+Edit the `#SBATCH` resource lines in the two `.sbatch` files for your cluster.
 In particular, check memory, time, partition/account/QoS, and array concurrency
-(`%10` in `stp_array.sbatch`). If compiler modules are required:
-
-```bash
-export BIHS_MODULES="gcc/13.2.0"
-```
+(`%10` in `stp_array.sbatch`). No compiler or compiler module is needed.
 
 Submit the complete dependency chain:
 
@@ -45,7 +51,7 @@ Submit the complete dependency chain:
 bash slurm/submit.sh
 ```
 
-The command prints the build, array, and merge job IDs. Useful monitoring commands:
+The command prints the array and merge job IDs. Useful monitoring commands:
 
 ```bash
 squeue -u "$USER"

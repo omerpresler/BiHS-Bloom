@@ -1,5 +1,7 @@
 *.h linguist-language=C++
 *.inc linguist-language=Makefile
+*.sh text eol=lf
+*.sbatch text eol=lf
 
 build/XCode/**/*.h linguist-language=Objective-C
 

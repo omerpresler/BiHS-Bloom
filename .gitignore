@@ -1,4 +1,6 @@
 bin/
+!slurm/bin/
+!slurm/bin/stp_bihs_bloom
 objs/
 html/
 objs_html/
