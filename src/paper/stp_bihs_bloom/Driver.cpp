@@ -495,8 +495,13 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
   return result;
 }
 
-void solveSTP(){
-  std::ofstream log("benchmark_stp_korf100.csv");
+void solveSTP(int instanceStart, int instanceEnd,
+              const std::string &benchmarkFile,
+              const std::string &convergenceFile){
+  std::ofstream log(benchmarkFile);
+  if (!log) {
+    throw std::runtime_error("Unable to open benchmark output: " + benchmarkFile);
+  }
   std::vector<std::string> headers = {"instance", "solution_length",
       "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "parallel_ida_time", "rev_ida_time",
       "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "parallel_ida_nodes", "rev_ida_nodes",
@@ -527,20 +532,22 @@ void solveSTP(){
 
   std::ofstream convLog;
   if (WRITE_CONVERGENCE_LOG) {
-    convLog.open("bloom_convergence.csv");
+    convLog.open(convergenceFile);
+    if (!convLog) {
+      throw std::runtime_error("Unable to open convergence output: " + convergenceFile);
+    }
     convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
   }
 
   std::mutex logMutex;
   std::mutex convMutex;
   std::mutex coutMutex;
-  std::atomic<int> nextInstance{0};
-  int totalInstances = 100;
+  std::atomic<int> nextInstance{instanceStart};
 
   auto worker = [&]() {
     while (true) {
       int i = nextInstance.fetch_add(1);
-      if (i >= totalInstances) break;
+      if (i >= instanceEnd) break;
 
       {
         std::lock_guard<std::mutex> lk(coutMutex);
@@ -619,7 +626,7 @@ void solveSTP(){
   }
 
   log.close();
-  std::cout << "Results written to benchmark_stp_korf100.csv" << std::endl;
+  std::cout << "Results written to " << benchmarkFile << std::endl;
 }
 
 void solvePancake(){
@@ -1455,6 +1462,10 @@ int main(int argc, char **argv) {
   bool slidingTilePuzzle = false;
   bool pancake = false;
   bool rubik = false;
+  int instanceStart = 0;
+  int instanceEnd = 100;
+  std::string benchmarkFile = "benchmark_stp_korf100.csv";
+  std::string convergenceFile = "bloom_convergence.csv";
 
   for (int i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--stp") == 0 )
@@ -1463,6 +1474,14 @@ int main(int argc, char **argv) {
       pancake = true;
     else if (strcmp(argv[i], "--rubik") == 0)
       rubik = true;
+    else if (strcmp(argv[i], "--instance-start") == 0 && i + 1 < argc)
+      instanceStart = std::stoi(argv[++i]);
+    else if (strcmp(argv[i], "--instance-end") == 0 && i + 1 < argc)
+      instanceEnd = std::stoi(argv[++i]);
+    else if (strcmp(argv[i], "--benchmark-output") == 0 && i + 1 < argc)
+      benchmarkFile = argv[++i];
+    else if (strcmp(argv[i], "--convergence-output") == 0 && i + 1 < argc)
+      convergenceFile = argv[++i];
   }
 
   
@@ -1472,8 +1491,12 @@ int main(int argc, char **argv) {
   }
 
   if (slidingTilePuzzle) {
+    if (instanceStart < 0 || instanceEnd > 100 || instanceStart >= instanceEnd) {
+      std::cerr << "STP instance range must satisfy 0 <= start < end <= 100\n";
+      return 1;
+    }
     std::cout << "Domain: Sliding Tile Puzzle" << std::endl;
-    solveSTP();
+    solveSTP(instanceStart, instanceEnd, benchmarkFile, convergenceFile);
   }
   else if (pancake) {
     std::cout << "Domain: Pancake Puzzle" << std::endl;

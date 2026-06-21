@@ -11,7 +11,9 @@
 
 #define MN_SIZE 4
 
-void solveSTP();
+void solveSTP(int instanceStart = 0, int instanceEnd = 100,
+              const std::string &benchmarkFile = "benchmark_stp_korf100.csv",
+              const std::string &convergenceFile = "bloom_convergence.csv");
 void solvePancake();
 
 // Utility: write a puzzle state as a flat line of N*N integers.

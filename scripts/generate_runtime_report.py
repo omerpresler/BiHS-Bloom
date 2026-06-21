@@ -1,3 +1,4 @@
+import argparse
 import base64
 import html
 import os
@@ -952,6 +953,15 @@ def render_html(df, params, summary, image_paths):
 
 
 def main():
+    global CSV_FILE, OUT_DIR, OUT_HTML
+    parser = argparse.ArgumentParser(description="Generate the STP runtime report.")
+    parser.add_argument("--input", default=CSV_FILE, help="Merged benchmark CSV")
+    parser.add_argument("--output-dir", default=str(OUT_DIR), help="Directory for report assets")
+    parser.add_argument("--output-html", default=str(OUT_HTML), help="Output HTML file")
+    args = parser.parse_args()
+    CSV_FILE = args.input
+    OUT_DIR = Path(args.output_dir)
+    OUT_HTML = Path(args.output_html)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     OUT_HTML.parent.mkdir(parents=True, exist_ok=True)
     df, params = load_results(CSV_FILE)

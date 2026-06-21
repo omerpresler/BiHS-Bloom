@@ -1,3 +1,4 @@
+import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -5,9 +6,15 @@ import matplotlib.patches as patches
 import numpy as np
 import os
 
-CSV_FILE  = "bloom_convergence.csv"
-BENCH_CSV = "benchmark_stp_korf100.csv"
-OUT_DIR   = "plots/convergence"
+parser = argparse.ArgumentParser(description="Plot BiHS-Bloom convergence data.")
+parser.add_argument("--input", default="bloom_convergence.csv", help="Merged convergence CSV")
+parser.add_argument("--benchmark", default="benchmark_stp_korf100.csv", help="Merged benchmark CSV")
+parser.add_argument("--output-dir", default="plots/convergence", help="Plot output directory")
+args = parser.parse_args()
+
+CSV_FILE  = args.input
+BENCH_CSV = args.benchmark
+OUT_DIR   = args.output_dir
 os.makedirs(OUT_DIR, exist_ok=True)
 
 df = pd.read_csv(CSV_FILE)
