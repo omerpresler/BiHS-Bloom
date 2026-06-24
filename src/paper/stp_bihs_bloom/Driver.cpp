@@ -43,8 +43,9 @@ static constexpr bool WRITE_CONVERGENCE_LOG = true;
 static constexpr unsigned long IDTHS_DEFAULT_STATES_BOUND = 1000000;
 static constexpr unsigned long IDTHS_MIN_STATES_BOUND = 2;
 static constexpr int IDTHS_SECONDS_LIMIT = 1800;
-static constexpr int RUBIK_TOTAL_INSTANCES = 10;
-static constexpr const char *RUBIK_INSTANCE_SET = "korf";
+static constexpr int RUBIK_TOTAL_INSTANCES = 100;
+static constexpr int RUBIK_SCRAMBLE_DEPTH = 14;
+static constexpr const char *RUBIK_INSTANCE_SET = "random14";
 
 struct AlgorithmSkipEntry {
   int instance;
@@ -1052,9 +1053,8 @@ void solvePancake(){
   std::cout << "Results written to " << benchmarkFile << std::endl;
 }
 
-void solveRubik(){
-  const std::string benchmarkFile = "benchmark_rubik_" + std::string(RUBIK_INSTANCE_SET) + "_" + std::to_string(RUBIK_TOTAL_INSTANCES) + ".csv";
-  const std::string convergenceFile = "bloom_convergence_rubik_" + std::string(RUBIK_INSTANCE_SET) + ".csv";
+void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmarkFile,
+                const std::string &convergenceFile){
   std::ofstream log(benchmarkFile);
   std::vector<std::string> headers = {"instance", "solution_length",
       "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "parallel_ida_time", "rev_ida_time",
@@ -1087,7 +1087,7 @@ void solveRubik(){
   std::mutex logMutex;
   std::mutex convMutex;
 
-  for (int i = 0; i < RUBIK_TOTAL_INSTANCES; i++) {
+  for (int i = instanceStart; i < instanceEnd; i++) {
     STPResult result;
     result.instance = i;
     result.solutionLength = -1;
@@ -1121,7 +1121,7 @@ void solveRubik(){
     RCState goal;
     RCState puzzle;
     goal.Reset();
-    RubiksCubeInstances::GetKorfRubikInstance(puzzle, i);
+    RubiksCubeInstances::GetRandomN(puzzle, RUBIK_SCRAMBLE_DEPTH, i);
     Timer t;
 
     std::cout << "[" << i << "] Running Rubik A*..." << std::flush;
@@ -1503,8 +1503,18 @@ int main(int argc, char **argv) {
     solvePancake();
   }
   else if (rubik) {
+    if (instanceStart < 0 || instanceEnd > RUBIK_TOTAL_INSTANCES || instanceStart >= instanceEnd) {
+      std::cerr << "Rubik instance range must satisfy 0 <= start < end <= "
+                << RUBIK_TOTAL_INSTANCES << "\n";
+      return 1;
+    }
+    if (benchmarkFile == "benchmark_stp_korf100.csv")
+      benchmarkFile = "benchmark_rubik_" + std::string(RUBIK_INSTANCE_SET) + "_" +
+                      std::to_string(RUBIK_TOTAL_INSTANCES) + ".csv";
+    if (convergenceFile == "bloom_convergence.csv")
+      convergenceFile = "bloom_convergence_rubik_" + std::string(RUBIK_INSTANCE_SET) + ".csv";
     std::cout << "Domain: Rubik Cube" << std::endl;
-    solveRubik();
+    solveRubik(instanceStart, instanceEnd, benchmarkFile, convergenceFile);
   }
 } 
 #endif
