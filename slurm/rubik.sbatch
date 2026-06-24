@@ -9,7 +9,7 @@
 #SBATCH --output=results/logs/rubik_%A_%a.out
 #SBATCH --error=results/logs/rubik_%A_%a.err
 #SBATCH --mail-user=omerpr@post.bgu.ac.il
-#SBATCH --mail-type=FAIL
+#SBATCH --mail-type=NONE
 
 set -euo pipefail
 
