@@ -41,8 +41,8 @@ conda activate "$CONDA_ENV_NAME"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/../src/build/SFML"
 
-echo "Building with CXX=$CXX, CC=$CC, jobs=$JOBS"
-make --directory "$BUILD_DIR" OPENGL=STUB -j "$JOBS" \
+echo "Building release binary with CXX=$CXX, CC=$CC, jobs=$JOBS"
+make --directory "$BUILD_DIR" release OPENGL=STUB -j "$JOBS" \
   CXX="$CXX" CC="$CC"
 
 echo "Build complete: $SCRIPT_DIR/../src/bin/release/stp_bihs_bloom"
