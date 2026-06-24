@@ -15,7 +15,6 @@
 
 #include "PancakeInstances.h"
 #include "RC.h"
-#include "RubiksInstances.h"
 
 #include <algorithm>
 #include <cmath>
@@ -32,6 +31,10 @@
 #include <future>
 #include <atomic>
 #include <memory>
+
+namespace RubiksCubeInstances {
+void GetRandomN(RCState &start, int N, int which);
+}
 
 static constexpr double SKIPPED_TIME = -3.0;
 static constexpr int NUM_BIHS_RUNS = 4;
