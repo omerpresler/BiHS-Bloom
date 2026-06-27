@@ -1,7 +1,8 @@
-# Running the STP benchmark on Slurm
+# Running the split STP benchmark on Slurm
 
-The workflow uses a Linux binary compiled before it is pushed to Git, runs one
-Korf instance per Slurm array task, and merges the task CSVs after every task succeeds.
+This workflow is currently configured as a small smoke test: STP instance `0`
+only. It runs calibration first, derives the memory/frontier parameters, and
+then runs each BiHS-Bloom and IDTHSwTrans ratio as a separate Slurm job.
 
 ## 1. Compile locally
 
@@ -9,74 +10,71 @@ On a Linux machine or WSL, from the repository root:
 
 ```bash
 bash slurm/prepare_binary.sh
-slurm/bin/stp_bihs_bloom --stp --instance-start 0 --instance-end 1 \
-  --benchmark-output /tmp/benchmark_0.csv \
-  --convergence-output /tmp/convergence_0.csv
+slurm/bin/stp_bihs_bloom --stp --phase calibrate --instance 0 --algorithm astar \
+  --benchmark-output /tmp/calibration_0.csv
 ```
 
-The packaged file must be a Linux executable, not a Windows `.exe`. Build on the
-same CPU architecture as the cluster. For glibc compatibility, build on the same
-Linux distribution as the cluster or on an older compatible distribution.
+The packaged file must be a Linux executable, not a Windows `.exe`.
 
-## 2. Transfer through GitHub
+## 2. Submit the one-instance split workflow
 
-Commit the source and packaged binary, then push them:
-
-```bash
-git add src scripts slurm .gitattributes .gitignore
-git commit -m "Add prebuilt Slurm benchmark workflow"
-git push
-```
-
-On a Slurm login node:
-
-```bash
-git clone <your-repository-url> BiHS-Bloom
-cd BiHS-Bloom
-```
-
-For later runs, use `git pull` in that clone. General build products remain
-ignored; `slurm/bin/stp_bihs_bloom` is the one tracked binary. Retrieve results
-with `scp`, `rsync`, or your cluster's file UI.
-
-## 3. Configure and submit
-
-Edit the `#SBATCH` resource lines in the two `.sbatch` files for your cluster.
-In particular, check memory, time, partition/account/QoS, and array concurrency
-(`%10` in `stp_array.sbatch`). No compiler or compiler module is needed.
-
-Submit the complete dependency chain:
+From the repository root on the Slurm login node:
 
 ```bash
 bash slurm/submit.sh
 ```
 
-The command prints the array and merge job IDs. Useful monitoring commands:
+The dependency chain is:
 
-```bash
-squeue -u "$USER"
-sacct -j <job-id> --format=JobID,State,Elapsed,MaxRSS,ExitCode
+```text
+calibration array -> params merge -> phase-2 manifest -> phase-2 array -> final merge
 ```
 
-Outputs are placed in:
+The default calibration manifest contains three jobs for instance `0`:
 
-- `results/logs/`: Slurm stdout/stderr
-- `results/parts/`: one benchmark and convergence CSV per instance
-- `results/merged/`: final CSVs consumed by the reporting scripts
+- `astar`
+- `rev_astar`
+- `mm`
 
-To rerun only selected instances, submit an array override such as:
+If calibration does not produce usable `min_memory_items` and `frontier_items`,
+the params row is marked `missing_params` and phase 2 receives no work for that
+instance.
+
+## 3. Outputs
+
+- `results/split/manifests/`: calibration and phase-2 job manifests
+- `results/split/calibration_parts/`: one calibration CSV per calibration job
+- `results/split/params/stp_params.csv`: merged params/status rows
+- `results/split/run_parts/`: one result CSV per phase-2 job
+- `results/split/convergence_parts/`: BiHS-Bloom convergence CSVs
+- `results/merged/benchmark_stp_korf100.csv`: legacy-compatible benchmark CSV
+- `results/merged/bloom_convergence.csv`: merged convergence CSV
+
+## 4. Local smoke test
+
+After building `src/bin/release/stp_bihs_bloom`, run:
 
 ```bash
-sbatch --array=4,17,59 slurm/stp_array.sbatch
+bash scripts/run_split_stp_local.sh
 ```
 
-Then rerun `python3 slurm/merge_results.py`; duplicate instances are replaced
-deterministically during merging.
+To widen the local calibration range later:
 
-## 4. Generate reports
+```bash
+INSTANCE_START=0 INSTANCE_END=10 bash scripts/run_split_stp_local.sh
+```
 
-Run these from the repository root, either on the cluster (if matplotlib/pandas
-are available) or after copying `results/merged/` back locally:
+The Slurm array sizes are fixed for the one-instance trial:
+
+- `slurm/stp_calibration.sbatch`: `#SBATCH --array=0-2%3`
+- `slurm/stp_run.sbatch`: `#SBATCH --array=0-7%4`
+
+When scaling past instance `0`, regenerate the manifests and expand those array
+ranges accordingly.
+
+## 5. Reports
+
+The final merge preserves the existing report inputs:
 
 ```bash
 python3 scripts/generate_runtime_report.py \

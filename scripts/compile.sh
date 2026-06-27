@@ -9,4 +9,6 @@ J=10  # Number of parallel jobs for 'make -j'
 # Compile only the headless release artifacts used by Slurm. The default target
 # also builds debug binaries and tests, which are unnecessary for packaging and
 # can fail independently on older cluster toolchains.
-make OPENGL=STUB release -j "$J"
+make OPENGL=STUB release -j "$J" \
+  CXX="${CXX:-g++}" \
+  CC="${CC:-gcc}"

@@ -16,6 +16,10 @@ set -euo pipefail
 echo "SLURM_JOB_ID=${SLURM_JOB_ID}"
 echo "SLURM_JOB_NODELIST=${SLURM_JOB_NODELIST}"
 
+module load anaconda/anaconda
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate bihs-build
+
 ROOT="${SLURM_SUBMIT_DIR:-$PWD}"
 cd "$ROOT"
 mkdir -p results/parts results/logs

@@ -31,6 +31,7 @@
 #include <future>
 #include <atomic>
 #include <memory>
+#include <limits>
 
 namespace RubiksCubeInstances {
 void GetRandomN(RCState &start, int N, int which);
@@ -46,28 +47,14 @@ static constexpr int IDTHS_SECONDS_LIMIT = 1800;
 static constexpr int RUBIK_TOTAL_INSTANCES = 100;
 static constexpr int RUBIK_SCRAMBLE_DEPTH = 14;
 static constexpr const char *RUBIK_INSTANCE_SET = "random14";
+static bool gRunFullBaselines = false;
 
-struct AlgorithmSkipEntry {
-  int instance;
-  const char *algorithm;
-};
+static const char *SPLIT_RESULTS_HEADER =
+    "domain,instance,algorithm,ratio,status,time,nodes,necessary_nodes,storage_states,"
+    "size_kib,k_hashes,fp_est,solution_length\n";
 
-static constexpr AlgorithmSkipEntry SKIPPED_ALGORITHMS[] = {
-    {59, "NBS"},
-    {59, "MM"},
-    {81, "MM"},
-    {87, "NBS"},
-    {87, "MM"},
-};
-
-static bool ShouldSkipAlgorithm(int instance, const char *algorithm) {
-  for (const auto &entry : SKIPPED_ALGORITHMS) {
-    if (entry.instance == instance && std::strcmp(entry.algorithm, algorithm) == 0) {
-      return true;
-    }
-  }
-  return false;
-}
+static const char *SPLIT_CALIBRATION_HEADER =
+    "domain,instance,algorithm,status,time,nodes,solution_length,memory_items,frontier_items\n";
 
 struct BiHSRunConfig {
   double ratio;
@@ -143,6 +130,266 @@ struct STPResult {
   std::array<size_t, NUM_BIHS_RUNS> idthsTransNecessaryExpanded;
   std::array<unsigned long, NUM_BIHS_RUNS> idthsTransStorage;
 };
+
+static void MarkFullBaselineSkipped(STPResult &result, int instance)
+{
+  result.baeTime = SKIPPED_TIME;
+  result.nbsTime = SKIPPED_TIME;
+  result.idaTime = SKIPPED_TIME;
+  result.revIdaTime = SKIPPED_TIME;
+  result.parallelIdaTime = SKIPPED_TIME;
+  std::cout << "[" << instance
+            << "] Skipping BAE*, NBS, IDA*, Rev-IDA*, and Parallel IDA*; use --full to run them\n"
+            << std::flush;
+}
+
+static std::vector<std::string> SplitCSVLine(const std::string &line)
+{
+  std::vector<std::string> fields;
+  std::stringstream ss(line);
+  std::string field;
+  while (std::getline(ss, field, ','))
+    fields.push_back(field);
+  return fields;
+}
+
+static const BiHSRunConfig *FindBiHSRunByRatio(double ratio)
+{
+  for (const auto &run : BIHS_RUNS) {
+    if (std::fabs(run.ratio - ratio) < 1e-12)
+      return &run;
+  }
+  return nullptr;
+}
+
+struct STPSplitParams {
+  bool found = false;
+  bool usable = false;
+  int solutionLength = -1;
+  size_t minMemoryItems = 0;
+  size_t frontierItems = 0;
+  double maxBaselineTime = -1;
+  std::string reason;
+};
+
+static STPSplitParams LoadSTPSplitParams(const std::string &paramsFile, int instance)
+{
+  STPSplitParams params;
+  std::ifstream input(paramsFile);
+  if (!input)
+    throw std::runtime_error("Unable to open params input: " + paramsFile);
+
+  std::string line;
+  std::getline(input, line);
+  while (std::getline(input, line)) {
+    if (line.empty())
+      continue;
+    auto fields = SplitCSVLine(line);
+    if (fields.size() < 8)
+      continue;
+    if (fields[0] != "stp" || std::stoi(fields[1]) != instance)
+      continue;
+
+    params.found = true;
+    params.usable = fields[2] == "ok";
+    params.solutionLength = std::stoi(fields[3]);
+    params.minMemoryItems = static_cast<size_t>(std::stoull(fields[4]));
+    params.frontierItems = static_cast<size_t>(std::stoull(fields[5]));
+    params.maxBaselineTime = std::stod(fields[6]);
+    params.reason = fields[7];
+    return params;
+  }
+
+  return params;
+}
+
+static void WriteSplitResultRow(std::ofstream &out, int instance, const std::string &algorithm,
+                                double ratio, const std::string &status, double time,
+                                size_t nodes, size_t necessaryNodes, unsigned long storageStates,
+                                int sizeKiB, int kHashes, double fpEst, int solutionLength)
+{
+  out << "stp," << instance << "," << algorithm << "," << ratio << "," << status << ","
+      << time << "," << nodes << "," << necessaryNodes << "," << storageStates << ","
+      << sizeKiB << "," << kHashes << "," << fpEst << "," << solutionLength << "\n";
+}
+
+static void runSTPCalibrationJob(int instance, const std::string &algorithm,
+                                 const std::string &outputFile)
+{
+  std::ofstream out(outputFile);
+  if (!out)
+    throw std::runtime_error("Unable to open calibration output: " + outputFile);
+  out << SPLIT_CALIBRATION_HEADER;
+
+  MNPuzzle<MN_SIZE, MN_SIZE> mnp;
+  MNPuzzleState<MN_SIZE, MN_SIZE> goal;
+  goal.Reset();
+  MNPuzzleState<MN_SIZE, MN_SIZE> puzzle = STP::GetKorfInstance(instance);
+  Timer t;
+
+  std::string status = "ok";
+  double elapsed = -1;
+  size_t nodes = 0;
+  int solutionLength = -1;
+  size_t memoryItems = 0;
+  size_t frontierItems = 0;
+
+  try {
+    if (algorithm == "astar") {
+      TemplateAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> astar;
+      std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+      std::cout << "[" << instance << "] Calibrating A*..." << std::flush;
+      t.StartTimer();
+      astar.GetPath(&mnp, puzzle, goal, path);
+      t.EndTimer();
+      elapsed = t.GetElapsedTime();
+      nodes = astar.GetNodesExpanded();
+      solutionLength = static_cast<int>(path.size()) - 1;
+      memoryItems = astar.GetNumItems();
+    } else if (algorithm == "rev_astar") {
+      TemplateAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> astar;
+      std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+      std::cout << "[" << instance << "] Calibrating Rev-A*..." << std::flush;
+      t.StartTimer();
+      astar.GetPath(&mnp, goal, puzzle, path);
+      t.EndTimer();
+      elapsed = t.GetElapsedTime();
+      nodes = astar.GetNodesExpanded();
+      solutionLength = static_cast<int>(path.size()) - 1;
+      memoryItems = astar.GetNumItems();
+    } else if (algorithm == "mm") {
+      MM<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> mm;
+      std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+      std::cout << "[" << instance << "] Calibrating MM..." << std::flush;
+      t.StartTimer();
+      mm.GetPath(&mnp, puzzle, goal, &mnp, &mnp, path);
+      t.EndTimer();
+      elapsed = t.GetElapsedTime();
+      nodes = mm.GetNodesExpanded();
+      solutionLength = static_cast<int>(path.size()) - 1;
+      memoryItems = mm.GetNumForwardItems() + mm.GetNumBackwardItems();
+      frontierItems = mm.GetNumForwardItems();
+    } else {
+      throw std::runtime_error("Unsupported calibration algorithm: " + algorithm);
+    }
+  }
+  catch (const std::bad_alloc&) {
+    t.EndTimer();
+    status = "oom";
+    elapsed = -2.0;
+  }
+
+  out << "stp," << instance << "," << algorithm << "," << status << ","
+      << elapsed << "," << nodes << "," << solutionLength << ","
+      << memoryItems << "," << frontierItems << "\n";
+  std::cout << " " << status << " (" << elapsed << "s, " << nodes << "n)\n" << std::flush;
+}
+
+static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, double ratio,
+                                    const std::string &paramsFile, const std::string &outputFile,
+                                    const std::string &convergenceFile)
+{
+  std::ofstream out(outputFile);
+  if (!out)
+    throw std::runtime_error("Unable to open split result output: " + outputFile);
+  out << SPLIT_RESULTS_HEADER;
+
+  STPSplitParams params = LoadSTPSplitParams(paramsFile, instance);
+  if (!params.found || !params.usable) {
+    WriteSplitResultRow(out, instance, algorithm, ratio, "missing_params", -3.0, 0, 0, 0, 0, 0, 0.0, -1);
+    std::cout << "[" << instance << "] Missing calibration params; skipping " << algorithm << "\n";
+    return;
+  }
+
+  const BiHSRunConfig *run = FindBiHSRunByRatio(ratio);
+  if (run == nullptr)
+    throw std::runtime_error("Unsupported ratio for split run: " + std::to_string(ratio));
+
+  MNPuzzle<MN_SIZE, MN_SIZE> mnp;
+  MNPuzzleState<MN_SIZE, MN_SIZE> goal;
+  goal.Reset();
+  MNPuzzleState<MN_SIZE, MN_SIZE> puzzle = STP::GetKorfInstance(instance);
+  Timer t;
+
+  double bihsTimeLimit = std::max(params.maxBaselineTime * 20.0, 120.0);
+  size_t frontierItems = params.frontierItems;
+  if (frontierItems == 0)
+    throw std::runtime_error("Missing MM frontier for instance " + std::to_string(instance));
+
+  if (algorithm == "bihs_bloom") {
+    int sizeKiB = std::max(1, static_cast<int>(
+        std::round((static_cast<double>(params.minMemoryItems) * get_state_size(puzzle) / 8192.0) * ratio)));
+    double bloomBits = sizeKiB * 8192.0;
+    double estimatedFrontierItems = std::max(1.0, static_cast<double>(frontierItems));
+    int optimizedKHashes = static_cast<int>(std::round((bloomBits / estimatedFrontierItems) * std::log(2.0)));
+    int kHashes = std::max(1, run->useOptimizedK ? optimizedKHashes : 1);
+    double fpEst = fp_rate(kHashes, estimatedFrontierItems, bloomBits);
+
+    using STPBiHSBloom = BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>>;
+    STPBiHSBloom bihs(sizeKiB, kHashes, bihsTimeLimit, run->useDynamicSplit);
+    bool outOfMemory = false;
+    std::vector<slideDir> path;
+    std::cout << "[" << instance << "] Split BiHS-Bloom(" << run->ratioLabel << ")..." << std::flush;
+    try {
+      t.StartTimer();
+      path = bihs.GetPath(puzzle, goal);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      outOfMemory = true;
+    }
+
+    std::string status = outOfMemory ? "oom" : (bihs.hasTimedOut() || path.empty() ? "timeout" : "ok");
+    double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
+    int solutionLength = status == "ok" ? static_cast<int>(path.size()) : params.solutionLength;
+    WriteSplitResultRow(out, instance, algorithm, ratio, status, elapsed,
+                        bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength);
+
+    if (WRITE_CONVERGENCE_LOG) {
+      std::ofstream conv(convergenceFile);
+      if (!conv)
+        throw std::runtime_error("Unable to open convergence output: " + convergenceFile);
+      conv << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
+      for (const auto &s : bihs.GetIterStats())
+        conv << instance << "," << sizeKiB << "," << ratio << ","
+             << s.totalDepth << "," << s.iteration << ","
+             << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << ","
+             << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << ","
+             << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
+             << s.materializedTotalStates << "," << (s.isTypeSplit ? "type" : "iter") << ","
+             << s.typeIndex << "," << s.typeCount << ","
+             << run->kMode << "," << kHashes << "," << run->splitMode << "\n";
+    }
+    std::cout << " " << status << " (" << elapsed << "s, " << bihs.GetTotalNodesExpanded() << "n)\n" << std::flush;
+  } else if (algorithm == "idths_trans") {
+    unsigned long storage = std::max<unsigned long>(
+        static_cast<unsigned long>(params.minMemoryItems * ratio), IDTHS_MIN_STATES_BOUND);
+    IDTHSwTrans<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> idthsTrans(true, true, true, 1, false);
+    bool solved = false;
+    bool outOfMemory = false;
+    std::cout << "[" << instance << "] Split IDTHSwTrans(" << run->ratioLabel << ")..." << std::flush;
+    try {
+      t.StartTimer();
+      solved = idthsTrans.GetPath(&mnp, puzzle, goal, IDTHS_SECONDS_LIMIT, storage);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      outOfMemory = true;
+    }
+
+    std::string status = outOfMemory ? "oom" : (solved ? "ok" : "timeout");
+    double elapsed = outOfMemory ? -2.0 : (solved ? t.GetElapsedTime() : -1.0);
+    int solutionLength = solved ? static_cast<int>(idthsTrans.getPathLength()) : params.solutionLength;
+    WriteSplitResultRow(out, instance, algorithm, ratio, status, elapsed,
+                        idthsTrans.GetNodesExpanded(), idthsTrans.GetNecessaryExpansions(),
+                        storage, 0, 0, 0.0, solutionLength);
+    std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
+  } else {
+    throw std::runtime_error("Unsupported split run algorithm: " + algorithm);
+  }
+}
 
 static constexpr int NUM_WORKERS = 1;
 static constexpr int PANCAKE_SIZE = 20;
@@ -227,8 +474,9 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     std::cout << " done (" << result.revAStarTime << "s, " << result.revAStarNodeExpanded << "n)\n" << std::flush;
   }
 
-
-  {
+  if (!gRunFullBaselines) {
+    MarkFullBaselineSkipped(result, i);
+  } else {
     std::cout << "[" << i << "] Running BAE*..." << std::flush;
     // BAE*
     {
@@ -253,10 +501,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
     }
 
-    if (ShouldSkipAlgorithm(i, "NBS")) {
-      result.nbsTime = SKIPPED_TIME;
-      std::cout << "[" << i << "] Skipping NBS by skip table\n" << std::flush;
-    } else {
+    {
       std::cout << "[" << i << "] Running NBS..." << std::flush;
       // NBS
       NBS<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> nbs;
@@ -277,11 +522,9 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
 
       std::cout << " done (" << result.nbsTime << "s, " << result.nbsNodeExpanded << "n)\n" << std::flush;
     }
+  }
 
-    if (ShouldSkipAlgorithm(i, "MM")) {
-      result.mmTime = SKIPPED_TIME;
-      std::cout << "[" << i << "] Skipping MM by skip table\n" << std::flush;
-    } else {
+  {
       std::cout << "[" << i << "] Running MM..." << std::flush;
       // MM
       MM<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>> mm;
@@ -305,66 +548,67 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
       frontierSize = mm.GetNumForwardItems();
       std::cout << " done (" << result.mmTime << "s, " << result.mmNodeExpanded << "n)\n" << std::flush;
     }
-  }
 
-  std::cout << "[" << i << "] Running IDA*..." << std::flush;
-  // IDA*
-  {
-    IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
-    std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-    try {
-      t.StartTimer();
-      ida.GetPath(&mnp, puzzle, goal, path);
-      t.EndTimer();
+  if (gRunFullBaselines) {
+    std::cout << "[" << i << "] Running IDA*..." << std::flush;
+    // IDA*
+    {
+      IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
+      std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+      try {
+        t.StartTimer();
+        ida.GetPath(&mnp, puzzle, goal, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("IDA* ran out of memory\n");
+      }
+      result.idaTime = t.GetElapsedTime();
+      result.idaNodeExpanded = ida.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+      std::cout << " done (" << result.idaTime << "s, " << result.idaNodeExpanded << "n)\n" << std::flush;
     }
-    catch (const std::bad_alloc&) {
-      t.EndTimer();
-      printf("IDA* ran out of memory\n");
-    }
-    result.idaTime = t.GetElapsedTime();
-    result.idaNodeExpanded = ida.GetNodesExpanded();
-    result.solutionLength = static_cast<int>(path.size()) - 1;
-    std::cout << " done (" << result.idaTime << "s, " << result.idaNodeExpanded << "n)\n" << std::flush;
-  }
 
-  std::cout << "[" << i << "] Running Rev-IDA*..." << std::flush;
-  // Reverse IDA*
-  {
-    IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
-    std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
-    try {
-      t.StartTimer();
-      ida.GetPath(&mnp, goal, puzzle, path);
-      t.EndTimer();
+    std::cout << "[" << i << "] Running Rev-IDA*..." << std::flush;
+    // Reverse IDA*
+    {
+      IDAStar<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, false> ida;
+      std::vector<MNPuzzleState<MN_SIZE, MN_SIZE>> path;
+      try {
+        t.StartTimer();
+        ida.GetPath(&mnp, goal, puzzle, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("Rev-IDA* ran out of memory\n");
+      }
+      result.revIdaTime = t.GetElapsedTime();
+      result.revIdaNodeExpanded = ida.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size()) - 1;
+      std::cout << " done (" << result.revIdaTime << "s, " << result.revIdaNodeExpanded << "n)\n" << std::flush;
     }
-    catch (const std::bad_alloc&) {
-      t.EndTimer();
-      printf("Rev-IDA* ran out of memory\n");
-    }
-    result.revIdaTime = t.GetElapsedTime();
-    result.revIdaNodeExpanded = ida.GetNodesExpanded();
-    result.solutionLength = static_cast<int>(path.size()) - 1;
-    std::cout << " done (" << result.revIdaTime << "s, " << result.revIdaNodeExpanded << "n)\n" << std::flush;
-  }
 
-  std::cout << "[" << i << "] Running Parallel IDA*..." << std::flush;
-  // Parallel IDA*
-  {
-    ParallelIDAStar<MNPuzzle<MN_SIZE, MN_SIZE>, MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir> ida;
-    std::vector<slideDir> path;
-    try {
-      t.StartTimer();
-      ida.GetPath(&mnp, puzzle, goal, path);
-      t.EndTimer();
+    std::cout << "[" << i << "] Running Parallel IDA*..." << std::flush;
+    // Parallel IDA*
+    {
+      ParallelIDAStar<MNPuzzle<MN_SIZE, MN_SIZE>, MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir> ida;
+      std::vector<slideDir> path;
+      try {
+        t.StartTimer();
+        ida.GetPath(&mnp, puzzle, goal, path);
+        t.EndTimer();
+      }
+      catch (const std::bad_alloc&) {
+        t.EndTimer();
+        printf("Parallel IDA* ran out of memory\n");
+      }
+      result.parallelIdaTime = t.GetElapsedTime();
+      result.parallelIdaNodeExpanded = ida.GetNodesExpanded();
+      result.solutionLength = static_cast<int>(path.size());
+      std::cout << " done (" << result.parallelIdaTime << "s, " << result.parallelIdaNodeExpanded << "n)\n" << std::flush;
     }
-    catch (const std::bad_alloc&) {
-      t.EndTimer();
-      printf("Parallel IDA* ran out of memory\n");
-    }
-    result.parallelIdaTime = t.GetElapsedTime();
-    result.parallelIdaNodeExpanded = ida.GetNodesExpanded();
-    result.solutionLength = static_cast<int>(path.size());
-    std::cout << " done (" << result.parallelIdaTime << "s, " << result.parallelIdaNodeExpanded << "n)\n" << std::flush;
   }
 
   double maxBaselineTime = std::max({result.aStarTime, result.revAStarTime, result.baeTime, result.nbsTime,
@@ -753,42 +997,46 @@ void solvePancake(){
       std::cout << " done (" << result.revAStarTime << "s, " << result.revAStarNodeExpanded << "n)\n" << std::flush;
     }
 
-    std::cout << "[" << i << "] Running Pancake BAE*..." << std::flush;
-    {
-      BAE<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, PancakePuzzle<PANCAKE_SIZE>> bae;
-      std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
-      try {
-        t.StartTimer();
-        bae.GetPath(&pancake, puzzle, goal, &pancake, &pancake, path);
-        t.EndTimer();
+    if (!gRunFullBaselines) {
+      MarkFullBaselineSkipped(result, i);
+    } else {
+      std::cout << "[" << i << "] Running Pancake BAE*..." << std::flush;
+      {
+        BAE<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, PancakePuzzle<PANCAKE_SIZE>> bae;
+        std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
+        try {
+          t.StartTimer();
+          bae.GetPath(&pancake, puzzle, goal, &pancake, &pancake, path);
+          t.EndTimer();
+        }
+        catch (const std::bad_alloc&) {
+          t.EndTimer();
+          printf("BAE* ran out of memory\n");
+        }
+        result.baeTime = t.GetElapsedTime();
+        result.baeNodeExpanded = bae.GetNodesExpanded();
+        result.solutionLength = static_cast<int>(path.size()) - 1;
+        std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
       }
-      catch (const std::bad_alloc&) {
-        t.EndTimer();
-        printf("BAE* ran out of memory\n");
-      }
-      result.baeTime = t.GetElapsedTime();
-      result.baeNodeExpanded = bae.GetNodesExpanded();
-      result.solutionLength = static_cast<int>(path.size()) - 1;
-      std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
-    }
 
-    std::cout << "[" << i << "] Running Pancake NBS..." << std::flush;
-    {
-      NBS<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, PancakePuzzle<PANCAKE_SIZE>> nbs;
-      std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
-      try {
-        t.StartTimer();
-        nbs.GetPath(&pancake, puzzle, goal, &pancake, &pancake, path);
-        t.EndTimer();
+      std::cout << "[" << i << "] Running Pancake NBS..." << std::flush;
+      {
+        NBS<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, PancakePuzzle<PANCAKE_SIZE>> nbs;
+        std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
+        try {
+          t.StartTimer();
+          nbs.GetPath(&pancake, puzzle, goal, &pancake, &pancake, path);
+          t.EndTimer();
+        }
+        catch (const std::bad_alloc&) {
+          t.EndTimer();
+          printf("NBS ran out of memory\n");
+        }
+        result.nbsTime = t.GetElapsedTime();
+        result.nbsNodeExpanded = nbs.GetNodesExpanded();
+        result.solutionLength = static_cast<int>(path.size()) - 1;
+        std::cout << " done (" << result.nbsTime << "s, " << result.nbsNodeExpanded << "n)\n" << std::flush;
       }
-      catch (const std::bad_alloc&) {
-        t.EndTimer();
-        printf("NBS ran out of memory\n");
-      }
-      result.nbsTime = t.GetElapsedTime();
-      result.nbsNodeExpanded = nbs.GetNodesExpanded();
-      result.solutionLength = static_cast<int>(path.size()) - 1;
-      std::cout << " done (" << result.nbsTime << "s, " << result.nbsNodeExpanded << "n)\n" << std::flush;
     }
 
     std::cout << "[" << i << "] Running Pancake MM..." << std::flush;
@@ -814,61 +1062,63 @@ void solvePancake(){
       std::cout << " done (" << result.mmTime << "s, " << result.mmNodeExpanded << "n)\n" << std::flush;
     }
 
-    std::cout << "[" << i << "] Running Pancake IDA*..." << std::flush;
-    {
-      IDAStar<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, false> ida;
-      std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
-      try {
-        t.StartTimer();
-        ida.GetPath(&pancake, puzzle, goal, path);
-        t.EndTimer();
+    if (gRunFullBaselines) {
+      std::cout << "[" << i << "] Running Pancake IDA*..." << std::flush;
+      {
+        IDAStar<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, false> ida;
+        std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
+        try {
+          t.StartTimer();
+          ida.GetPath(&pancake, puzzle, goal, path);
+          t.EndTimer();
+        }
+        catch (const std::bad_alloc&) {
+          t.EndTimer();
+          printf("IDA* ran out of memory\n");
+        }
+        result.idaTime = t.GetElapsedTime();
+        result.idaNodeExpanded = ida.GetNodesExpanded();
+        result.solutionLength = static_cast<int>(path.size()) - 1;
+        std::cout << " done (" << result.idaTime << "s, " << result.idaNodeExpanded << "n)\n" << std::flush;
       }
-      catch (const std::bad_alloc&) {
-        t.EndTimer();
-        printf("IDA* ran out of memory\n");
-      }
-      result.idaTime = t.GetElapsedTime();
-      result.idaNodeExpanded = ida.GetNodesExpanded();
-      result.solutionLength = static_cast<int>(path.size()) - 1;
-      std::cout << " done (" << result.idaTime << "s, " << result.idaNodeExpanded << "n)\n" << std::flush;
-    }
 
-    std::cout << "[" << i << "] Running Pancake Rev-IDA*..." << std::flush;
-    {
-      IDAStar<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, false> ida;
-      std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
-      try {
-        t.StartTimer();
-        ida.GetPath(&pancake, goal, puzzle, path);
-        t.EndTimer();
+      std::cout << "[" << i << "] Running Pancake Rev-IDA*..." << std::flush;
+      {
+        IDAStar<PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction, false> ida;
+        std::vector<PancakePuzzleState<PANCAKE_SIZE>> path;
+        try {
+          t.StartTimer();
+          ida.GetPath(&pancake, goal, puzzle, path);
+          t.EndTimer();
+        }
+        catch (const std::bad_alloc&) {
+          t.EndTimer();
+          printf("Rev-IDA* ran out of memory\n");
+        }
+        result.revIdaTime = t.GetElapsedTime();
+        result.revIdaNodeExpanded = ida.GetNodesExpanded();
+        result.solutionLength = static_cast<int>(path.size()) - 1;
+        std::cout << " done (" << result.revIdaTime << "s, " << result.revIdaNodeExpanded << "n)\n" << std::flush;
       }
-      catch (const std::bad_alloc&) {
-        t.EndTimer();
-        printf("Rev-IDA* ran out of memory\n");
-      }
-      result.revIdaTime = t.GetElapsedTime();
-      result.revIdaNodeExpanded = ida.GetNodesExpanded();
-      result.solutionLength = static_cast<int>(path.size()) - 1;
-      std::cout << " done (" << result.revIdaTime << "s, " << result.revIdaNodeExpanded << "n)\n" << std::flush;
-    }
 
-    std::cout << "[" << i << "] Running Pancake Parallel IDA*..." << std::flush;
-    {
-      ParallelIDAStar<PancakePuzzle<PANCAKE_SIZE>, PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction> ida;
-      std::vector<PancakePuzzleAction> path;
-      try {
-        t.StartTimer();
-        ida.GetPath(&pancake, puzzle, goal, path);
-        t.EndTimer();
+      std::cout << "[" << i << "] Running Pancake Parallel IDA*..." << std::flush;
+      {
+        ParallelIDAStar<PancakePuzzle<PANCAKE_SIZE>, PancakePuzzleState<PANCAKE_SIZE>, PancakePuzzleAction> ida;
+        std::vector<PancakePuzzleAction> path;
+        try {
+          t.StartTimer();
+          ida.GetPath(&pancake, puzzle, goal, path);
+          t.EndTimer();
+        }
+        catch (const std::bad_alloc&) {
+          t.EndTimer();
+          printf("Parallel IDA* ran out of memory\n");
+        }
+        result.parallelIdaTime = t.GetElapsedTime();
+        result.parallelIdaNodeExpanded = ida.GetNodesExpanded();
+        result.solutionLength = static_cast<int>(path.size());
+        std::cout << " done (" << result.parallelIdaTime << "s, " << result.parallelIdaNodeExpanded << "n)\n" << std::flush;
       }
-      catch (const std::bad_alloc&) {
-        t.EndTimer();
-        printf("Parallel IDA* ran out of memory\n");
-      }
-      result.parallelIdaTime = t.GetElapsedTime();
-      result.parallelIdaNodeExpanded = ida.GetNodesExpanded();
-      result.solutionLength = static_cast<int>(path.size());
-      std::cout << " done (" << result.parallelIdaTime << "s, " << result.parallelIdaNodeExpanded << "n)\n" << std::flush;
     }
 
     double maxBaselineTime = std::max({result.aStarTime, result.revAStarTime, result.baeTime, result.nbsTime,
@@ -1165,42 +1415,46 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
       std::cout << " done (" << result.revAStarTime << "s, " << result.revAStarNodeExpanded << "n)\n" << std::flush;
     }
 
-    std::cout << "[" << i << "] Running Rubik BAE*..." << std::flush;
-    {
-      BAE<RCState, RCAction, BenchmarkRC> bae;
-      std::vector<RCState> path;
-      try {
-        t.StartTimer();
-        bae.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
-        t.EndTimer();
+    if (!gRunFullBaselines) {
+      MarkFullBaselineSkipped(result, i);
+    } else {
+      std::cout << "[" << i << "] Running Rubik BAE*..." << std::flush;
+      {
+        BAE<RCState, RCAction, BenchmarkRC> bae;
+        std::vector<RCState> path;
+        try {
+          t.StartTimer();
+          bae.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
+          t.EndTimer();
+        }
+        catch (const std::bad_alloc&) {
+          t.EndTimer();
+          printf("BAE* ran out of memory\n");
+        }
+        result.baeTime = t.GetElapsedTime();
+        result.baeNodeExpanded = bae.GetNodesExpanded();
+        result.solutionLength = static_cast<int>(path.size()) - 1;
+        std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
       }
-      catch (const std::bad_alloc&) {
-        t.EndTimer();
-        printf("BAE* ran out of memory\n");
-      }
-      result.baeTime = t.GetElapsedTime();
-      result.baeNodeExpanded = bae.GetNodesExpanded();
-      result.solutionLength = static_cast<int>(path.size()) - 1;
-      std::cout << " done (" << result.baeTime << "s, " << result.baeNodeExpanded << "n)\n" << std::flush;
-    }
 
-    std::cout << "[" << i << "] Running Rubik NBS..." << std::flush;
-    {
-      NBS<RCState, RCAction, BenchmarkRC> nbs;
-      std::vector<RCState> path;
-      try {
-        t.StartTimer();
-        nbs.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
-        t.EndTimer();
+      std::cout << "[" << i << "] Running Rubik NBS..." << std::flush;
+      {
+        NBS<RCState, RCAction, BenchmarkRC> nbs;
+        std::vector<RCState> path;
+        try {
+          t.StartTimer();
+          nbs.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
+          t.EndTimer();
+        }
+        catch (const std::bad_alloc&) {
+          t.EndTimer();
+          printf("NBS ran out of memory\n");
+        }
+        result.nbsTime = t.GetElapsedTime();
+        result.nbsNodeExpanded = nbs.GetNodesExpanded();
+        result.solutionLength = static_cast<int>(path.size()) - 1;
+        std::cout << " done (" << result.nbsTime << "s, " << result.nbsNodeExpanded << "n)\n" << std::flush;
       }
-      catch (const std::bad_alloc&) {
-        t.EndTimer();
-        printf("NBS ran out of memory\n");
-      }
-      result.nbsTime = t.GetElapsedTime();
-      result.nbsNodeExpanded = nbs.GetNodesExpanded();
-      result.solutionLength = static_cast<int>(path.size()) - 1;
-      std::cout << " done (" << result.nbsTime << "s, " << result.nbsNodeExpanded << "n)\n" << std::flush;
     }
 
     std::cout << "[" << i << "] Running Rubik MM..." << std::flush;
@@ -1226,61 +1480,63 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
       std::cout << " done (" << result.mmTime << "s, " << result.mmNodeExpanded << "n)\n" << std::flush;
     }
 
-    std::cout << "[" << i << "] Running Rubik IDA*..." << std::flush;
-    {
-      IDAStar<RCState, RCAction, false> ida;
-      std::vector<RCState> path;
-      try {
-        t.StartTimer();
-        ida.GetPath(&rubik, puzzle, goal, path);
-        t.EndTimer();
+    if (gRunFullBaselines) {
+      std::cout << "[" << i << "] Running Rubik IDA*..." << std::flush;
+      {
+        IDAStar<RCState, RCAction, false> ida;
+        std::vector<RCState> path;
+        try {
+          t.StartTimer();
+          ida.GetPath(&rubik, puzzle, goal, path);
+          t.EndTimer();
+        }
+        catch (const std::bad_alloc&) {
+          t.EndTimer();
+          printf("IDA* ran out of memory\n");
+        }
+        result.idaTime = t.GetElapsedTime();
+        result.idaNodeExpanded = ida.GetNodesExpanded();
+        result.solutionLength = static_cast<int>(path.size()) - 1;
+        std::cout << " done (" << result.idaTime << "s, " << result.idaNodeExpanded << "n)\n" << std::flush;
       }
-      catch (const std::bad_alloc&) {
-        t.EndTimer();
-        printf("IDA* ran out of memory\n");
-      }
-      result.idaTime = t.GetElapsedTime();
-      result.idaNodeExpanded = ida.GetNodesExpanded();
-      result.solutionLength = static_cast<int>(path.size()) - 1;
-      std::cout << " done (" << result.idaTime << "s, " << result.idaNodeExpanded << "n)\n" << std::flush;
-    }
 
-    std::cout << "[" << i << "] Running Rubik Rev-IDA*..." << std::flush;
-    {
-      IDAStar<RCState, RCAction, false> ida;
-      std::vector<RCState> path;
-      try {
-        t.StartTimer();
-        ida.GetPath(&rubik, goal, puzzle, path);
-        t.EndTimer();
+      std::cout << "[" << i << "] Running Rubik Rev-IDA*..." << std::flush;
+      {
+        IDAStar<RCState, RCAction, false> ida;
+        std::vector<RCState> path;
+        try {
+          t.StartTimer();
+          ida.GetPath(&rubik, goal, puzzle, path);
+          t.EndTimer();
+        }
+        catch (const std::bad_alloc&) {
+          t.EndTimer();
+          printf("Rev-IDA* ran out of memory\n");
+        }
+        result.revIdaTime = t.GetElapsedTime();
+        result.revIdaNodeExpanded = ida.GetNodesExpanded();
+        result.solutionLength = static_cast<int>(path.size()) - 1;
+        std::cout << " done (" << result.revIdaTime << "s, " << result.revIdaNodeExpanded << "n)\n" << std::flush;
       }
-      catch (const std::bad_alloc&) {
-        t.EndTimer();
-        printf("Rev-IDA* ran out of memory\n");
-      }
-      result.revIdaTime = t.GetElapsedTime();
-      result.revIdaNodeExpanded = ida.GetNodesExpanded();
-      result.solutionLength = static_cast<int>(path.size()) - 1;
-      std::cout << " done (" << result.revIdaTime << "s, " << result.revIdaNodeExpanded << "n)\n" << std::flush;
-    }
 
-    std::cout << "[" << i << "] Running Rubik Parallel IDA*..." << std::flush;
-    {
-      ParallelIDAStar<BenchmarkRC, RCState, RCAction> ida;
-      std::vector<RCAction> path;
-      try {
-        t.StartTimer();
-        ida.GetPath(&rubik, puzzle, goal, path);
-        t.EndTimer();
+      std::cout << "[" << i << "] Running Rubik Parallel IDA*..." << std::flush;
+      {
+        ParallelIDAStar<BenchmarkRC, RCState, RCAction> ida;
+        std::vector<RCAction> path;
+        try {
+          t.StartTimer();
+          ida.GetPath(&rubik, puzzle, goal, path);
+          t.EndTimer();
+        }
+        catch (const std::bad_alloc&) {
+          t.EndTimer();
+          printf("Parallel IDA* ran out of memory\n");
+        }
+        result.parallelIdaTime = t.GetElapsedTime();
+        result.parallelIdaNodeExpanded = ida.GetNodesExpanded();
+        result.solutionLength = static_cast<int>(path.size());
+        std::cout << " done (" << result.parallelIdaTime << "s, " << result.parallelIdaNodeExpanded << "n)\n" << std::flush;
       }
-      catch (const std::bad_alloc&) {
-        t.EndTimer();
-        printf("Parallel IDA* ran out of memory\n");
-      }
-      result.parallelIdaTime = t.GetElapsedTime();
-      result.parallelIdaNodeExpanded = ida.GetNodesExpanded();
-      result.solutionLength = static_cast<int>(path.size());
-      std::cout << " done (" << result.parallelIdaTime << "s, " << result.parallelIdaNodeExpanded << "n)\n" << std::flush;
     }
 
     double maxBaselineTime = std::max({result.aStarTime, result.revAStarTime, result.baeTime, result.nbsTime,
@@ -1464,6 +1720,11 @@ int main(int argc, char **argv) {
   bool rubik = false;
   int instanceStart = 0;
   int instanceEnd = 100;
+  int singleInstance = -1;
+  double ratio = 0.0;
+  std::string phase;
+  std::string algorithm;
+  std::string paramsFile = "results/split/params/stp_params.csv";
   std::string benchmarkFile = "benchmark_stp_korf100.csv";
   std::string convergenceFile = "bloom_convergence.csv";
 
@@ -1474,6 +1735,18 @@ int main(int argc, char **argv) {
       pancake = true;
     else if (strcmp(argv[i], "--rubik") == 0)
       rubik = true;
+    else if (strcmp(argv[i], "--full") == 0)
+      gRunFullBaselines = true;
+    else if (strcmp(argv[i], "--phase") == 0 && i + 1 < argc)
+      phase = argv[++i];
+    else if (strcmp(argv[i], "--algorithm") == 0 && i + 1 < argc)
+      algorithm = argv[++i];
+    else if (strcmp(argv[i], "--instance") == 0 && i + 1 < argc)
+      singleInstance = std::stoi(argv[++i]);
+    else if (strcmp(argv[i], "--ratio") == 0 && i + 1 < argc)
+      ratio = std::stod(argv[++i]);
+    else if (strcmp(argv[i], "--params-input") == 0 && i + 1 < argc)
+      paramsFile = argv[++i];
     else if (strcmp(argv[i], "--instance-start") == 0 && i + 1 < argc)
       instanceStart = std::stoi(argv[++i]);
     else if (strcmp(argv[i], "--instance-end") == 0 && i + 1 < argc)
@@ -1487,6 +1760,37 @@ int main(int argc, char **argv) {
   
   if ((pancake ? 1 : 0) + (slidingTilePuzzle ? 1 : 0) + (rubik ? 1 : 0) != 1){
     std::cerr << "Please choose exactly 1 domain";
+    return 0;
+  }
+
+  if (!phase.empty()) {
+    if (!slidingTilePuzzle) {
+      std::cerr << "Split phase mode currently supports --stp only\n";
+      return 1;
+    }
+    if (singleInstance < 0 || singleInstance >= 100) {
+      std::cerr << "Split phase mode requires --instance in range 0..99\n";
+      return 1;
+    }
+    if (algorithm.empty()) {
+      std::cerr << "Split phase mode requires --algorithm\n";
+      return 1;
+    }
+    try {
+      if (phase == "calibrate") {
+        runSTPCalibrationJob(singleInstance, algorithm, benchmarkFile);
+      } else if (phase == "run") {
+        runSTPSplitAlgorithmJob(singleInstance, algorithm, ratio, paramsFile,
+                                benchmarkFile, convergenceFile);
+      } else {
+        std::cerr << "Unknown phase: " << phase << "\n";
+        return 1;
+      }
+    }
+    catch (const std::exception &e) {
+      std::cerr << e.what() << "\n";
+      return 1;
+    }
     return 0;
   }
 

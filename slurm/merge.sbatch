@@ -12,4 +12,4 @@
 
 set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:-$PWD}"
-python3 slurm/merge_results.py
+python3 scripts/merge_split_results.py --mode final
