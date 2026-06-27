@@ -146,8 +146,8 @@ def merge_final(domain: str, params_path: Path, run_dir: Path, convergence_dir: 
     benchmark_name = "benchmark_stp_korf100.csv"
     convergence_name = "bloom_convergence.csv"
     if domain == "rubik":
-        benchmark_name = "benchmark_rubik_random14_100.csv"
-        convergence_name = "bloom_convergence_rubik_random14.csv"
+        benchmark_name = "benchmark_rubik_korf_10.csv"
+        convergence_name = "bloom_convergence_rubik_korf.csv"
     benchmark_path = output_dir / benchmark_name
     header = benchmark_header()
     param_rows = []

@@ -34,7 +34,7 @@
 #include <limits>
 
 namespace RubiksCubeInstances {
-void GetRandomN(RCState &start, int N, int which);
+void GetKorfRubikInstance(RCState &start, int which);
 }
 
 static constexpr double SKIPPED_TIME = -3.0;
@@ -44,9 +44,8 @@ static constexpr bool WRITE_CONVERGENCE_LOG = true;
 static constexpr unsigned long IDTHS_DEFAULT_STATES_BOUND = 1000000;
 static constexpr unsigned long IDTHS_MIN_STATES_BOUND = 2;
 static constexpr int IDTHS_SECONDS_LIMIT = 1800;
-static constexpr int RUBIK_TOTAL_INSTANCES = 100;
-static constexpr int RUBIK_SCRAMBLE_DEPTH = 14;
-static constexpr const char *RUBIK_INSTANCE_SET = "random14";
+static constexpr int RUBIK_TOTAL_INSTANCES = 10;
+static constexpr const char *RUBIK_INSTANCE_SET = "korf";
 static bool gRunFullBaselines = false;
 
 static const char *SPLIT_RESULTS_HEADER =
@@ -403,7 +402,7 @@ static void runRubikCalibrationJob(int instance, const std::string &algorithm,
   RCState goal;
   RCState puzzle;
   goal.Reset();
-  RubiksCubeInstances::GetRandomN(puzzle, RUBIK_SCRAMBLE_DEPTH, instance);
+  RubiksCubeInstances::GetKorfRubikInstance(puzzle, instance);
   Timer t;
 
   std::string status = "ok";
@@ -488,7 +487,7 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
   RCState goal;
   RCState puzzle;
   goal.Reset();
-  RubiksCubeInstances::GetRandomN(puzzle, RUBIK_SCRAMBLE_DEPTH, instance);
+  RubiksCubeInstances::GetKorfRubikInstance(puzzle, instance);
   Timer t;
 
   double bihsTimeLimit = std::max(params.maxBaselineTime * 20.0, 120.0);
@@ -1550,7 +1549,7 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
     RCState goal;
     RCState puzzle;
     goal.Reset();
-    RubiksCubeInstances::GetRandomN(puzzle, RUBIK_SCRAMBLE_DEPTH, i);
+    RubiksCubeInstances::GetKorfRubikInstance(puzzle, i);
     Timer t;
 
     std::cout << "[" << i << "] Running Rubik A*..." << std::flush;

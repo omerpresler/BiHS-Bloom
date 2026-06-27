@@ -59,8 +59,8 @@ instance.
 - `results/split/convergence_parts/`: BiHS-Bloom convergence CSVs
 - `results/merged/benchmark_stp_korf100.csv`: legacy-compatible benchmark CSV
 - `results/merged/bloom_convergence.csv`: merged convergence CSV
-- `results/merged/benchmark_rubik_random14_100.csv`: Rubik benchmark CSV
-- `results/merged/bloom_convergence_rubik_random14.csv`: Rubik convergence CSV
+- `results/merged/benchmark_rubik_korf_10.csv`: Rubik benchmark CSV
+- `results/merged/bloom_convergence_rubik_korf.csv`: Rubik convergence CSV
 
 ## 4. Local smoke test
 
