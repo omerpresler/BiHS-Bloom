@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --partition=main
-#SBATCH --job-name=bihs-stp-run
-#SBATCH --array=0-7%4
+#SBATCH --job-name=bihs-rubik-fixed
+#SBATCH --array=0-1%2
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=128G
+#SBATCH --mem=160G
 #SBATCH --time=1-00:00:00
-#SBATCH --output=results/logs/stp_run_%A_%a.out
-#SBATCH --error=results/logs/stp_run_%A_%a.err
+#SBATCH --output=results/logs/rubik_fixed_%A_%a.out
+#SBATCH --error=results/logs/rubik_fixed_%A_%a.err
 #SBATCH --mail-user=omerpr@post.bgu.ac.il
 #SBATCH --mail-type=FAIL
 
@@ -23,18 +23,17 @@ if [[ ! -x "$binary" ]]; then
   exit 1
 fi
 
-manifest="results/split/manifests/run.csv"
+manifest="results/split/manifests/rubik_fixed.csv"
 row=$(awk -F, -v id="$SLURM_ARRAY_TASK_ID" 'NR > 1 && $1 == id { print; exit }' "$manifest")
 if [[ -z "$row" ]]; then
-  echo "No phase-2 manifest row for task $SLURM_ARRAY_TASK_ID; skipping."
+  echo "No fixed Rubik manifest row for task $SLURM_ARRAY_TASK_ID; skipping."
   exit 0
 fi
 
 IFS=, read -r job_id domain instance phase algorithm ratio <<< "$row"
-srun "$binary" "--${domain}" --phase run \
+srun "$binary" "--${domain}" --phase "$phase" \
   --instance "$instance" \
   --algorithm "$algorithm" \
   --ratio "$ratio" \
-  --params-input "results/split/params/${domain}_params.csv" \
-  --benchmark-output "results/split/run_parts/result_${domain}_${job_id}.csv" \
-  --convergence-output "results/split/convergence_parts/convergence_${domain}_${job_id}.csv"
+  --benchmark-output "results/split/run_parts/result_rubik_fixed_${job_id}.csv" \
+  --convergence-output "results/split/convergence_parts/convergence_rubik_fixed_${job_id}.csv"

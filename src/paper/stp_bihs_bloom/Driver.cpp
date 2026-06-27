@@ -44,6 +44,10 @@ static constexpr bool WRITE_CONVERGENCE_LOG = true;
 static constexpr unsigned long IDTHS_DEFAULT_STATES_BOUND = 1000000;
 static constexpr unsigned long IDTHS_MIN_STATES_BOUND = 2;
 static constexpr int IDTHS_SECONDS_LIMIT = 1800;
+static constexpr int RUBIK_FIXED_SECONDS_LIMIT = 23 * 60 * 60;
+static constexpr int RUBIK_FIXED_MEMORY_GIB = 128;
+static constexpr int RUBIK_FIXED_BLOOM_SIZE_KIB = RUBIK_FIXED_MEMORY_GIB * 1024 * 1024;
+static constexpr int RUBIK_FIXED_K_HASHES = 1;
 static constexpr int RUBIK_TOTAL_INSTANCES = 10;
 static constexpr const char *RUBIK_INSTANCE_SET = "korf";
 static bool gRunFullBaselines = false;
@@ -210,6 +214,17 @@ static void WriteSplitResultRow(std::ofstream &out, const std::string &domain, i
   out << domain << "," << instance << "," << algorithm << "," << ratio << "," << status << ","
       << time << "," << nodes << "," << necessaryNodes << "," << storageStates << ","
       << sizeKiB << "," << kHashes << "," << fpEst << "," << solutionLength << "\n";
+}
+
+static unsigned long FixedRubikStorageStates(const RCState &sample)
+{
+  long double memoryBits = static_cast<long double>(RUBIK_FIXED_BLOOM_SIZE_KIB) * 8192.0L;
+  long double stateBits = static_cast<long double>(std::max<size_t>(1, get_state_size(sample)));
+  long double states = std::floor(memoryBits / stateBits);
+  long double maxStates = static_cast<long double>(std::numeric_limits<unsigned long>::max());
+  if (states > maxStates)
+    return std::numeric_limits<unsigned long>::max();
+  return std::max<unsigned long>(static_cast<unsigned long>(states), IDTHS_MIN_STATES_BOUND);
 }
 
 static void runSTPCalibrationJob(int instance, const std::string &algorithm,
@@ -566,6 +581,92 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
     std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
   } else {
     throw std::runtime_error("Unsupported split run algorithm: " + algorithm);
+  }
+}
+
+static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm,
+                                      const std::string &outputFile,
+                                      const std::string &convergenceFile)
+{
+  std::ofstream out(outputFile);
+  if (!out)
+    throw std::runtime_error("Unable to open fixed Rubik result output: " + outputFile);
+  out << SPLIT_RESULTS_HEADER;
+
+  BenchmarkRC rubik;
+  RCState goal;
+  RCState puzzle;
+  goal.Reset();
+  RubiksCubeInstances::GetKorfRubikInstance(puzzle, instance);
+  Timer t;
+
+  constexpr double fixedRatio = 1.0;
+  if (algorithm == "bihs_bloom") {
+    const int sizeKiB = RUBIK_FIXED_BLOOM_SIZE_KIB;
+    const int kHashes = RUBIK_FIXED_K_HASHES;
+    const double fpEst = 0.0;
+
+    using RubikBiHSBloom = BiHSBloom<RCState, RCAction, BenchmarkRC>;
+    RubikBiHSBloom bihs(sizeKiB, kHashes, RUBIK_FIXED_SECONDS_LIMIT, false);
+    bool outOfMemory = false;
+    std::vector<RCAction> path;
+    std::cout << "[" << instance << "] Fixed Rubik BiHS-Bloom(128GiB,k=1)..." << std::flush;
+    try {
+      t.StartTimer();
+      path = bihs.GetPath(puzzle, goal);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      outOfMemory = true;
+    }
+
+    std::string status = outOfMemory ? "oom" : (bihs.hasTimedOut() || path.empty() ? "timeout" : "ok");
+    double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
+    int solutionLength = status == "ok" ? static_cast<int>(path.size()) : -1;
+    WriteSplitResultRow(out, "rubik", instance, algorithm, fixedRatio, status, elapsed,
+                        bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength);
+
+    if (WRITE_CONVERGENCE_LOG) {
+      std::ofstream conv(convergenceFile);
+      if (!conv)
+        throw std::runtime_error("Unable to open fixed Rubik convergence output: " + convergenceFile);
+      conv << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
+      for (const auto &s : bihs.GetIterStats())
+        conv << instance << "," << sizeKiB << "," << fixedRatio << ","
+             << s.totalDepth << "," << s.iteration << ","
+             << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << ","
+             << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << ","
+             << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
+             << s.materializedTotalStates << "," << (s.isTypeSplit ? "type" : "iter") << ","
+             << s.typeIndex << "," << s.typeCount << ",fixed," << kHashes << ",flat\n";
+    }
+    std::cout << " " << status << " (" << elapsed << "s, " << bihs.GetTotalNodesExpanded() << "n)\n" << std::flush;
+  } else if (algorithm == "idths_trans") {
+    unsigned long storage = FixedRubikStorageStates(puzzle);
+    IDTHSwTrans<RCState, RCAction, false> idthsTrans(true, true, true, 1, true);
+    bool solved = false;
+    bool outOfMemory = false;
+    std::cout << "[" << instance << "] Fixed Rubik IDTHSwTrans(128GiB states=" << storage << ")..." << std::flush;
+    try {
+      t.StartTimer();
+      solved = idthsTrans.GetPath(&rubik, puzzle, goal, RUBIK_FIXED_SECONDS_LIMIT, storage);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      outOfMemory = true;
+    }
+
+    std::string status = outOfMemory ? "oom" : (solved ? "ok" : "timeout");
+    double elapsed = outOfMemory ? -2.0 : (solved ? t.GetElapsedTime() : -1.0);
+    int solutionLength = solved ? static_cast<int>(idthsTrans.getPathLength()) : -1;
+    WriteSplitResultRow(out, "rubik", instance, algorithm, fixedRatio, status, elapsed,
+                        idthsTrans.GetNodesExpanded(), idthsTrans.GetNecessaryExpansions(),
+                        storage, 0, 0, 0.0, solutionLength);
+    std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
+  } else {
+    throw std::runtime_error("Unsupported fixed Rubik algorithm: " + algorithm);
   }
 }
 
@@ -1970,6 +2071,12 @@ int main(int argc, char **argv) {
         else
           runRubikSplitAlgorithmJob(singleInstance, algorithm, ratio, paramsFile,
                                     benchmarkFile, convergenceFile);
+      } else if (phase == "fixed-run") {
+        if (!rubik) {
+          std::cerr << "Fixed-run phase currently supports --rubik only\n";
+          return 1;
+        }
+        runRubikFixedAlgorithmJob(singleInstance, algorithm, benchmarkFile, convergenceFile);
       } else {
         std::cerr << "Unknown phase: " << phase << "\n";
         return 1;

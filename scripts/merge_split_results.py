@@ -212,9 +212,46 @@ def merge_final(domain: str, params_path: Path, run_dir: Path, convergence_dir: 
     print(f"Wrote merged benchmark and convergence files to {output_dir}")
 
 
+def merge_rubik_fixed(run_dir: Path, convergence_dir: Path, output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    result_files = sorted(run_dir.glob("result_rubik_fixed_*.csv"))
+    rows = read_csv_files(result_files)
+    rows = [row for row in rows if row.get("domain") == "rubik"]
+
+    fields = [
+        "domain", "instance", "algorithm", "ratio", "status", "time", "nodes",
+        "necessary_nodes", "storage_states", "size_kib", "k_hashes", "fp_est",
+        "solution_length",
+    ]
+    with (output_dir / "benchmark_rubik_korf_fixed128g_k1.csv").open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
+        writer.writeheader()
+        for row in sorted(rows, key=lambda item: (int(item["instance"]), item["algorithm"])):
+            writer.writerow({field: row.get(field, "") for field in fields})
+
+    header = [
+        "instance", "size_kib", "ratio", "total_depth", "iteration", "n_inserted",
+        "n_unique", "estimated_fp", "bits_set", "fill_ratio", "expected_fill_ratio",
+        "materialized_forward", "materialized_backward", "materialized_total", "phase",
+        "type_index", "type_count", "k_mode", "k_hashes", "split_mode",
+    ]
+    convergence_rows = []
+    for path in sorted(convergence_dir.glob("convergence_rubik_fixed_*.csv")):
+        with path.open(newline="", encoding="utf-8") as handle:
+            reader = csv.reader(handle)
+            next(reader, None)
+            convergence_rows.extend(row for row in reader if row)
+    with (output_dir / "bloom_convergence_rubik_korf_fixed128g_k1.csv").open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow(header)
+        writer.writerows(convergence_rows)
+
+    print(f"Wrote fixed Rubik benchmark and convergence files to {output_dir}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["params", "final"], required=True)
+    parser.add_argument("--mode", choices=["params", "final", "rubik-fixed"], required=True)
     parser.add_argument("--domain", choices=["stp", "rubik"], default="stp")
     parser.add_argument("--calibration-dir", type=Path, default=Path("results/split/calibration_parts"))
     parser.add_argument("--params", type=Path, default=Path("results/split/params/stp_params.csv"))
@@ -225,8 +262,10 @@ def main() -> None:
 
     if args.mode == "params":
         merge_params(args.domain, args.calibration_dir, args.params)
-    else:
+    elif args.mode == "final":
         merge_final(args.domain, args.params, args.run_dir, args.convergence_dir, args.output_dir)
+    else:
+        merge_rubik_fixed(args.run_dir, args.convergence_dir, args.output_dir)
 
 
 if __name__ == "__main__":

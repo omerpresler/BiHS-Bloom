@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 RATIOS = ["0.5", "0.1", "0.01", "0.001"]
+FIXED_RUBIK_ALGORITHMS = ["bihs_bloom", "idths_trans"]
 
 
 def write_rows(path: Path, rows: list[dict[str, str]]) -> None:
@@ -54,9 +55,23 @@ def run_rows(domain: str, params_path: Path) -> list[dict[str, str]]:
     return rows
 
 
+def rubik_fixed_rows(instance_start: int, instance_end: int) -> list[dict[str, str]]:
+    rows = []
+    for instance in range(instance_start, instance_end):
+        for algorithm in FIXED_RUBIK_ALGORITHMS:
+            rows.append({
+                "domain": "rubik",
+                "instance": str(instance),
+                "phase": "fixed-run",
+                "algorithm": algorithm,
+                "ratio": "1.0",
+            })
+    return rows
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--phase", choices=["calibrate", "run"], required=True)
+    parser.add_argument("--phase", choices=["calibrate", "run", "rubik-fixed"], required=True)
     parser.add_argument("--domain", choices=["stp", "rubik"], default="stp")
     parser.add_argument("--instance-start", type=int, default=0)
     parser.add_argument("--instance-end", type=int, default=1)
@@ -66,6 +81,10 @@ def main() -> None:
 
     if args.phase == "calibrate":
         rows = calibration_rows(args.domain, args.instance_start, args.instance_end)
+    elif args.phase == "rubik-fixed":
+        if args.domain != "rubik":
+            raise SystemExit("--phase rubik-fixed requires --domain rubik")
+        rows = rubik_fixed_rows(args.instance_start, args.instance_end)
     else:
         rows = run_rows(args.domain, args.params)
 

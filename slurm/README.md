@@ -50,6 +50,27 @@ If calibration does not produce usable `min_memory_items` and `frontier_items`,
 the params row is marked `missing_params` and phase 2 receives no work for that
 instance.
 
+## 2b. Submit the fixed Rubik 128GiB workflow
+
+This bypasses A*/MM calibration entirely. It submits two jobs for Korf Rubik
+instance `0`:
+
+- `bihs_bloom` with a 128GiB Bloom filter, `k=1`, flat splitting
+- `idths_trans` with the equivalent 128GiB state bound
+
+The job requests `160G` from Slurm so the process has room for allocator and
+runtime overhead while the algorithm budget remains 128GiB.
+
+```bash
+bash slurm/submit_rubik_fixed.sh
+```
+
+The dependency chain is:
+
+```text
+fixed Rubik array -> fixed Rubik merge
+```
+
 ## 3. Outputs
 
 - `results/split/manifests/`: calibration and phase-2 job manifests
@@ -61,6 +82,8 @@ instance.
 - `results/merged/bloom_convergence.csv`: merged convergence CSV
 - `results/merged/benchmark_rubik_korf_10.csv`: Rubik benchmark CSV
 - `results/merged/bloom_convergence_rubik_korf.csv`: Rubik convergence CSV
+- `results/merged/benchmark_rubik_korf_fixed128g_k1.csv`: fixed Rubik 128GiB CSV
+- `results/merged/bloom_convergence_rubik_korf_fixed128g_k1.csv`: fixed Rubik convergence CSV
 
 ## 4. Local smoke test
 
@@ -87,6 +110,7 @@ The Slurm array sizes are fixed for the one-instance trial:
 
 - `slurm/stp_calibration.sbatch`: `#SBATCH --array=0-2%3`
 - `slurm/stp_run.sbatch`: `#SBATCH --array=0-7%4`
+- `slurm/rubik_fixed.sbatch`: `#SBATCH --array=0-1%2`
 
 When scaling past instance `0`, regenerate the manifests and expand those array
 ranges accordingly.
