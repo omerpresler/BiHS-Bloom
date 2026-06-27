@@ -1,0 +1,40 @@
+------------------------------------
+Sat 27 Jun 2026 21:34:31 IDT
+SLURM_JOBID:		18471652
+SLURM_JOB_NODELIST:	ise-cpu-intl-24
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 65536 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+------------------------------------
+Sat 27 Jun 2026 21:34:32 IDT
+SLURM_JOBID:		18471652
+SLURM_JOB_NODELIST:	ise-cpu-intl-24
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 65536 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+Domain: Pancake Puzzle
+[32] Running Pancake A*... done (0.496843s, 10676n)
+[32] Running Pancake Rev-A*... done (0.415754s, 9815n)
+[32] Skipping BAE*, NBS, IDA*, Rev-IDA*, and Parallel IDA*; use --full to run them
+[32] Running Pancake MM... done (0.601869s, 18167n)
+[32] Pancake BiHS-Bloom timeout limit: 120s
+[32] Pancake IDTHSwTrans state bound baseline: 166307
+[32] Running Pancake BiHS-Bloom(50%, optk, dynamic, size=629KiB, k=22, fp_est=2.04321e-07, limit=120s)...Bloom filter size: 629 KiB, k_hashes: 22, min_items: 83109
+ done (2.13313s, 9886164n)
+[32] Running Pancake IDTHSwTrans(50%, states=83153, limit=1800s)... done (0.313095s, 30275n)
+[32] Running Pancake BiHS-Bloom(10%, optk, dynamic, size=126KiB, k=4, fp_est=0.0461789, limit=120s)...Bloom filter size: 126 KiB, k_hashes: 4, min_items: 16648
+ done (2.11379s, 9886164n)
+[32] Running Pancake IDTHSwTrans(10%, states=16630, limit=1800s)... done (0.193523s, 15421n)
+[32] Running Pancake BiHS-Bloom(1%, optk, dynamic, size=13KiB, k=1, fp_est=0.778895, limit=120s)...Bloom filter size: 13 KiB, k_hashes: 1, min_items: 1717
+ done (2.1493s, 12225735n)
+[32] Running Pancake IDTHSwTrans(1%, states=1663, limit=1800s)... done (0.112581s, 8063n)
+[32] Running Pancake BiHS-Bloom(0.1%, optk, dynamic, size=1KiB, k=1, fp_est=1, limit=120s)...Bloom filter size: 1 KiB, k_hashes: 1, min_items: 132
+[TYPE] Splitting depth 15 into 8 hash types (Ff=57330, Fb=20295, min_items=132)
+ done (2.28019s, 12540774n)
+[32] Running Pancake IDTHSwTrans(0.1%, states=166, limit=1800s)... done (0.162248s, 11081n)
+Pancake #32 | A*: 0.496843s/10676n | Rev-A*: 0.415754s/9815n | BAE*: -3s/0n | NBS: -3s/0n | MM: 0.601869s/18167n | IDA*: -3s/0n | Parallel IDA*: -3s/0n | Rev-IDA*: -3s/0n | BiHS-Bloom(50%,optk,dynamic): 2.13313s/9886164n | IDTHSwTrans(50%): 0.313095s/30275n | BiHS-Bloom(10%,optk,dynamic): 2.11379s/9886164n | IDTHSwTrans(10%): 0.193523s/15421n | BiHS-Bloom(1%,optk,dynamic): 2.1493s/12225735n | IDTHSwTrans(1%): 0.112581s/8063n | BiHS-Bloom(0.1%,optk,dynamic): 2.28019s/12540774n | IDTHSwTrans(0.1%): 0.162248s/11081n | Length: 15
+Results written to results/stp_pancake/parts/benchmark_pancake_32.csv

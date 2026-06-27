@@ -1,0 +1,2 @@
+[2026-06-27T21:31:05.663] error: Detected 1 oom_kill event in StepId=18470736.0. Some of the step tasks have been OOM Killed.
+srun: error: cs-cpu-07: task 0: Out Of Memory

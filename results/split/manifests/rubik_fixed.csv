@@ -1,0 +1,4 @@
+job_id,domain,instance,phase,algorithm,ratio
+0,rubik,0,fixed-run,bihs_bloom,1.0
+1,rubik,0,fixed-run,idths_trans,1.0
+2,rubik,0,fixed-run,ida,1.0

@@ -1,0 +1,20 @@
+------------------------------------
+Sat 27 Jun 2026 16:21:47 IDT
+SLURM_JOBID:		18456053
+SLURM_JOB_NODELIST:	ise-cpu256-06
+SLURM_SCRATCH_DIR:	/scratch/omerpr/18456053
+Allocated Resouces:	cpu - 2 / mem - 163840 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+------------------------------------
+Sat 27 Jun 2026 16:21:47 IDT
+SLURM_JOBID:		18456053
+SLURM_JOB_NODELIST:	ise-cpu256-06
+SLURM_SCRATCH_DIR:	/scratch/omerpr/18456053
+Allocated Resouces:	cpu - 2 / mem - 163840 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+Bloom filter size: 134217728 KiB, k_hashes: 1, min_items: -1244918057
+[0] Fixed Rubik BiHS-Bloom(128GiB,k=1)...

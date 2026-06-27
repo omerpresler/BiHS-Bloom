@@ -1,0 +1,46 @@
+------------------------------------
+Sat 27 Jun 2026 20:30:29 IDT
+SLURM_JOBID:		18468645
+SLURM_JOB_NODELIST:	cs-cpu-07
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 65536 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+------------------------------------
+Sat 27 Jun 2026 20:30:30 IDT
+SLURM_JOBID:		18468645
+SLURM_JOB_NODELIST:	cs-cpu-07
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 65536 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+Domain: Sliding Tile Puzzle
+Starting Korf's Puzzle #26
+
+[26] Running A*... done (42.7851s, 11281106n)
+[26] Running Rev-A*... done (27.1069s, 6478155n)
+[26] Skipping BAE*, NBS, IDA*, Rev-IDA*, and Parallel IDA*; use --full to run them
+[26] Running MM... done (43.5715s, 9832370n)
+[26] BiHS-Bloom timeout limit: 871.429s
+[26] IDTHSwTrans state bound baseline: 11753305
+[26] Running BiHS-Bloom(50%, optk, dynamic, size=32281KiB, k=15, fp_est=2.40645e-05, limit=871.429s)...
+Bloom filter size: 32281 KiB, k_hashes: 15, min_items: 5876576
+ done (57.5658s, 736219592n)
+[26] Running IDTHSwTrans(50%, states=5876652, limit=1800s)... done (47.7897s, 2863542n)
+[26] Running BiHS-Bloom(10%, optk, dynamic, size=6456KiB, k=3, fp_est=0.119207, limit=871.429s)...
+Bloom filter size: 6456 KiB, k_hashes: 3, min_items: 1175278
+ done (54.4923s, 736219592n)
+[26] Running IDTHSwTrans(10%, states=1175330, limit=1800s)... done (48.3239s, 2863542n)
+[26] Running BiHS-Bloom(1%, optk, dynamic, size=646KiB, k=1, fp_est=0.895356, limit=871.429s)...
+Bloom filter size: 646 KiB, k_hashes: 1, min_items: 117600
+ done (43.4047s, 737453859n)
+[26] Running IDTHSwTrans(1%, states=117533, limit=1800s)... done (28.1366s, 1929638n)
+[26] Running BiHS-Bloom(0.1%, optk, dynamic, size=65KiB, k=1, fp_est=1, limit=871.429s)...
+Bloom filter size: 65 KiB, k_hashes: 1, min_items: 11832
+[TYPE] Splitting depth 53 into 3 hash types (Ff=295950, Fb=1646659, min_items=11832)
+ done (44.9576s, 738009926n)
+[26] Running IDTHSwTrans(0.1%, states=11753, limit=1800s)... done (28.3727s, 3797085n)
+Puzzle #26 | A*: 42.7851s/11281106n | Rev-A*: 27.1069s/6478155n | BAE*: -3s/0n | NBS: -3s/0n | MM: 43.5715s/9832370n | IDA*: -3s/0n | Parallel IDA*: -3s/0n | Rev-IDA*: -3s/0n | BiHS-Bloom(50%,optk,dynamic): 57.5658s/736219592n | IDTHSwTrans(50%): 47.7897s/2863542n | BiHS-Bloom(10%,optk,dynamic): 54.4923s/736219592n | IDTHSwTrans(10%): 48.3239s/2863542n | BiHS-Bloom(1%,optk,dynamic): 43.4047s/737453859n | IDTHSwTrans(1%): 28.1366s/1929638n | BiHS-Bloom(0.1%,optk,dynamic): 44.9576s/738009926n | IDTHSwTrans(0.1%): 28.3727s/3797085n | Length: 53
+Results written to results/stp_pancake/parts/benchmark_stp_26.csv

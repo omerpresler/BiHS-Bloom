@@ -1,0 +1,9 @@
+------------------------------------
+Sat 27 Jun 2026 15:36:17 IDT
+SLURM_JOBID:		18454930
+SLURM_JOB_NODELIST:	ise-cpu-intl-08
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 4096 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------

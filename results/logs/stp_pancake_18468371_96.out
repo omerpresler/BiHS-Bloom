@@ -1,0 +1,48 @@
+------------------------------------
+Sat 27 Jun 2026 21:22:03 IDT
+SLURM_JOBID:		18471004
+SLURM_JOB_NODELIST:	cs-cpu-06
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 65536 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+------------------------------------
+Sat 27 Jun 2026 21:22:04 IDT
+SLURM_JOBID:		18471004
+SLURM_JOB_NODELIST:	cs-cpu-06
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 65536 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+Domain: Sliding Tile Puzzle
+Starting Korf's Puzzle #96
+
+[96] Running A*... done (0.944569s, 190101n)
+[96] Running Rev-A*... done (0.531677s, 163967n)
+[96] Skipping BAE*, NBS, IDA*, Rev-IDA*, and Parallel IDA*; use --full to run them
+[96] Running MM... done (0.671446s, 201805n)
+[96] BiHS-Bloom timeout limit: 120s
+[96] IDTHSwTrans state bound baseline: 317328
+[96] Running BiHS-Bloom(50%, optk, dynamic, size=872KiB, k=23, fp_est=1.45046e-07, limit=120s)...
+Bloom filter size: 872 KiB, k_hashes: 23, min_items: 158742
+ done (0.537755s, 6194245n)
+[96] Running IDTHSwTrans(50%, states=158664, limit=1800s)... done (0.344916s, 169160n)
+[96] Running BiHS-Bloom(10%, optk, dynamic, size=174KiB, k=5, fp_est=0.0436029, limit=120s)...
+Bloom filter size: 174 KiB, k_hashes: 5, min_items: 31675
+ done (0.446257s, 6194245n)
+[96] Running IDTHSwTrans(10%, states=31732, limit=1800s)... done (0.467095s, 178437n)
+[96] Running BiHS-Bloom(1%, optk, dynamic, size=17KiB, k=1, fp_est=0.790918, limit=120s)...
+Bloom filter size: 17 KiB, k_hashes: 1, min_items: 3094
+[TYPE] Splitting depth 44 into 2 hash types (Ff=127628, Fb=50766, min_items=3094)
+ done (0.559188s, 8809173n)
+[96] Running IDTHSwTrans(1%, states=3173, limit=1800s)... done (0.517087s, 209393n)
+[96] Running BiHS-Bloom(0.1%, optk, dynamic, size=2KiB, k=1, fp_est=0.999998, limit=120s)...
+Bloom filter size: 2 KiB, k_hashes: 1, min_items: 364
+[TYPE] Splitting depth 42 into 3 hash types (Ff=28220, Fb=17902, min_items=364)
+[TYPE] Splitting depth 44 into 8 hash types (Ff=127628, Fb=123040, min_items=364)
+ done (0.684688s, 9974990n)
+[96] Running IDTHSwTrans(0.1%, states=317, limit=1800s)... done (0.515861s, 276258n)
+Puzzle #96 | A*: 0.944569s/190101n | Rev-A*: 0.531677s/163967n | BAE*: -3s/0n | NBS: -3s/0n | MM: 0.671446s/201805n | IDA*: -3s/0n | Parallel IDA*: -3s/0n | Rev-IDA*: -3s/0n | BiHS-Bloom(50%,optk,dynamic): 0.537755s/6194245n | IDTHSwTrans(50%): 0.344916s/169160n | BiHS-Bloom(10%,optk,dynamic): 0.446257s/6194245n | IDTHSwTrans(10%): 0.467095s/178437n | BiHS-Bloom(1%,optk,dynamic): 0.559188s/8809173n | IDTHSwTrans(1%): 0.517087s/209393n | BiHS-Bloom(0.1%,optk,dynamic): 0.684688s/9974990n | IDTHSwTrans(0.1%): 0.515861s/276258n | Length: 44
+Results written to results/stp_pancake/parts/benchmark_stp_96.csv
