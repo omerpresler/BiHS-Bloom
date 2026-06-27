@@ -1,8 +1,9 @@
-# Running the split STP benchmark on Slurm
+# Running the split benchmark on Slurm
 
-This workflow is currently configured as a small smoke test: STP instance `0`
-only. It runs calibration first, derives the memory/frontier parameters, and
-then runs each BiHS-Bloom and IDTHSwTrans ratio as a separate Slurm job.
+This workflow is currently configured as a small smoke test: instance `0` only.
+It supports both `stp` and `rubik`. It runs calibration first, derives the
+memory/frontier parameters, and then runs each BiHS-Bloom and IDTHSwTrans ratio
+as a separate Slurm job.
 
 ## 1. Compile locally
 
@@ -12,6 +13,9 @@ On a Linux machine or WSL, from the repository root:
 bash slurm/prepare_binary.sh
 slurm/bin/stp_bihs_bloom --stp --phase calibrate --instance 0 --algorithm astar \
   --benchmark-output /tmp/calibration_0.csv
+
+slurm/bin/stp_bihs_bloom --rubik --phase calibrate --instance 0 --algorithm astar \
+  --benchmark-output /tmp/rubik_calibration_0.csv
 ```
 
 The packaged file must be a Linux executable, not a Windows `.exe`.
@@ -22,6 +26,12 @@ From the repository root on the Slurm login node:
 
 ```bash
 bash slurm/submit.sh
+```
+
+STP is the default. For Rubik, run:
+
+```bash
+DOMAIN=rubik bash slurm/submit.sh
 ```
 
 The dependency chain is:
@@ -44,11 +54,13 @@ instance.
 
 - `results/split/manifests/`: calibration and phase-2 job manifests
 - `results/split/calibration_parts/`: one calibration CSV per calibration job
-- `results/split/params/stp_params.csv`: merged params/status rows
+- `results/split/params/stp_params.csv` or `results/split/params/rubik_params.csv`: merged params/status rows
 - `results/split/run_parts/`: one result CSV per phase-2 job
 - `results/split/convergence_parts/`: BiHS-Bloom convergence CSVs
 - `results/merged/benchmark_stp_korf100.csv`: legacy-compatible benchmark CSV
 - `results/merged/bloom_convergence.csv`: merged convergence CSV
+- `results/merged/benchmark_rubik_random14_100.csv`: Rubik benchmark CSV
+- `results/merged/bloom_convergence_rubik_random14.csv`: Rubik convergence CSV
 
 ## 4. Local smoke test
 
@@ -58,10 +70,17 @@ After building `src/bin/release/stp_bihs_bloom`, run:
 bash scripts/run_split_stp_local.sh
 ```
 
+For Rubik:
+
+```bash
+DOMAIN=rubik bash scripts/run_split_stp_local.sh
+```
+
 To widen the local calibration range later:
 
 ```bash
 INSTANCE_START=0 INSTANCE_END=10 bash scripts/run_split_stp_local.sh
+DOMAIN=rubik INSTANCE_START=0 INSTANCE_END=10 bash scripts/run_split_stp_local.sh
 ```
 
 The Slurm array sizes are fixed for the one-instance trial:

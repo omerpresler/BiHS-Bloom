@@ -30,8 +30,9 @@ def read_csv_files(paths: list[Path]) -> list[dict[str, str]]:
     return rows
 
 
-def merge_params(input_dir: Path, output: Path) -> None:
+def merge_params(domain: str, input_dir: Path, output: Path) -> None:
     rows = read_csv_files(sorted(input_dir.glob("calibration_*.csv")))
+    rows = [row for row in rows if row["domain"] == domain]
     by_instance: dict[int, dict[str, dict[str, str]]] = {}
     for row in rows:
         by_instance.setdefault(int(row["instance"]), {})[row["algorithm"]] = row
@@ -78,7 +79,7 @@ def merge_params(input_dir: Path, output: Path) -> None:
                 max_time = "-1"
 
             writer.writerow({
-                "domain": "stp",
+                "domain": domain,
                 "instance": str(instance),
                 "status": status,
                 "solution_length": solution_length,
@@ -107,8 +108,8 @@ def benchmark_header() -> list[str]:
     return header
 
 
-def merge_convergence(input_dir: Path, output: Path) -> None:
-    files = sorted(input_dir.glob("convergence_*.csv"))
+def merge_convergence(domain: str, input_dir: Path, output: Path) -> None:
+    files = sorted(input_dir.glob(f"convergence_{domain}_*.csv"))
     header = [
         "instance", "size_kib", "ratio", "total_depth", "iteration", "n_inserted",
         "n_unique", "estimated_fp", "bits_set", "fill_ratio", "expected_fill_ratio",
@@ -132,22 +133,28 @@ def merge_convergence(input_dir: Path, output: Path) -> None:
         writer.writerows(rows)
 
 
-def merge_final(params_path: Path, run_dir: Path, convergence_dir: Path, output_dir: Path) -> None:
+def merge_final(domain: str, params_path: Path, run_dir: Path, convergence_dir: Path, output_dir: Path) -> None:
     params_rows = read_csv_files([params_path])
     run_rows = read_csv_files(sorted(run_dir.glob("result_*.csv")))
+    run_rows = [row for row in run_rows if row["domain"] == domain]
     run_by_key = {
         (row["instance"], row["algorithm"], row["ratio"]): row
         for row in run_rows
     }
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    benchmark_path = output_dir / "benchmark_stp_korf100.csv"
+    benchmark_name = "benchmark_stp_korf100.csv"
+    convergence_name = "bloom_convergence.csv"
+    if domain == "rubik":
+        benchmark_name = "benchmark_rubik_random14_100.csv"
+        convergence_name = "bloom_convergence_rubik_random14.csv"
+    benchmark_path = output_dir / benchmark_name
     header = benchmark_header()
     param_rows = []
     result_rows = []
 
     for params in params_rows:
-        if params["domain"] != "stp":
+        if params["domain"] != domain:
             continue
         instance = params["instance"]
         if params["status"] != "ok":
@@ -201,13 +208,14 @@ def merge_final(params_path: Path, run_dir: Path, convergence_dir: Path, output_
         for row in sorted(result_rows, key=lambda item: int(item["instance"])):
             writer.writerow([row[name] for name in header])
 
-    merge_convergence(convergence_dir, output_dir / "bloom_convergence.csv")
+    merge_convergence(domain, convergence_dir, output_dir / convergence_name)
     print(f"Wrote merged benchmark and convergence files to {output_dir}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["params", "final"], required=True)
+    parser.add_argument("--domain", choices=["stp", "rubik"], default="stp")
     parser.add_argument("--calibration-dir", type=Path, default=Path("results/split/calibration_parts"))
     parser.add_argument("--params", type=Path, default=Path("results/split/params/stp_params.csv"))
     parser.add_argument("--run-dir", type=Path, default=Path("results/split/run_parts"))
@@ -216,9 +224,9 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.mode == "params":
-        merge_params(args.calibration_dir, args.params)
+        merge_params(args.domain, args.calibration_dir, args.params)
     else:
-        merge_final(args.params, args.run_dir, args.convergence_dir, args.output_dir)
+        merge_final(args.domain, args.params, args.run_dir, args.convergence_dir, args.output_dir)
 
 
 if __name__ == "__main__":

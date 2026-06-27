@@ -31,10 +31,10 @@ if [[ -z "$row" ]]; then
 fi
 
 IFS=, read -r job_id domain instance phase algorithm ratio <<< "$row"
-srun "$binary" --stp --phase run \
+srun "$binary" "--${domain}" --phase run \
   --instance "$instance" \
   --algorithm "$algorithm" \
   --ratio "$ratio" \
-  --params-input "results/split/params/stp_params.csv" \
-  --benchmark-output "results/split/run_parts/result_${job_id}.csv" \
-  --convergence-output "results/split/convergence_parts/convergence_${job_id}.csv"
+  --params-input "results/split/params/${domain}_params.csv" \
+  --benchmark-output "results/split/run_parts/result_${domain}_${job_id}.csv" \
+  --convergence-output "results/split/convergence_parts/convergence_${domain}_${job_id}.csv"

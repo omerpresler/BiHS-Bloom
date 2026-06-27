@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate small CSV manifests for the split STP benchmark workflow."""
+"""Generate small CSV manifests for the split benchmark workflow."""
 
 import argparse
 import csv
@@ -21,12 +21,12 @@ def write_rows(path: Path, rows: list[dict[str, str]]) -> None:
             writer.writerow(row)
 
 
-def calibration_rows(instance_start: int, instance_end: int) -> list[dict[str, str]]:
+def calibration_rows(domain: str, instance_start: int, instance_end: int) -> list[dict[str, str]]:
     rows = []
     for instance in range(instance_start, instance_end):
         for algorithm in ["astar", "rev_astar", "mm"]:
             rows.append({
-                "domain": "stp",
+                "domain": domain,
                 "instance": str(instance),
                 "phase": "calibrate",
                 "algorithm": algorithm,
@@ -35,17 +35,17 @@ def calibration_rows(instance_start: int, instance_end: int) -> list[dict[str, s
     return rows
 
 
-def run_rows(params_path: Path) -> list[dict[str, str]]:
+def run_rows(domain: str, params_path: Path) -> list[dict[str, str]]:
     rows = []
     with params_path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         for row in reader:
-            if row["domain"] != "stp" or row["status"] != "ok":
+            if row["domain"] != domain or row["status"] != "ok":
                 continue
             for ratio in RATIOS:
                 for algorithm in ["bihs_bloom", "idths_trans"]:
                     rows.append({
-                        "domain": "stp",
+                        "domain": domain,
                         "instance": row["instance"],
                         "phase": "run",
                         "algorithm": algorithm,
@@ -57,6 +57,7 @@ def run_rows(params_path: Path) -> list[dict[str, str]]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--phase", choices=["calibrate", "run"], required=True)
+    parser.add_argument("--domain", choices=["stp", "rubik"], default="stp")
     parser.add_argument("--instance-start", type=int, default=0)
     parser.add_argument("--instance-end", type=int, default=1)
     parser.add_argument("--params", type=Path, default=Path("results/split/params/stp_params.csv"))
@@ -64,9 +65,9 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.phase == "calibrate":
-        rows = calibration_rows(args.instance_start, args.instance_end)
+        rows = calibration_rows(args.domain, args.instance_start, args.instance_end)
     else:
-        rows = run_rows(args.params)
+        rows = run_rows(args.domain, args.params)
 
     write_rows(args.output, rows)
     print(f"Wrote {len(rows)} {args.phase} manifest rows to {args.output}")

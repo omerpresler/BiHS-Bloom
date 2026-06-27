@@ -31,7 +31,7 @@ if [[ -z "$row" ]]; then
 fi
 
 IFS=, read -r job_id domain instance phase algorithm ratio <<< "$row"
-srun "$binary" --stp --phase calibrate \
+srun "$binary" "--${domain}" --phase calibrate \
   --instance "$instance" \
   --algorithm "$algorithm" \
-  --benchmark-output "results/split/calibration_parts/calibration_${job_id}.csv"
+  --benchmark-output "results/split/calibration_parts/calibration_${domain}_${job_id}.csv"

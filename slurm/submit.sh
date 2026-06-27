@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+domain="${DOMAIN:-stp}"
+export DOMAIN="$domain"
+params_file="results/split/params/${domain}_params.csv"
 mkdir -p results/split/manifests results/split/calibration_parts results/split/params \
   results/split/run_parts results/split/convergence_parts results/logs results/merged
 
@@ -12,6 +15,7 @@ fi
 
 python3 scripts/generate_split_manifest.py \
   --phase calibrate \
+  --domain "$domain" \
   --instance-start "${INSTANCE_START:-0}" \
   --instance-end "${INSTANCE_END:-1}" \
   --output results/split/manifests/calibration.csv
@@ -22,6 +26,8 @@ manifest_job=$(sbatch --parsable --dependency="afterok:${params_job}" slurm/stp_
 run_job=$(sbatch --parsable --dependency="afterok:${manifest_job}" slurm/stp_run.sbatch)
 merge_job=$(sbatch --parsable --dependency="afterany:${run_job}" slurm/merge.sbatch)
 
+echo "Domain: ${domain}"
+echo "Params file: ${params_file}"
 echo "Submitted calibration array job: ${calibration_job}"
 echo "Submitted params merge job: ${params_job}"
 echo "Submitted run manifest job: ${manifest_job}"

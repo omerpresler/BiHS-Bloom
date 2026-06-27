@@ -12,4 +12,8 @@
 
 set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:-$PWD}"
-python3 scripts/merge_split_results.py --mode final
+domain="${DOMAIN:-stp}"
+python3 scripts/merge_split_results.py \
+  --mode final \
+  --domain "$domain" \
+  --params "results/split/params/${domain}_params.csv"

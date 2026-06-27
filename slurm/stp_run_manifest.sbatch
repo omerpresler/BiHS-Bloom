@@ -12,7 +12,9 @@
 
 set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:-$PWD}"
+domain="${DOMAIN:-stp}"
 python3 scripts/generate_split_manifest.py \
   --phase run \
-  --params results/split/params/stp_params.csv \
+  --domain "$domain" \
+  --params "results/split/params/${domain}_params.csv" \
   --output results/split/manifests/run.csv

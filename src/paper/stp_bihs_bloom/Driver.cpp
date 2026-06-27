@@ -172,7 +172,7 @@ struct STPSplitParams {
   std::string reason;
 };
 
-static STPSplitParams LoadSTPSplitParams(const std::string &paramsFile, int instance)
+static STPSplitParams LoadSplitParams(const std::string &paramsFile, const std::string &domain, int instance)
 {
   STPSplitParams params;
   std::ifstream input(paramsFile);
@@ -187,7 +187,7 @@ static STPSplitParams LoadSTPSplitParams(const std::string &paramsFile, int inst
     auto fields = SplitCSVLine(line);
     if (fields.size() < 8)
       continue;
-    if (fields[0] != "stp" || std::stoi(fields[1]) != instance)
+    if (fields[0] != domain || std::stoi(fields[1]) != instance)
       continue;
 
     params.found = true;
@@ -203,12 +203,12 @@ static STPSplitParams LoadSTPSplitParams(const std::string &paramsFile, int inst
   return params;
 }
 
-static void WriteSplitResultRow(std::ofstream &out, int instance, const std::string &algorithm,
+static void WriteSplitResultRow(std::ofstream &out, const std::string &domain, int instance, const std::string &algorithm,
                                 double ratio, const std::string &status, double time,
                                 size_t nodes, size_t necessaryNodes, unsigned long storageStates,
                                 int sizeKiB, int kHashes, double fpEst, int solutionLength)
 {
-  out << "stp," << instance << "," << algorithm << "," << ratio << "," << status << ","
+  out << domain << "," << instance << "," << algorithm << "," << ratio << "," << status << ","
       << time << "," << nodes << "," << necessaryNodes << "," << storageStates << ","
       << sizeKiB << "," << kHashes << "," << fpEst << "," << solutionLength << "\n";
 }
@@ -294,9 +294,9 @@ static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, 
     throw std::runtime_error("Unable to open split result output: " + outputFile);
   out << SPLIT_RESULTS_HEADER;
 
-  STPSplitParams params = LoadSTPSplitParams(paramsFile, instance);
+  STPSplitParams params = LoadSplitParams(paramsFile, "stp", instance);
   if (!params.found || !params.usable) {
-    WriteSplitResultRow(out, instance, algorithm, ratio, "missing_params", -3.0, 0, 0, 0, 0, 0, 0.0, -1);
+    WriteSplitResultRow(out, "stp", instance, algorithm, ratio, "missing_params", -3.0, 0, 0, 0, 0, 0, 0.0, -1);
     std::cout << "[" << instance << "] Missing calibration params; skipping " << algorithm << "\n";
     return;
   }
@@ -343,7 +343,7 @@ static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, 
     std::string status = outOfMemory ? "oom" : (bihs.hasTimedOut() || path.empty() ? "timeout" : "ok");
     double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
     int solutionLength = status == "ok" ? static_cast<int>(path.size()) : params.solutionLength;
-    WriteSplitResultRow(out, instance, algorithm, ratio, status, elapsed,
+    WriteSplitResultRow(out, "stp", instance, algorithm, ratio, status, elapsed,
                         bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength);
 
     if (WRITE_CONVERGENCE_LOG) {
@@ -382,7 +382,186 @@ static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, 
     std::string status = outOfMemory ? "oom" : (solved ? "ok" : "timeout");
     double elapsed = outOfMemory ? -2.0 : (solved ? t.GetElapsedTime() : -1.0);
     int solutionLength = solved ? static_cast<int>(idthsTrans.getPathLength()) : params.solutionLength;
-    WriteSplitResultRow(out, instance, algorithm, ratio, status, elapsed,
+    WriteSplitResultRow(out, "stp", instance, algorithm, ratio, status, elapsed,
+                        idthsTrans.GetNodesExpanded(), idthsTrans.GetNecessaryExpansions(),
+                        storage, 0, 0, 0.0, solutionLength);
+    std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
+  } else {
+    throw std::runtime_error("Unsupported split run algorithm: " + algorithm);
+  }
+}
+
+static void runRubikCalibrationJob(int instance, const std::string &algorithm,
+                                   const std::string &outputFile)
+{
+  std::ofstream out(outputFile);
+  if (!out)
+    throw std::runtime_error("Unable to open calibration output: " + outputFile);
+  out << SPLIT_CALIBRATION_HEADER;
+
+  BenchmarkRC rubik;
+  RCState goal;
+  RCState puzzle;
+  goal.Reset();
+  RubiksCubeInstances::GetRandomN(puzzle, RUBIK_SCRAMBLE_DEPTH, instance);
+  Timer t;
+
+  std::string status = "ok";
+  double elapsed = -1;
+  size_t nodes = 0;
+  int solutionLength = -1;
+  size_t memoryItems = 0;
+  size_t frontierItems = 0;
+
+  try {
+    if (algorithm == "astar") {
+      TemplateAStar<RCState, RCAction, BenchmarkRC> astar;
+      std::vector<RCState> path;
+      std::cout << "[" << instance << "] Calibrating Rubik A*..." << std::flush;
+      t.StartTimer();
+      astar.GetPath(&rubik, puzzle, goal, path);
+      t.EndTimer();
+      elapsed = t.GetElapsedTime();
+      nodes = astar.GetNodesExpanded();
+      solutionLength = static_cast<int>(path.size()) - 1;
+      memoryItems = astar.GetNumItems();
+    } else if (algorithm == "rev_astar") {
+      TemplateAStar<RCState, RCAction, BenchmarkRC> astar;
+      std::vector<RCState> path;
+      std::cout << "[" << instance << "] Calibrating Rubik Rev-A*..." << std::flush;
+      t.StartTimer();
+      astar.GetPath(&rubik, goal, puzzle, path);
+      t.EndTimer();
+      elapsed = t.GetElapsedTime();
+      nodes = astar.GetNodesExpanded();
+      solutionLength = static_cast<int>(path.size()) - 1;
+      memoryItems = astar.GetNumItems();
+    } else if (algorithm == "mm") {
+      MM<RCState, RCAction, BenchmarkRC> mm;
+      std::vector<RCState> path;
+      std::cout << "[" << instance << "] Calibrating Rubik MM..." << std::flush;
+      t.StartTimer();
+      mm.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
+      t.EndTimer();
+      elapsed = t.GetElapsedTime();
+      nodes = mm.GetNodesExpanded();
+      solutionLength = static_cast<int>(path.size()) - 1;
+      memoryItems = mm.GetNumForwardItems() + mm.GetNumBackwardItems();
+      frontierItems = mm.GetNumForwardItems();
+    } else {
+      throw std::runtime_error("Unsupported calibration algorithm: " + algorithm);
+    }
+  }
+  catch (const std::bad_alloc&) {
+    t.EndTimer();
+    status = "oom";
+    elapsed = -2.0;
+  }
+
+  out << "rubik," << instance << "," << algorithm << "," << status << ","
+      << elapsed << "," << nodes << "," << solutionLength << ","
+      << memoryItems << "," << frontierItems << "\n";
+  std::cout << " " << status << " (" << elapsed << "s, " << nodes << "n)\n" << std::flush;
+}
+
+static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm, double ratio,
+                                      const std::string &paramsFile, const std::string &outputFile,
+                                      const std::string &convergenceFile)
+{
+  std::ofstream out(outputFile);
+  if (!out)
+    throw std::runtime_error("Unable to open split result output: " + outputFile);
+  out << SPLIT_RESULTS_HEADER;
+
+  STPSplitParams params = LoadSplitParams(paramsFile, "rubik", instance);
+  if (!params.found || !params.usable) {
+    WriteSplitResultRow(out, "rubik", instance, algorithm, ratio, "missing_params", -3.0, 0, 0, 0, 0, 0, 0.0, -1);
+    std::cout << "[" << instance << "] Missing calibration params; skipping Rubik " << algorithm << "\n";
+    return;
+  }
+
+  const BiHSRunConfig *run = FindBiHSRunByRatio(ratio);
+  if (run == nullptr)
+    throw std::runtime_error("Unsupported ratio for split run: " + std::to_string(ratio));
+
+  BenchmarkRC rubik;
+  RCState goal;
+  RCState puzzle;
+  goal.Reset();
+  RubiksCubeInstances::GetRandomN(puzzle, RUBIK_SCRAMBLE_DEPTH, instance);
+  Timer t;
+
+  double bihsTimeLimit = std::max(params.maxBaselineTime * 20.0, 120.0);
+  if (params.frontierItems == 0)
+    throw std::runtime_error("Missing Rubik MM frontier for instance " + std::to_string(instance));
+
+  if (algorithm == "bihs_bloom") {
+    int sizeKiB = std::max(1, static_cast<int>(
+        std::round((static_cast<double>(params.minMemoryItems) * get_state_size(puzzle) / 8192.0) * ratio)));
+    double bloomBits = sizeKiB * 8192.0;
+    double estimatedFrontierItems = std::max(1.0, static_cast<double>(params.frontierItems));
+    int optimizedKHashes = static_cast<int>(std::round((bloomBits / estimatedFrontierItems) * std::log(2.0)));
+    int kHashes = std::max(1, run->useOptimizedK ? optimizedKHashes : 1);
+    double fpEst = fp_rate(kHashes, estimatedFrontierItems, bloomBits);
+
+    using RubikBiHSBloom = BiHSBloom<RCState, RCAction, BenchmarkRC>;
+    RubikBiHSBloom bihs(sizeKiB, kHashes, bihsTimeLimit, run->useDynamicSplit);
+    bool outOfMemory = false;
+    std::vector<RCAction> path;
+    std::cout << "[" << instance << "] Split Rubik BiHS-Bloom(" << run->ratioLabel << ")..." << std::flush;
+    try {
+      t.StartTimer();
+      path = bihs.GetPath(puzzle, goal);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      outOfMemory = true;
+    }
+
+    std::string status = outOfMemory ? "oom" : (bihs.hasTimedOut() || path.empty() ? "timeout" : "ok");
+    double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
+    int solutionLength = status == "ok" ? static_cast<int>(path.size()) : params.solutionLength;
+    WriteSplitResultRow(out, "rubik", instance, algorithm, ratio, status, elapsed,
+                        bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength);
+
+    if (WRITE_CONVERGENCE_LOG) {
+      std::ofstream conv(convergenceFile);
+      if (!conv)
+        throw std::runtime_error("Unable to open convergence output: " + convergenceFile);
+      conv << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
+      for (const auto &s : bihs.GetIterStats())
+        conv << instance << "," << sizeKiB << "," << ratio << ","
+             << s.totalDepth << "," << s.iteration << ","
+             << s.nInserted << "," << s.nUnique << "," << s.estimatedFP << ","
+             << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << ","
+             << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
+             << s.materializedTotalStates << "," << (s.isTypeSplit ? "type" : "iter") << ","
+             << s.typeIndex << "," << s.typeCount << ","
+             << run->kMode << "," << kHashes << "," << run->splitMode << "\n";
+    }
+    std::cout << " " << status << " (" << elapsed << "s, " << bihs.GetTotalNodesExpanded() << "n)\n" << std::flush;
+  } else if (algorithm == "idths_trans") {
+    unsigned long storage = std::max<unsigned long>(
+        static_cast<unsigned long>(params.minMemoryItems * ratio), IDTHS_MIN_STATES_BOUND);
+    IDTHSwTrans<RCState, RCAction, false> idthsTrans(true, true, true, 1, true);
+    bool solved = false;
+    bool outOfMemory = false;
+    std::cout << "[" << instance << "] Split Rubik IDTHSwTrans(" << run->ratioLabel << ")..." << std::flush;
+    try {
+      t.StartTimer();
+      solved = idthsTrans.GetPath(&rubik, puzzle, goal, IDTHS_SECONDS_LIMIT, storage);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      outOfMemory = true;
+    }
+
+    std::string status = outOfMemory ? "oom" : (solved ? "ok" : "timeout");
+    double elapsed = outOfMemory ? -2.0 : (solved ? t.GetElapsedTime() : -1.0);
+    int solutionLength = solved ? static_cast<int>(idthsTrans.getPathLength()) : params.solutionLength;
+    WriteSplitResultRow(out, "rubik", instance, algorithm, ratio, status, elapsed,
                         idthsTrans.GetNodesExpanded(), idthsTrans.GetNecessaryExpansions(),
                         storage, 0, 0, 0.0, solutionLength);
     std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
@@ -1764,24 +1943,34 @@ int main(int argc, char **argv) {
   }
 
   if (!phase.empty()) {
-    if (!slidingTilePuzzle) {
-      std::cerr << "Split phase mode currently supports --stp only\n";
+    if (!slidingTilePuzzle && !rubik) {
+      std::cerr << "Split phase mode currently supports --stp and --rubik\n";
       return 1;
     }
-    if (singleInstance < 0 || singleInstance >= 100) {
-      std::cerr << "Split phase mode requires --instance in range 0..99\n";
+    int maxInstances = slidingTilePuzzle ? 100 : RUBIK_TOTAL_INSTANCES;
+    if (singleInstance < 0 || singleInstance >= maxInstances) {
+      std::cerr << "Split phase mode requires --instance in range 0.." << (maxInstances - 1) << "\n";
       return 1;
     }
     if (algorithm.empty()) {
       std::cerr << "Split phase mode requires --algorithm\n";
       return 1;
     }
+    if (rubik && paramsFile == "results/split/params/stp_params.csv")
+      paramsFile = "results/split/params/rubik_params.csv";
     try {
       if (phase == "calibrate") {
-        runSTPCalibrationJob(singleInstance, algorithm, benchmarkFile);
+        if (slidingTilePuzzle)
+          runSTPCalibrationJob(singleInstance, algorithm, benchmarkFile);
+        else
+          runRubikCalibrationJob(singleInstance, algorithm, benchmarkFile);
       } else if (phase == "run") {
-        runSTPSplitAlgorithmJob(singleInstance, algorithm, ratio, paramsFile,
-                                benchmarkFile, convergenceFile);
+        if (slidingTilePuzzle)
+          runSTPSplitAlgorithmJob(singleInstance, algorithm, ratio, paramsFile,
+                                  benchmarkFile, convergenceFile);
+        else
+          runRubikSplitAlgorithmJob(singleInstance, algorithm, ratio, paramsFile,
+                                    benchmarkFile, convergenceFile);
       } else {
         std::cerr << "Unknown phase: " << phase << "\n";
         return 1;
