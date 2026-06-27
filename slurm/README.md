@@ -72,6 +72,27 @@ The dependency chain is:
 fixed Rubik array -> fixed Rubik merge
 ```
 
+## 2c. Submit the combined STP + Pancake workflow
+
+This runs every STP Korf instance and every Pancake instance without a separate
+calibration phase. Each array task runs one complete instance end to end.
+
+```bash
+bash slurm/submit_stp_pancake.sh
+```
+
+Array mapping:
+
+- `0-99`: STP instances `0-99`
+- `100-199`: Pancake instances `0-99`
+
+By default it runs the normal per-instance pipeline. To include the expensive
+full baselines too:
+
+```bash
+FULL_BASELINES=1 bash slurm/submit_stp_pancake.sh
+```
+
 ## 3. Outputs
 
 - `results/split/manifests/`: calibration and phase-2 job manifests
@@ -85,6 +106,8 @@ fixed Rubik array -> fixed Rubik merge
 - `results/merged/bloom_convergence_rubik_korf.csv`: Rubik convergence CSV
 - `results/merged/benchmark_rubik_korf_fixed128g_k1.csv`: fixed Rubik 128GiB CSV
 - `results/merged/bloom_convergence_rubik_korf_fixed128g_k1.csv`: fixed Rubik convergence CSV
+- `results/merged/benchmark_pancake20_100.csv`: merged Pancake benchmark CSV
+- `results/merged/bloom_convergence_pancake20.csv`: merged Pancake convergence CSV
 
 ## 4. Local smoke test
 

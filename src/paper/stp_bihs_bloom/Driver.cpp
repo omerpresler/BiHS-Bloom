@@ -1174,10 +1174,13 @@ void solveSTP(int instanceStart, int instanceEnd,
   std::cout << "Results written to " << benchmarkFile << std::endl;
 }
 
-void solvePancake(){
-  const std::string benchmarkFile = "benchmark_pancake" + std::to_string(PANCAKE_SIZE) + "_100.csv";
-  const std::string convergenceFile = "bloom_convergence_pancake" + std::to_string(PANCAKE_SIZE) + ".csv";
+void solvePancake(int instanceStart, int instanceEnd,
+                  const std::string &benchmarkFile,
+                  const std::string &convergenceFile){
   std::ofstream log(benchmarkFile);
+  if (!log) {
+    throw std::runtime_error("Unable to open benchmark output: " + benchmarkFile);
+  }
   std::vector<std::string> headers = {"instance", "solution_length",
       "a_star_time", "rev_a_star_time", "bae_time", "nbs_time", "mm_time", "ida_time", "parallel_ida_time", "rev_ida_time",
       "a_star_nodes", "rev_a_star_nodes", "bae_nodes", "nbs_nodes", "mm_nodes", "ida_nodes", "parallel_ida_nodes", "rev_ida_nodes",
@@ -1209,14 +1212,16 @@ void solvePancake(){
   std::ofstream convLog;
   if (WRITE_CONVERGENCE_LOG) {
     convLog.open(convergenceFile);
+    if (!convLog) {
+      throw std::runtime_error("Unable to open convergence output: " + convergenceFile);
+    }
     convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
   }
 
   std::mutex logMutex;
   std::mutex convMutex;
-  const int totalInstances = 100;
 
-  for (int i = 0; i < totalInstances; i++) {
+  for (int i = instanceStart; i < instanceEnd; i++) {
     STPResult result;
     result.instance = i;
     result.solutionLength = -1;
@@ -2119,8 +2124,16 @@ int main(int argc, char **argv) {
     solveSTP(instanceStart, instanceEnd, benchmarkFile, convergenceFile);
   }
   else if (pancake) {
+    if (benchmarkFile == "benchmark_stp_korf100.csv")
+      benchmarkFile = "benchmark_pancake" + std::to_string(PANCAKE_SIZE) + "_100.csv";
+    if (convergenceFile == "bloom_convergence.csv")
+      convergenceFile = "bloom_convergence_pancake" + std::to_string(PANCAKE_SIZE) + ".csv";
+    if (instanceStart < 0 || instanceEnd > 100 || instanceStart >= instanceEnd) {
+      std::cerr << "Pancake instance range must satisfy 0 <= start < end <= 100\n";
+      return 1;
+    }
     std::cout << "Domain: Pancake Puzzle" << std::endl;
-    solvePancake();
+    solvePancake(instanceStart, instanceEnd, benchmarkFile, convergenceFile);
   }
   else if (rubik) {
     if (instanceStart < 0 || instanceEnd > RUBIK_TOTAL_INSTANCES || instanceStart >= instanceEnd) {
