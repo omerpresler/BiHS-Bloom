@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 RATIOS = ["0.5", "0.1", "0.01", "0.001"]
-FIXED_RUBIK_ALGORITHMS = ["bihs_bloom", "idths_trans"]
+FIXED_RUBIK_ALGORITHMS = ["bihs_bloom", "idths_trans", "ida"]
 
 
 def write_rows(path: Path, rows: list[dict[str, str]]) -> None:

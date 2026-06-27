@@ -52,11 +52,12 @@ instance.
 
 ## 2b. Submit the fixed Rubik 128GiB workflow
 
-This bypasses A*/MM calibration entirely. It submits two jobs for Korf Rubik
+This bypasses A*/MM calibration entirely. It submits three jobs for Korf Rubik
 instance `0`:
 
 - `bihs_bloom` with a 128GiB Bloom filter, `k=1`, flat splitting
 - `idths_trans` with the equivalent 128GiB state bound
+- `ida` as the baseline runtime comparison
 
 The job requests `160G` from Slurm so the process has room for allocator and
 runtime overhead while the algorithm budget remains 128GiB.
@@ -110,7 +111,7 @@ The Slurm array sizes are fixed for the one-instance trial:
 
 - `slurm/stp_calibration.sbatch`: `#SBATCH --array=0-2%3`
 - `slurm/stp_run.sbatch`: `#SBATCH --array=0-7%4`
-- `slurm/rubik_fixed.sbatch`: `#SBATCH --array=0-1%2`
+- `slurm/rubik_fixed.sbatch`: `#SBATCH --array=0-2%3`
 
 When scaling past instance `0`, regenerate the manifests and expand those array
 ranges accordingly.

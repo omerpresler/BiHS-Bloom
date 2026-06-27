@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=main
 #SBATCH --job-name=bihs-rubik-fixed
-#SBATCH --array=0-1%2
+#SBATCH --array=0-2%3
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=160G

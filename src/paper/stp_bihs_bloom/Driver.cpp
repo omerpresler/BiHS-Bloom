@@ -665,6 +665,27 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
                         idthsTrans.GetNodesExpanded(), idthsTrans.GetNecessaryExpansions(),
                         storage, 0, 0, 0.0, solutionLength);
     std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
+  } else if (algorithm == "ida") {
+    IDAStar<RCState, RCAction, false> ida;
+    bool outOfMemory = false;
+    std::vector<RCState> path;
+    std::cout << "[" << instance << "] Fixed Rubik IDA*..." << std::flush;
+    try {
+      t.StartTimer();
+      ida.GetPath(&rubik, puzzle, goal, path);
+      t.EndTimer();
+    }
+    catch (const std::bad_alloc&) {
+      t.EndTimer();
+      outOfMemory = true;
+    }
+
+    std::string status = outOfMemory ? "oom" : (path.empty() ? "timeout" : "ok");
+    double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
+    int solutionLength = status == "ok" ? static_cast<int>(path.size()) - 1 : -1;
+    WriteSplitResultRow(out, "rubik", instance, algorithm, fixedRatio, status, elapsed,
+                        ida.GetNodesExpanded(), 0, 0, 0, 0, 0.0, solutionLength);
+    std::cout << " " << status << " (" << elapsed << "s, " << ida.GetNodesExpanded() << "n)\n" << std::flush;
   } else {
     throw std::runtime_error("Unsupported fixed Rubik algorithm: " + algorithm);
   }
