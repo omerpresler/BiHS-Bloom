@@ -8,8 +8,6 @@
 #SBATCH --time=1-00:00:00
 #SBATCH --output=results/logs/rubik_fixed_%A_%a.out
 #SBATCH --error=results/logs/rubik_fixed_%A_%a.err
-#SBATCH --mail-user=omerpr@post.bgu.ac.il
-#SBATCH --mail-type=FAIL
 
 set -euo pipefail
 
@@ -30,7 +28,7 @@ if [[ -z "$row" ]]; then
   exit 0
 fi
 
-IFS=, read -r job_id domain instance phase algorithm ratio <<< "$row"
+IFS=, read -r job_id domain instance phase algorithm ratio k_mode <<< "$row"
 srun "$binary" "--${domain}" --phase "$phase" \
   --instance "$instance" \
   --algorithm "$algorithm" \

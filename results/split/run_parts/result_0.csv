@@ -1,0 +1,2 @@
+domain,instance,algorithm,ratio,status,time,nodes,necessary_nodes,storage_states,size_kib,k_hashes,fp_est,solution_length
+stp,0,bihs_bloom,0.5,ok,4.47192,68609426,0,0,9530,4,0.0846897,57

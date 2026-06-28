@@ -1,0 +1,2 @@
+domain,instance,algorithm,status,time,nodes,solution_length,memory_items,frontier_items
+stp,0,astar,ok,42.4652,10000000,-1,17943650,0

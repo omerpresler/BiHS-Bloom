@@ -7,12 +7,13 @@ from pathlib import Path
 
 
 RATIOS = ["0.5", "0.1", "0.01", "0.001"]
+BIHS_K_MODES = ["k1", "optk", "rootk"]
 FIXED_RUBIK_ALGORITHMS = ["bihs_bloom", "idths_trans", "ida"]
 
 
 def write_rows(path: Path, rows: list[dict[str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["job_id", "domain", "instance", "phase", "algorithm", "ratio"]
+    fields = ["job_id", "domain", "instance", "phase", "algorithm", "ratio", "k_mode"]
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
@@ -32,6 +33,7 @@ def calibration_rows(domain: str, instance_start: int, instance_end: int) -> lis
                 "phase": "calibrate",
                 "algorithm": algorithm,
                 "ratio": "",
+                "k_mode": "",
             })
     return rows
 
@@ -44,14 +46,23 @@ def run_rows(domain: str, params_path: Path) -> list[dict[str, str]]:
             if row["domain"] != domain or row["status"] != "ok":
                 continue
             for ratio in RATIOS:
-                for algorithm in ["bihs_bloom", "idths_trans"]:
+                for k_mode in BIHS_K_MODES:
                     rows.append({
                         "domain": domain,
                         "instance": row["instance"],
                         "phase": "run",
-                        "algorithm": algorithm,
+                        "algorithm": "bihs_bloom",
                         "ratio": ratio,
+                        "k_mode": k_mode,
                     })
+                rows.append({
+                    "domain": domain,
+                    "instance": row["instance"],
+                    "phase": "run",
+                    "algorithm": "idths_trans",
+                    "ratio": ratio,
+                    "k_mode": "",
+                })
     return rows
 
 
@@ -65,6 +76,7 @@ def rubik_fixed_rows(instance_start: int, instance_end: int) -> list[dict[str, s
                 "phase": "fixed-run",
                 "algorithm": algorithm,
                 "ratio": "1.0",
+                "k_mode": "k1" if algorithm == "bihs_bloom" else "",
             })
     return rows
 

@@ -38,7 +38,7 @@ void GetKorfRubikInstance(RCState &start, int which);
 }
 
 static constexpr double SKIPPED_TIME = -3.0;
-static constexpr int NUM_BIHS_RUNS = 4;
+static constexpr int NUM_BIHS_RUNS = 12;
 static constexpr bool WRITE_BIHS_PARAM_LOG = true;
 static constexpr bool WRITE_CONVERGENCE_LOG = true;
 static constexpr unsigned long IDTHS_DEFAULT_STATES_BOUND = 1000000;
@@ -54,7 +54,7 @@ static bool gRunFullBaselines = false;
 
 static const char *SPLIT_RESULTS_HEADER =
     "domain,instance,algorithm,ratio,status,time,nodes,necessary_nodes,storage_states,"
-    "size_kib,k_hashes,fp_est,solution_length\n";
+    "size_kib,k_hashes,fp_est,solution_length,k_mode,split_mode\n";
 
 static const char *SPLIT_CALIBRATION_HEADER =
     "domain,instance,algorithm,status,time,nodes,solution_length,memory_items,frontier_items\n";
@@ -64,16 +64,23 @@ struct BiHSRunConfig {
   const char *ratioLabel;
   const char *ratioSlug;
   const char *kMode;
-  bool useOptimizedK;
   const char *splitMode;
   bool useDynamicSplit;
 };
 
 static constexpr BiHSRunConfig BIHS_RUNS[NUM_BIHS_RUNS] = {
-    {0.5,  "50%", "50pct", "optk", true,  "dynamic", true},
-    {0.1,  "10%", "10pct", "optk", true,  "dynamic", true},
-    {0.01, "1%",  "1pct",  "optk", true,  "dynamic", true},
-    {0.001, "0.1%", "0_1pct", "optk", true, "dynamic", true},
+    {0.5,  "50%", "50pct", "k1",    "dynamic", true},
+    {0.5,  "50%", "50pct", "optk",  "dynamic", true},
+    {0.5,  "50%", "50pct", "rootk", "dynamic", true},
+    {0.1,  "10%", "10pct", "k1",    "dynamic", true},
+    {0.1,  "10%", "10pct", "optk",  "dynamic", true},
+    {0.1,  "10%", "10pct", "rootk", "dynamic", true},
+    {0.01, "1%",  "1pct",  "k1",    "dynamic", true},
+    {0.01, "1%",  "1pct",  "optk",  "dynamic", true},
+    {0.01, "1%",  "1pct",  "rootk", "dynamic", true},
+    {0.001, "0.1%", "0_1pct", "k1",    "dynamic", true},
+    {0.001, "0.1%", "0_1pct", "optk",  "dynamic", true},
+    {0.001, "0.1%", "0_1pct", "rootk", "dynamic", true},
 };
 
 static double fp_rate(int k, double n, double m) {
@@ -96,6 +103,17 @@ static int choose_k(double n, double m, double target = 0.01) {
   }
 
   return k_opt;
+}
+
+static int ComputeKHashes(const BiHSRunConfig &run, double estimatedItems, double bloomBits)
+{
+  int optimizedKHashes = std::max(1, static_cast<int>(
+      std::round((bloomBits / std::max(1.0, estimatedItems)) * std::log(2.0))));
+  if (std::strcmp(run.kMode, "k1") == 0)
+    return 1;
+  if (std::strcmp(run.kMode, "rootk") == 0)
+    return std::max(1, static_cast<int>(std::round(std::sqrt(optimizedKHashes))));
+  return optimizedKHashes;
 }
 
 class BenchmarkRC : public RC {
@@ -156,10 +174,10 @@ static std::vector<std::string> SplitCSVLine(const std::string &line)
   return fields;
 }
 
-static const BiHSRunConfig *FindBiHSRunByRatio(double ratio)
+static const BiHSRunConfig *FindBiHSRun(double ratio, const std::string &kMode)
 {
   for (const auto &run : BIHS_RUNS) {
-    if (std::fabs(run.ratio - ratio) < 1e-12)
+    if (std::fabs(run.ratio - ratio) < 1e-12 && run.kMode == kMode)
       return &run;
   }
   return nullptr;
@@ -209,11 +227,13 @@ static STPSplitParams LoadSplitParams(const std::string &paramsFile, const std::
 static void WriteSplitResultRow(std::ofstream &out, const std::string &domain, int instance, const std::string &algorithm,
                                 double ratio, const std::string &status, double time,
                                 size_t nodes, size_t necessaryNodes, unsigned long storageStates,
-                                int sizeKiB, int kHashes, double fpEst, int solutionLength)
+                                int sizeKiB, int kHashes, double fpEst, int solutionLength,
+                                const std::string &kMode, const std::string &splitMode)
 {
   out << domain << "," << instance << "," << algorithm << "," << ratio << "," << status << ","
       << time << "," << nodes << "," << necessaryNodes << "," << storageStates << ","
-      << sizeKiB << "," << kHashes << "," << fpEst << "," << solutionLength << "\n";
+      << sizeKiB << "," << kHashes << "," << fpEst << "," << solutionLength << ","
+      << kMode << "," << splitMode << "\n";
 }
 
 static unsigned long FixedRubikStorageStates(const RCState &sample)
@@ -300,6 +320,7 @@ static void runSTPCalibrationJob(int instance, const std::string &algorithm,
 }
 
 static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, double ratio,
+                                    const std::string &kMode,
                                     const std::string &paramsFile, const std::string &outputFile,
                                     const std::string &convergenceFile)
 {
@@ -310,14 +331,15 @@ static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, 
 
   STPSplitParams params = LoadSplitParams(paramsFile, "stp", instance);
   if (!params.found || !params.usable) {
-    WriteSplitResultRow(out, "stp", instance, algorithm, ratio, "missing_params", -3.0, 0, 0, 0, 0, 0, 0.0, -1);
+    WriteSplitResultRow(out, "stp", instance, algorithm, ratio, "missing_params", -3.0, 0, 0, 0, 0, 0, 0.0, -1, kMode, "");
     std::cout << "[" << instance << "] Missing calibration params; skipping " << algorithm << "\n";
     return;
   }
 
-  const BiHSRunConfig *run = FindBiHSRunByRatio(ratio);
+  std::string effectiveKMode = kMode.empty() ? "optk" : kMode;
+  const BiHSRunConfig *run = FindBiHSRun(ratio, effectiveKMode);
   if (run == nullptr)
-    throw std::runtime_error("Unsupported ratio for split run: " + std::to_string(ratio));
+    throw std::runtime_error("Unsupported ratio/k-mode for split run: " + std::to_string(ratio) + "/" + effectiveKMode);
 
   MNPuzzle<MN_SIZE, MN_SIZE> mnp;
   MNPuzzleState<MN_SIZE, MN_SIZE> goal;
@@ -335,15 +357,15 @@ static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, 
         std::round((static_cast<double>(params.minMemoryItems) * get_state_size(puzzle) / 8192.0) * ratio)));
     double bloomBits = sizeKiB * 8192.0;
     double estimatedFrontierItems = std::max(1.0, static_cast<double>(frontierItems));
-    int optimizedKHashes = static_cast<int>(std::round((bloomBits / estimatedFrontierItems) * std::log(2.0)));
-    int kHashes = std::max(1, run->useOptimizedK ? optimizedKHashes : 1);
+    int kHashes = ComputeKHashes(*run, estimatedFrontierItems, bloomBits);
     double fpEst = fp_rate(kHashes, estimatedFrontierItems, bloomBits);
 
     using STPBiHSBloom = BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>>;
     STPBiHSBloom bihs(sizeKiB, kHashes, bihsTimeLimit, run->useDynamicSplit);
     bool outOfMemory = false;
     std::vector<slideDir> path;
-    std::cout << "[" << instance << "] Split BiHS-Bloom(" << run->ratioLabel << ")..." << std::flush;
+    std::cout << "[" << instance << "] Split BiHS-Bloom(" << run->ratioLabel << ", "
+              << run->kMode << ", " << run->splitMode << ")..." << std::flush;
     try {
       t.StartTimer();
       path = bihs.GetPath(puzzle, goal);
@@ -358,7 +380,8 @@ static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, 
     double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
     int solutionLength = status == "ok" ? static_cast<int>(path.size()) : params.solutionLength;
     WriteSplitResultRow(out, "stp", instance, algorithm, ratio, status, elapsed,
-                        bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength);
+                        bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength,
+                        run->kMode, run->splitMode);
 
     if (WRITE_CONVERGENCE_LOG) {
       std::ofstream conv(convergenceFile);
@@ -398,7 +421,7 @@ static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, 
     int solutionLength = solved ? static_cast<int>(idthsTrans.getPathLength()) : params.solutionLength;
     WriteSplitResultRow(out, "stp", instance, algorithm, ratio, status, elapsed,
                         idthsTrans.GetNodesExpanded(), idthsTrans.GetNecessaryExpansions(),
-                        storage, 0, 0, 0.0, solutionLength);
+                        storage, 0, 0, 0.0, solutionLength, "", "");
     std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
   } else {
     throw std::runtime_error("Unsupported split run algorithm: " + algorithm);
@@ -479,6 +502,7 @@ static void runRubikCalibrationJob(int instance, const std::string &algorithm,
 }
 
 static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm, double ratio,
+                                      const std::string &kMode,
                                       const std::string &paramsFile, const std::string &outputFile,
                                       const std::string &convergenceFile)
 {
@@ -489,14 +513,15 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
 
   STPSplitParams params = LoadSplitParams(paramsFile, "rubik", instance);
   if (!params.found || !params.usable) {
-    WriteSplitResultRow(out, "rubik", instance, algorithm, ratio, "missing_params", -3.0, 0, 0, 0, 0, 0, 0.0, -1);
+    WriteSplitResultRow(out, "rubik", instance, algorithm, ratio, "missing_params", -3.0, 0, 0, 0, 0, 0, 0.0, -1, kMode, "");
     std::cout << "[" << instance << "] Missing calibration params; skipping Rubik " << algorithm << "\n";
     return;
   }
 
-  const BiHSRunConfig *run = FindBiHSRunByRatio(ratio);
+  std::string effectiveKMode = kMode.empty() ? "optk" : kMode;
+  const BiHSRunConfig *run = FindBiHSRun(ratio, effectiveKMode);
   if (run == nullptr)
-    throw std::runtime_error("Unsupported ratio for split run: " + std::to_string(ratio));
+    throw std::runtime_error("Unsupported ratio/k-mode for split run: " + std::to_string(ratio) + "/" + effectiveKMode);
 
   BenchmarkRC rubik;
   RCState goal;
@@ -514,15 +539,15 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
         std::round((static_cast<double>(params.minMemoryItems) * get_state_size(puzzle) / 8192.0) * ratio)));
     double bloomBits = sizeKiB * 8192.0;
     double estimatedFrontierItems = std::max(1.0, static_cast<double>(params.frontierItems));
-    int optimizedKHashes = static_cast<int>(std::round((bloomBits / estimatedFrontierItems) * std::log(2.0)));
-    int kHashes = std::max(1, run->useOptimizedK ? optimizedKHashes : 1);
+    int kHashes = ComputeKHashes(*run, estimatedFrontierItems, bloomBits);
     double fpEst = fp_rate(kHashes, estimatedFrontierItems, bloomBits);
 
     using RubikBiHSBloom = BiHSBloom<RCState, RCAction, BenchmarkRC>;
     RubikBiHSBloom bihs(sizeKiB, kHashes, bihsTimeLimit, run->useDynamicSplit);
     bool outOfMemory = false;
     std::vector<RCAction> path;
-    std::cout << "[" << instance << "] Split Rubik BiHS-Bloom(" << run->ratioLabel << ")..." << std::flush;
+    std::cout << "[" << instance << "] Split Rubik BiHS-Bloom(" << run->ratioLabel << ", "
+              << run->kMode << ", " << run->splitMode << ")..." << std::flush;
     try {
       t.StartTimer();
       path = bihs.GetPath(puzzle, goal);
@@ -537,7 +562,8 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
     double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
     int solutionLength = status == "ok" ? static_cast<int>(path.size()) : params.solutionLength;
     WriteSplitResultRow(out, "rubik", instance, algorithm, ratio, status, elapsed,
-                        bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength);
+                        bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength,
+                        run->kMode, run->splitMode);
 
     if (WRITE_CONVERGENCE_LOG) {
       std::ofstream conv(convergenceFile);
@@ -577,7 +603,7 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
     int solutionLength = solved ? static_cast<int>(idthsTrans.getPathLength()) : params.solutionLength;
     WriteSplitResultRow(out, "rubik", instance, algorithm, ratio, status, elapsed,
                         idthsTrans.GetNodesExpanded(), idthsTrans.GetNecessaryExpansions(),
-                        storage, 0, 0, 0.0, solutionLength);
+                        storage, 0, 0, 0.0, solutionLength, "", "");
     std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
   } else {
     throw std::runtime_error("Unsupported split run algorithm: " + algorithm);
@@ -625,7 +651,8 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
     double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
     int solutionLength = status == "ok" ? static_cast<int>(path.size()) : -1;
     WriteSplitResultRow(out, "rubik", instance, algorithm, fixedRatio, status, elapsed,
-                        bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength);
+                        bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength,
+                        "k1", "flat");
 
     if (WRITE_CONVERGENCE_LOG) {
       std::ofstream conv(convergenceFile);
@@ -663,7 +690,7 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
     int solutionLength = solved ? static_cast<int>(idthsTrans.getPathLength()) : -1;
     WriteSplitResultRow(out, "rubik", instance, algorithm, fixedRatio, status, elapsed,
                         idthsTrans.GetNodesExpanded(), idthsTrans.GetNecessaryExpansions(),
-                        storage, 0, 0, 0.0, solutionLength);
+                        storage, 0, 0, 0.0, solutionLength, "", "");
     std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
   } else if (algorithm == "ida") {
     IDAStar<RCState, RCAction, false> ida;
@@ -684,7 +711,7 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
     double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
     int solutionLength = status == "ok" ? static_cast<int>(path.size()) - 1 : -1;
     WriteSplitResultRow(out, "rubik", instance, algorithm, fixedRatio, status, elapsed,
-                        ida.GetNodesExpanded(), 0, 0, 0, 0, 0.0, solutionLength);
+                        ida.GetNodesExpanded(), 0, 0, 0, 0, 0.0, solutionLength, "", "");
     std::cout << " " << status << " (" << elapsed << "s, " << ida.GetNodesExpanded() << "n)\n" << std::flush;
   } else {
     throw std::runtime_error("Unsupported fixed Rubik algorithm: " + algorithm);
@@ -936,12 +963,9 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     int size_in_KiB = std::max(1, static_cast<int>(
         std::round((static_cast<double>(minSize) * get_state_size(puzzle) / 8192.0) * ratio))); // Convert bits to KiB
 
-    // Estimate the best Bloom hash count as ln(2) * (m / n).
     double bloomBits = size_in_KiB * 8192.0;
     double estimatedFrontierItems = std::max(1.0, static_cast<double>(frontierSize));
-    //int optimized_k_hashes = choose_k(estimatedFrontierItems, bloomBits);
-    int optimized_k_hashes = static_cast<int>(std::round((bloomBits / estimatedFrontierItems) * std::log(2.0)));
-    int k_hashes = std::max(1, run.useOptimizedK ? optimized_k_hashes : 1);
+    int k_hashes = ComputeKHashes(run, estimatedFrontierItems, bloomBits);
 
     // FP rate: (1 - e^(-k*n/m))^k where n=estimated items, m=Bloom bits.
     double fp_est = fp_rate(k_hashes, estimatedFrontierItems, bloomBits);
@@ -1452,8 +1476,7 @@ void solvePancake(int instanceStart, int instanceEnd,
 
       double bloomBits = size_in_KiB * 8192.0;
       double estimatedFrontierItems = std::max(1.0, static_cast<double>(frontierSize));
-      int optimized_k_hashes = static_cast<int>(std::round((bloomBits / estimatedFrontierItems) * std::log(2.0)));
-      int k_hashes = std::max(1, run.useOptimizedK ? optimized_k_hashes : 1);
+      int k_hashes = ComputeKHashes(run, estimatedFrontierItems, bloomBits);
       double fp_est = fp_rate(k_hashes, estimatedFrontierItems, bloomBits);
 
       std::cout << "[" << i << "] Running Pancake BiHS-Bloom(" << run.ratioLabel << ", " << run.kMode
@@ -1867,8 +1890,7 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
 
       double bloomBits = size_in_KiB * 8192.0;
       double estimatedFrontierItems = std::max(1.0, static_cast<double>(frontierSize));
-      int optimized_k_hashes = static_cast<int>(std::round((bloomBits / estimatedFrontierItems) * std::log(2.0)));
-      int k_hashes = std::max(1, run.useOptimizedK ? optimized_k_hashes : 1);
+      int k_hashes = ComputeKHashes(run, estimatedFrontierItems, bloomBits);
       double fp_est = fp_rate(k_hashes, estimatedFrontierItems, bloomBits);
 
       std::cout << "[" << i << "] Running Rubik BiHS-Bloom(" << run.ratioLabel << ", " << run.kMode
@@ -2029,6 +2051,7 @@ int main(int argc, char **argv) {
   double ratio = 0.0;
   std::string phase;
   std::string algorithm;
+  std::string kMode;
   std::string paramsFile = "results/split/params/stp_params.csv";
   std::string benchmarkFile = "benchmark_stp_korf100.csv";
   std::string convergenceFile = "bloom_convergence.csv";
@@ -2050,6 +2073,8 @@ int main(int argc, char **argv) {
       singleInstance = std::stoi(argv[++i]);
     else if (strcmp(argv[i], "--ratio") == 0 && i + 1 < argc)
       ratio = std::stod(argv[++i]);
+    else if (strcmp(argv[i], "--k-mode") == 0 && i + 1 < argc)
+      kMode = argv[++i];
     else if (strcmp(argv[i], "--params-input") == 0 && i + 1 < argc)
       paramsFile = argv[++i];
     else if (strcmp(argv[i], "--instance-start") == 0 && i + 1 < argc)
@@ -2092,10 +2117,10 @@ int main(int argc, char **argv) {
           runRubikCalibrationJob(singleInstance, algorithm, benchmarkFile);
       } else if (phase == "run") {
         if (slidingTilePuzzle)
-          runSTPSplitAlgorithmJob(singleInstance, algorithm, ratio, paramsFile,
+          runSTPSplitAlgorithmJob(singleInstance, algorithm, ratio, kMode, paramsFile,
                                   benchmarkFile, convergenceFile);
         else
-          runRubikSplitAlgorithmJob(singleInstance, algorithm, ratio, paramsFile,
+          runRubikSplitAlgorithmJob(singleInstance, algorithm, ratio, kMode, paramsFile,
                                     benchmarkFile, convergenceFile);
       } else if (phase == "fixed-run") {
         if (!rubik) {

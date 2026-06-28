@@ -1,15 +1,13 @@
 #!/bin/bash
 #SBATCH --partition=main
 #SBATCH --job-name=bihs-stp-run
-#SBATCH --array=0-7%4
+#SBATCH --array=0-15%8
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=128G
 #SBATCH --time=1-00:00:00
 #SBATCH --output=results/logs/stp_run_%A_%a.out
 #SBATCH --error=results/logs/stp_run_%A_%a.err
-#SBATCH --mail-user=omerpr@post.bgu.ac.il
-#SBATCH --mail-type=FAIL
 
 set -euo pipefail
 
@@ -30,11 +28,12 @@ if [[ -z "$row" ]]; then
   exit 0
 fi
 
-IFS=, read -r job_id domain instance phase algorithm ratio <<< "$row"
+IFS=, read -r job_id domain instance phase algorithm ratio k_mode <<< "$row"
 srun "$binary" "--${domain}" --phase run \
   --instance "$instance" \
   --algorithm "$algorithm" \
   --ratio "$ratio" \
+  --k-mode "$k_mode" \
   --params-input "results/split/params/${domain}_params.csv" \
   --benchmark-output "results/split/run_parts/result_${domain}_${job_id}.csv" \
   --convergence-output "results/split/convergence_parts/convergence_${domain}_${job_id}.csv"

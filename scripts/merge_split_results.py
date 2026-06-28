@@ -12,6 +12,8 @@ RATIOS = [
     ("0.01", "1pct"),
     ("0.001", "0_1pct"),
 ]
+BIHS_K_MODES = ["k1", "optk", "rootk"]
+BIHS_SPLIT_MODE = "dynamic"
 
 BASE_HEADER = [
     "instance", "solution_length",
@@ -99,8 +101,16 @@ def merge_params(domain: str, input_dir: Path, output: Path) -> None:
 
 def benchmark_header() -> list[str]:
     header = list(BASE_HEADER)
-    header.extend([f"bihs_bloom_time_{slug}_optk_dynamic" for _, slug in RATIOS])
-    header.extend([f"bihs_bloom_nodes_{slug}_optk_dynamic" for _, slug in RATIOS])
+    header.extend([
+        f"bihs_bloom_time_{slug}_{k_mode}_{BIHS_SPLIT_MODE}"
+        for _, slug in RATIOS
+        for k_mode in BIHS_K_MODES
+    ])
+    header.extend([
+        f"bihs_bloom_nodes_{slug}_{k_mode}_{BIHS_SPLIT_MODE}"
+        for _, slug in RATIOS
+        for k_mode in BIHS_K_MODES
+    ])
     header.extend([f"idths_trans_time_{slug}" for _, slug in RATIOS])
     header.extend([f"idths_trans_nodes_{slug}" for _, slug in RATIOS])
     header.extend([f"idths_trans_necessary_nodes_{slug}" for _, slug in RATIOS])
@@ -138,7 +148,7 @@ def merge_final(domain: str, params_path: Path, run_dir: Path, convergence_dir: 
     run_rows = read_csv_files(sorted(run_dir.glob("result_*.csv")))
     run_rows = [row for row in run_rows if row["domain"] == domain]
     run_by_key = {
-        (row["instance"], row["algorithm"], row["ratio"]): row
+        (row["instance"], row["algorithm"], row["ratio"], row.get("k_mode", "")): row
         for row in run_rows
     }
 
@@ -178,19 +188,21 @@ def merge_final(domain: str, params_path: Path, run_dir: Path, convergence_dir: 
         })
 
         for ratio, slug in RATIOS:
-            bihs = run_by_key.get((instance, "bihs_bloom", ratio))
-            idths = run_by_key.get((instance, "idths_trans", ratio))
-            if bihs:
-                row[f"bihs_bloom_time_{slug}_optk_dynamic"] = bihs["time"]
-                row[f"bihs_bloom_nodes_{slug}_optk_dynamic"] = bihs["nodes"]
-                if row["solution_length"] == "-1" and bihs["status"] == "ok":
-                    row["solution_length"] = bihs["solution_length"]
-                converged = "1" if bihs["status"] == "ok" else "0"
-                param_rows.append([
-                    "BIHS_PARAM", instance, ratio, bihs["size_kib"], bihs["k_hashes"],
-                    bihs["time"], bihs["nodes"], bihs["fp_est"], converged,
-                    "optk", "dynamic",
-                ])
+            for k_mode in BIHS_K_MODES:
+                bihs = run_by_key.get((instance, "bihs_bloom", ratio, k_mode))
+                if bihs:
+                    split_mode = bihs.get("split_mode") or BIHS_SPLIT_MODE
+                    row[f"bihs_bloom_time_{slug}_{k_mode}_{split_mode}"] = bihs["time"]
+                    row[f"bihs_bloom_nodes_{slug}_{k_mode}_{split_mode}"] = bihs["nodes"]
+                    if row["solution_length"] == "-1" and bihs["status"] == "ok":
+                        row["solution_length"] = bihs["solution_length"]
+                    converged = "1" if bihs["status"] == "ok" else "0"
+                    param_rows.append([
+                        "BIHS_PARAM", instance, ratio, bihs["size_kib"], bihs["k_hashes"],
+                        bihs["time"], bihs["nodes"], bihs["fp_est"], converged,
+                        k_mode, split_mode,
+                    ])
+            idths = run_by_key.get((instance, "idths_trans", ratio, ""))
             if idths:
                 row[f"idths_trans_time_{slug}"] = idths["time"]
                 row[f"idths_trans_nodes_{slug}"] = idths["nodes"]
@@ -221,7 +233,7 @@ def merge_rubik_fixed(run_dir: Path, convergence_dir: Path, output_dir: Path) ->
     fields = [
         "domain", "instance", "algorithm", "ratio", "status", "time", "nodes",
         "necessary_nodes", "storage_states", "size_kib", "k_hashes", "fp_est",
-        "solution_length",
+        "solution_length", "k_mode", "split_mode",
     ]
     with (output_dir / "benchmark_rubik_korf_fixed128g_k1.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")

@@ -22,7 +22,7 @@ python3 scripts/generate_split_manifest.py \
   --instance-end "${INSTANCE_END:-1}" \
   --output results/split/manifests/calibration.csv
 
-tail -n +2 results/split/manifests/calibration.csv | while IFS=, read -r job_id domain instance phase algorithm ratio; do
+tail -n +2 results/split/manifests/calibration.csv | while IFS=, read -r job_id domain instance phase algorithm ratio k_mode; do
   "$binary" "--$domain" --phase calibrate --instance "$instance" --algorithm "$algorithm" \
     --benchmark-output "results/split/calibration_parts/calibration_${domain}_${job_id}.csv"
 done
@@ -35,8 +35,9 @@ python3 scripts/generate_split_manifest.py \
   --params "$params_file" \
   --output results/split/manifests/run.csv
 
-tail -n +2 results/split/manifests/run.csv | while IFS=, read -r job_id domain instance phase algorithm ratio; do
+tail -n +2 results/split/manifests/run.csv | while IFS=, read -r job_id domain instance phase algorithm ratio k_mode; do
   "$binary" "--$domain" --phase run --instance "$instance" --algorithm "$algorithm" --ratio "$ratio" \
+    --k-mode "$k_mode" \
     --params-input "$params_file" \
     --benchmark-output "results/split/run_parts/result_${domain}_${job_id}.csv" \
     --convergence-output "results/split/convergence_parts/convergence_${domain}_${job_id}.csv"

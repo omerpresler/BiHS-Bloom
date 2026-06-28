@@ -7,8 +7,6 @@
 #SBATCH --time=00:10:00
 #SBATCH --output=results/logs/rubik_fixed_merge_%j.out
 #SBATCH --error=results/logs/rubik_fixed_merge_%j.err
-#SBATCH --mail-user=omerpr@post.bgu.ac.il
-#SBATCH --mail-type=FAIL
 
 set -euo pipefail
 

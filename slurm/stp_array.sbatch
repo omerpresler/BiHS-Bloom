@@ -8,8 +8,6 @@
 #SBATCH --time=1-00:00:00
 #SBATCH --output=results/logs/stp_%A_%a.out
 #SBATCH --error=results/logs/stp_%A_%a.err
-#SBATCH --mail-user=omerpr@post.bgu.ac.il
-#SBATCH --mail-type=FAIL
 
 set -euo pipefail
 

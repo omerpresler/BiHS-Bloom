@@ -1,0 +1,2 @@
+domain,instance,status,solution_length,min_memory_items,frontier_items,max_baseline_time,reason,a_star_time,rev_a_star_time,mm_time,a_star_nodes,rev_a_star_nodes,mm_nodes
+stp,0,ok,-1,3469721,15132874,42.4652,ok,42.4652,6.68866,41.2508,10000000,1874136,9112630

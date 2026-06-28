@@ -7,8 +7,6 @@
 #SBATCH --time=00:15:00
 #SBATCH --output=results/logs/merge_%j.out
 #SBATCH --error=results/logs/merge_%j.e
-#SBATCH --mail-user=omerpr@post.bgu.ac.il
-#SBATCH --mail-type=END,FAIL
 
 set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:-$PWD}"

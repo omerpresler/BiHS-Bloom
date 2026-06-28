@@ -1,0 +1,17 @@
+instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode
+0,191,0.01,41,0,0,0,0,0,0,0,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,43,0,0,0,0,0,0,0,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,45,0,37,37,1.59778e-05,25,1.59778e-05,2.36468e-05,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,45,1,0,0,0,0,0,0,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,47,0,4,4,2.55645e-06,4,2.55645e-06,2.55644e-06,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,47,1,0,0,0,0,0,0,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,49,0,10,10,6.39112e-06,10,6.39112e-06,6.3911e-06,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,49,1,0,0,0,0,0,0,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,51,0,20,20,1.27822e-05,20,1.27822e-05,1.27821e-05,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,51,1,0,0,0,0,0,0,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,53,0,38,38,2.42862e-05,38,2.42862e-05,2.42859e-05,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,53,1,0,0,0,0,0,0,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,55,0,80,80,5.11289e-05,80,5.11289e-05,5.11276e-05,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,55,1,0,0,0,0,0,0,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,57,0,178,178,0.000111205,174,0.000111205,0.000113755,0,0,0,iter,0,1,optk,1,dynamic
+0,191,0.01,57,1,1,1,6.39112e-07,1,6.39112e-07,6.39111e-07,1,1,2,iter,0,1,optk,1,dynamic

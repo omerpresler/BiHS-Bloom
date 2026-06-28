@@ -1,0 +1,4 @@
+job_id,domain,instance,phase,algorithm,ratio
+0,stp,0,calibrate,astar,
+1,stp,0,calibrate,rev_astar,
+2,stp,0,calibrate,mm,

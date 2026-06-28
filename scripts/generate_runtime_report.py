@@ -45,10 +45,13 @@ COLORS = dict(BASE_COLORS)
 BIHS_COLORS = {
     ("50pct", "k1"): "#7b68a6",
     ("50pct", "optk"): "#b07aa1",
+    ("50pct", "rootk"): "#4c78a8",
     ("10pct", "k1"): "#d36b8a",
     ("10pct", "optk"): "#ff9da7",
+    ("10pct", "rootk"): "#f58518",
     ("1pct", "k1"): "#7f5a3d",
     ("1pct", "optk"): "#9c755f",
+    ("1pct", "rootk"): "#54a24b",
 }
 
 IDTHS_COLORS = {
@@ -104,7 +107,7 @@ def discover_algorithms(df):
     seen_idths = []
 
     for col in df.columns:
-        match = re.fullmatch(r"bihs_bloom_time_(50pct|10pct|1pct)(?:_(k1|optk))?(?:_(fixed|dynamic))?", col)
+        match = re.fullmatch(r"bihs_bloom_time_(50pct|10pct|1pct)(?:_(k1|optk|rootk))?(?:_(fixed|dynamic))?", col)
         if match:
             ratio_slug = match.group(1)
             k_mode = match.group(2)
@@ -121,6 +124,8 @@ def discover_algorithms(df):
                 label += " k=1"
             elif k_mode == "optk":
                 label += " opt-k"
+            elif k_mode == "rootk":
+                label += " root-k"
             if match.group(3):
                 label += f" {split_mode}"
 
@@ -135,11 +140,11 @@ def discover_algorithms(df):
                 seen_idths.append((ratio_slug, f"IDTHSwTrans {RATIO_LABELS[ratio_slug]}", col, nodes_col))
 
     ratio_order = {"50pct": 0, "10pct": 1, "1pct": 2}
-    mode_order = {"k1": 0, "optk": 1, "old": 1}
+    mode_order = {"k1": 0, "optk": 1, "rootk": 2, "old": 1}
     split_order = {"fixed": 0, "dynamic": 1}
     for ratio_slug, k_mode, split_mode, label, time_col, nodes_col in sorted(
         seen_bihs,
-        key=lambda item: (ratio_order[item[0]], mode_order[item[1]], split_order.get(item[2], 9)),
+        key=lambda item: (ratio_order[item[0]], mode_order.get(item[1], 9), split_order.get(item[2], 9)),
     ):
         algos[label] = (time_col, nodes_col)
         colors[label] = BIHS_COLORS.get((ratio_slug, k_mode), BIHS_COLORS.get((ratio_slug, "optk"), "#9c755f"))
@@ -253,6 +258,8 @@ def make_runtime_bar(summary):
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:g}"))
     ax.tick_params(axis="x", rotation=25)
     for bar, value in zip(bars, values):
+        if not np.isfinite(value) or value <= 0:
+            continue
         ax.text(bar.get_x() + bar.get_width() / 2, value, fmt_num(value), ha="center", va="bottom", fontsize=8)
     return save_fig(fig, "median_runtime.png")
 
@@ -338,17 +345,17 @@ def make_bihs_params(params):
     params["k_mode"] = params["k_mode"].fillna("optk")
     params["split_mode"] = params["split_mode"].fillna("fixed") if "split_mode" in params.columns else "fixed"
     ratio_labels = {0.5: "50%", 0.1: "10%", 0.01: "1%"}
-    mode_labels = {"k1": "k=1", "optk": "opt-k"}
+    mode_labels = {"k1": "k=1", "optk": "opt-k", "rootk": "root-k"}
     groups_meta = []
     for ratio in [0.5, 0.1, 0.01]:
         ratio_rows = params[params["ratio"] == ratio]
         ratio_modes = ratio_rows["k_mode"].dropna().unique()
-        for mode in ["k1", "optk"]:
+        for mode in ["k1", "optk", "rootk"]:
             mode_rows = ratio_rows[ratio_rows["k_mode"] == mode]
             for split_mode in ["fixed", "dynamic"]:
                 if split_mode in mode_rows["split_mode"].dropna().unique():
                     groups_meta.append((ratio, mode, split_mode, f"{ratio_labels[ratio]}\n{mode_labels[mode]}\n{split_mode}"))
-        if not any(mode in ratio_modes for mode in ["k1", "optk"]) and len(ratio_modes):
+        if not any(mode in ratio_modes for mode in ["k1", "optk", "rootk"]) and len(ratio_modes):
             mode = ratio_modes[0]
             groups_meta.append((ratio, mode, "fixed", ratio_labels[ratio]))
 
@@ -393,12 +400,17 @@ def table_html(summary):
 
 
 def bihs_label_metadata(name):
-    match = re.fullmatch(r"BiHS (50%|10%|1%)(?: (k=1|opt-k))?(?: (fixed|dynamic))?", name)
+    match = re.fullmatch(r"BiHS (50%|10%|1%)(?: (k=1|opt-k|root-k))?(?: (fixed|dynamic))?", name)
     if not match:
         return None
     ratio = {"50%": 0.5, "10%": 0.1, "1%": 0.01}[match.group(1)]
     mode_label = match.group(2)
-    k_mode = "k1" if mode_label == "k=1" else "optk"
+    if mode_label == "k=1":
+        k_mode = "k1"
+    elif mode_label == "root-k":
+        k_mode = "rootk"
+    else:
+        k_mode = "optk"
     split_mode = match.group(3) or "fixed"
     return ratio, k_mode, split_mode
 

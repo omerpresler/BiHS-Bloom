@@ -1,0 +1,2 @@
+domain,instance,algorithm,ratio,status,time,nodes,necessary_nodes,storage_states,size_kib,k_hashes,fp_est,solution_length
+stp,0,idths_trans,0.01,ok,21.7119,8427108,3977816,34697,0,0,0,57

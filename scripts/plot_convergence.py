@@ -46,7 +46,7 @@ if os.path.exists(BENCH_CSV):
 RATIOS      = [0.5, 0.1, 0.01]
 RATIO_NAMES = {0.5: "50%", 0.1: "10%", 0.01: "1%"}
 RATIO_SLUGS = {0.5: "50pct", 0.1: "10pct", 0.01: "1pct"}
-K_MODE_NAMES = {"k1": "k=1", "optk": "opt-k"}
+K_MODE_NAMES = {"k1": "k=1", "optk": "opt-k", "rootk": "root-k"}
 SPLIT_MODE_NAMES = {"fixed": "fixed split", "dynamic": "dynamic split"}
 
 available_runs = {
@@ -56,7 +56,7 @@ available_runs = {
 RUNS = [
     (ratio, k_mode, split_mode)
     for ratio in RATIOS
-    for k_mode in ["k1", "optk"]
+    for k_mode in ["k1", "optk", "rootk"]
     for split_mode in ["fixed", "dynamic"]
     if (ratio, k_mode, split_mode) in available_runs
 ]

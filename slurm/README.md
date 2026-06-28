@@ -133,7 +133,7 @@ DOMAIN=rubik INSTANCE_START=0 INSTANCE_END=10 bash scripts/run_split_stp_local.s
 The Slurm array sizes are fixed for the one-instance trial:
 
 - `slurm/stp_calibration.sbatch`: `#SBATCH --array=0-2%3`
-- `slurm/stp_run.sbatch`: `#SBATCH --array=0-7%4`
+- `slurm/stp_run.sbatch`: `#SBATCH --array=0-15%8`
 - `slurm/rubik_fixed.sbatch`: `#SBATCH --array=0-2%3`
 
 When scaling past instance `0`, regenerate the manifests and expand those array
