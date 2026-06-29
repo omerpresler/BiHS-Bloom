@@ -1,0 +1,59 @@
+------------------------------------
+Sun 28 Jun 2026 01:28:56 IDT
+SLURM_JOBID:		18483714
+SLURM_JOB_NODELIST:	ise-cpu-intl-24
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 65536 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+------------------------------------
+Sun 28 Jun 2026 01:28:56 IDT
+SLURM_JOBID:		18483714
+SLURM_JOB_NODELIST:	ise-cpu-intl-24
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 65536 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+Domain: Sliding Tile Puzzle
+Starting Korf's Puzzle #53
+
+[53] Running A*... done (36.8894s, 7228216n)
+[53] Running Rev-A*... done (39.2187s, 7116907n)
+[53] Running BAE*... done (15.7703s, 2313979n)
+[53] Running NBS... done (60.1906s, 8220268n)
+[53] Running MM... done (43.615s, 8417082n)
+[53] Running IDA*... done (45.1076s, 101763100n)
+[53] Running Rev-IDA*... done (70.5962s, 156785393n)
+[53] Running Parallel IDA*...66 pieces of work generated
+Starting iteration with bound 40.000000; 56 expanded, 176 generated
+Starting iteration with bound 42.000000; 95 expanded, 288 generated
+Starting iteration with bound 44.000000; 687 expanded, 2046 generated
+Starting iteration with bound 46.000000; 5137 expanded, 15164 generated
+Starting iteration with bound 48.000000; 33582 expanded, 99729 generated
+Starting iteration with bound 50.000000; 206272 expanded, 613323 generated
+Starting iteration with bound 52.000000; 1227121 expanded, 3658369 generated
+Starting iteration with bound 54.000000; 7123760 expanded, 21281619 generated
+Starting iteration with bound 56.000000; 40717070 expanded, 121884890 generated
+ done (24.6736s, 105140869n)
+[53] BiHS-Bloom timeout limit: 1411.92s
+[53] IDTHSwTrans state bound baseline: 12962651
+[53] Running BiHS-Bloom(50%, optk, dynamic, size=35603KiB, k=24, fp_est=6.97257e-08, limit=1411.92s)...
+Bloom filter size: 35603 KiB, k_hashes: 24, min_items: 6481328
+ done (73.3898s, 723682761n)
+[53] Running IDTHSwTrans(50%, states=6481325, limit=1800s)... done (76.1856s, 5536273n)
+[53] Running BiHS-Bloom(10%, optk, dynamic, size=7121KiB, k=5, fp_est=0.0371264, limit=1411.92s)...
+Bloom filter size: 7121 KiB, k_hashes: 5, min_items: 1296338
+ done (73.2236s, 723682761n)
+[53] Running IDTHSwTrans(10%, states=1296265, limit=1800s)... done (69.8314s, 4990025n)
+[53] Running BiHS-Bloom(1%, optk, dynamic, size=712KiB, k=1, fp_est=0.767272, limit=1411.92s)...
+Bloom filter size: 712 KiB, k_hashes: 1, min_items: 129615
+ done (73.3685s, 723682761n)
+[53] Running IDTHSwTrans(1%, states=129626, limit=1800s)... done (39.007s, 4257172n)
+[53] Running BiHS-Bloom(0.1%, optk, dynamic, size=71KiB, k=1, fp_est=1, limit=1411.92s)...
+Bloom filter size: 71 KiB, k_hashes: 1, min_items: 12925
+ done (73.4839s, 723682761n)
+[53] Running IDTHSwTrans(0.1%, states=12962, limit=1800s)... done (37.2977s, 5458237n)
+Puzzle #53 | A*: 36.8894s/7228216n | Rev-A*: 39.2187s/7116907n | BAE*: 15.7703s/2313979n | NBS: 60.1906s/8220268n | MM: 43.615s/8417082n | IDA*: 45.1076s/101763100n | Parallel IDA*: 24.6736s/105140869n | Rev-IDA*: 70.5962s/156785393n | BiHS-Bloom(50%,optk,dynamic): 73.3898s/723682761n | IDTHSwTrans(50%): 76.1856s/5536273n | BiHS-Bloom(10%,optk,dynamic): 73.2236s/723682761n | IDTHSwTrans(10%): 69.8314s/4990025n | BiHS-Bloom(1%,optk,dynamic): 73.3685s/723682761n | IDTHSwTrans(1%): 39.007s/4257172n | BiHS-Bloom(0.1%,optk,dynamic): 73.4839s/723682761n | IDTHSwTrans(0.1%): 37.2977s/5458237n | Length: 56
+Results written to results/stp_pancake/parts/benchmark_stp_53.csv

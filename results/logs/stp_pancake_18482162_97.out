@@ -1,0 +1,65 @@
+------------------------------------
+Sun 28 Jun 2026 02:15:05 IDT
+SLURM_JOBID:		18485277
+SLURM_JOB_NODELIST:	ise-cpu-intl-15
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 65536 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+------------------------------------
+Sun 28 Jun 2026 02:15:06 IDT
+SLURM_JOBID:		18485277
+SLURM_JOB_NODELIST:	ise-cpu-intl-15
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 65536 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+Domain: Sliding Tile Puzzle
+Starting Korf's Puzzle #97
+
+[97] Running A*... done (36.3403s, 9508383n)
+[97] Running Rev-A*... done (44.0885s, 11078793n)
+[97] Running BAE*... done (14.9841s, 2746830n)
+[97] Running NBS... done (55.2208s, 10352318n)
+[97] Running MM... done (44.3488s, 10440668n)
+[97] Running IDA*... done (24.6138s, 75042351n)
+[97] Running Rev-IDA*... done (34.3478s, 108938294n)
+[97] Running Parallel IDA*...54 pieces of work generated
+Starting iteration with bound 34.000000; 41 expanded, 134 generated
+Starting iteration with bound 36.000000; 41 expanded, 134 generated
+Starting iteration with bound 38.000000; 50 expanded, 160 generated
+Starting iteration with bound 40.000000; 213 expanded, 640 generated
+Starting iteration with bound 42.000000; 1653 expanded, 4950 generated
+Starting iteration with bound 44.000000; 10543 expanded, 31701 generated
+Starting iteration with bound 46.000000; 61905 expanded, 186550 generated
+Starting iteration with bound 48.000000; 350778 expanded, 1058580 generated
+Starting iteration with bound 50.000000; 1944233 expanded, 5878276 generated
+Starting iteration with bound 52.000000; 10584773 expanded, 32047284 generated
+Starting iteration with bound 54.000000; 56845251 expanded, 172335059 generated
+ done (12.7684s, 76056033n)
+[97] BiHS-Bloom timeout limit: 1104.42s
+[97] IDTHSwTrans state bound baseline: 17170473
+[97] Running BiHS-Bloom(50%, optk, dynamic, size=47160KiB, k=30, fp_est=9.47632e-10, limit=1104.42s)...
+Bloom filter size: 47160 KiB, k_hashes: 30, min_items: 8585216
+ done (55.8763s, 568920807n)
+[97] Running IDTHSwTrans(50%, states=8585236, limit=1800s)... done (26.6269s, 2490995n)
+[97] Running BiHS-Bloom(10%, optk, dynamic, size=9432KiB, k=6, fp_est=0.0156793, limit=1104.42s)...
+Bloom filter size: 9432 KiB, k_hashes: 6, min_items: 1717043
+ done (38.9914s, 568920807n)
+[97] Running IDTHSwTrans(10%, states=1717047, limit=1800s)... done (26.5594s, 2490995n)
+[97] Running BiHS-Bloom(1%, optk, dynamic, size=943KiB, k=1, fp_est=0.685401, limit=1104.42s)...
+Bloom filter size: 943 KiB, k_hashes: 1, min_items: 171667
+[TYPE] Splitting depth 54 into 3 hash types (Ff=14730554, Fb=7521658, min_items=171667)
+ done (52.8313s, 795813263n)
+[97] Running IDTHSwTrans(1%, states=171704, limit=1800s)... done (23.274s, 1970279n)
+[97] Running BiHS-Bloom(0.1%, optk, dynamic, size=94KiB, k=1, fp_est=0.999991, limit=1104.42s)...
+Bloom filter size: 94 KiB, k_hashes: 1, min_items: 17112
+[TYPE] Splitting depth 50 into 2 hash types (Ff=798826, Fb=285907, min_items=17112)
+[TYPE] Splitting depth 52 into 8 hash types (Ff=3536173, Fb=3596930, min_items=17112)
+[TYPE] Splitting depth 54 into 8 hash types (Ff=14730554, Fb=19381560, min_items=17112)
+ done (105.987s, 1178295612n)
+[97] Running IDTHSwTrans(0.1%, states=17170, limit=1800s)... done (21.4845s, 3535040n)
+Puzzle #97 | A*: 36.3403s/9508383n | Rev-A*: 44.0885s/11078793n | BAE*: 14.9841s/2746830n | NBS: 55.2208s/10352318n | MM: 44.3488s/10440668n | IDA*: 24.6138s/75042351n | Parallel IDA*: 12.7684s/76056033n | Rev-IDA*: 34.3478s/108938294n | BiHS-Bloom(50%,optk,dynamic): 55.8763s/568920807n | IDTHSwTrans(50%): 26.6269s/2490995n | BiHS-Bloom(10%,optk,dynamic): 38.9914s/568920807n | IDTHSwTrans(10%): 26.5594s/2490995n | BiHS-Bloom(1%,optk,dynamic): 52.8313s/795813263n | IDTHSwTrans(1%): 23.274s/1970279n | BiHS-Bloom(0.1%,optk,dynamic): 105.987s/1178295612n | IDTHSwTrans(0.1%): 21.4845s/3535040n | Length: 54
+Results written to results/stp_pancake/parts/benchmark_stp_97.csv

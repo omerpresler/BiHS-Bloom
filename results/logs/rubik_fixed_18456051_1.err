@@ -1,3 +1,0 @@
-[2026-06-27T20:04:00.235] error: *** JOB 18456054 ON ise-cpu256-06 CANCELLED AT 2026-06-27T20:04:00 DUE to SIGNAL Terminated ***
-[2026-06-27T20:04:00.237] error: *** STEP 18456054.0 ON ise-cpu256-06 CANCELLED AT 2026-06-27T20:04:00 DUE to SIGNAL Terminated ***
-srun: Job step aborted: Waiting up to 302 seconds for job step to finish.

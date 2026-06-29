@@ -1,0 +1,72 @@
+------------------------------------
+Mon 29 Jun 2026 01:31:00 IDT
+SLURM_JOBID:		18547053
+SLURM_JOB_NODELIST:	cs-cpu-10
+SLURM_SCRATCH_DIR:	/scratch/omerpr/18547053
+Allocated Resouces:	cpu - 2 / mem - 102400 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+------------------------------------
+Mon 29 Jun 2026 01:31:00 IDT
+SLURM_JOBID:		18547053
+SLURM_JOB_NODELIST:	cs-cpu-10
+SLURM_SCRATCH_DIR:	/scratch/omerpr/18547053
+Allocated Resouces:	cpu - 2 / mem - 102400 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+Domain: Pancake Puzzle
+[2] Running Pancake A*... done (0.018801s, 506n)
+[2] Running Pancake Rev-A*... done (0.0114355s, 505n)
+[2] Running Pancake BAE*... done (0.0117525s, 866n)
+[2] Running Pancake NBS... done (0.0353895s, 960n)
+[2] Running Pancake MM... done (0.0157687s, 947n)
+[2] Running Pancake IDA*... done (0.00212461s, 1035n)
+[2] Running Pancake Rev-IDA*... done (0.0100451s, 4867n)
+[2] Running Pancake Parallel IDA*...1994544 pieces of work generated
+Starting iteration with bound 10.000000; 117326 expanded, 2229194 generated
+Starting iteration with bound 11.000000; 117326 expanded, 2229194 generated
+Starting iteration with bound 12.000000; 117327 expanded, 2229213 generated
+Starting iteration with bound 13.000000; 117411 expanded, 2230809 generated
+ done (3.61121s, 119787n)
+[2] Pancake BiHS-Bloom timeout limit: 120s
+[2] Pancake IDTHSwTrans state bound baseline: 8909
+[2] Running Pancake BiHS-Bloom(50%, k1, dynamic, size=34KiB, k=1, fp_est=0.0300044, limit=120s)...Bloom filter size: 34 KiB, k_hashes: 1, min_items: 4492
+ done (0.0579963s, 460386n)
+[2] Running Pancake IDTHSwTrans(50%, states=4454, limit=1800s)... done (0.0182767s, 4275n)
+[2] Running Pancake BiHS-Bloom(50%, optk, dynamic, size=34KiB, k=23, fp_est=1.4153e-07, limit=120s)...Bloom filter size: 34 KiB, k_hashes: 23, min_items: 4492
+ done (0.057943s, 460386n)
+[2] Running Pancake IDTHSwTrans(50%, states=4454, limit=1800s)... done (0.0181757s, 4275n)
+[2] Running Pancake BiHS-Bloom(50%, rootk, dynamic, size=34KiB, k=5, fp_est=5.62971e-05, limit=120s)...Bloom filter size: 34 KiB, k_hashes: 5, min_items: 4492
+ done (0.0603673s, 460386n)
+[2] Running Pancake IDTHSwTrans(50%, states=4454, limit=1800s)... done (0.0182776s, 4275n)
+[2] Running Pancake BiHS-Bloom(10%, k1, dynamic, size=7KiB, k=1, fp_est=0.13754, limit=120s)...Bloom filter size: 7 KiB, k_hashes: 1, min_items: 924
+ done (0.0578651s, 460386n)
+[2] Running Pancake IDTHSwTrans(10%, states=890, limit=1800s)... done (0.00871823s, 1783n)
+[2] Running Pancake BiHS-Bloom(10%, optk, dynamic, size=7KiB, k=5, fp_est=0.0390576, limit=120s)...Bloom filter size: 7 KiB, k_hashes: 5, min_items: 924
+ done (0.0578823s, 460386n)
+[2] Running Pancake IDTHSwTrans(10%, states=890, limit=1800s)... done (0.00874587s, 1783n)
+[2] Running Pancake BiHS-Bloom(10%, rootk, dynamic, size=7KiB, k=2, fp_est=0.0656195, limit=120s)...Bloom filter size: 7 KiB, k_hashes: 2, min_items: 924
+ done (0.0578783s, 460386n)
+[2] Running Pancake IDTHSwTrans(10%, states=890, limit=1800s)... done (0.00870754s, 1783n)
+[2] Running Pancake BiHS-Bloom(1%, k1, dynamic, size=1KiB, k=1, fp_est=0.645046, limit=120s)...Bloom filter size: 1 KiB, k_hashes: 1, min_items: 132
+ done (0.0578333s, 460386n)
+[2] Running Pancake IDTHSwTrans(1%, states=89, limit=1800s)... done (0.00382372s, 919n)
+[2] Running Pancake BiHS-Bloom(1%, optk, dynamic, size=1KiB, k=1, fp_est=0.645046, limit=120s)...Bloom filter size: 1 KiB, k_hashes: 1, min_items: 132
+ done (0.0577471s, 460386n)
+[2] Running Pancake IDTHSwTrans(1%, states=89, limit=1800s)... done (0.0038341s, 919n)
+[2] Running Pancake BiHS-Bloom(1%, rootk, dynamic, size=1KiB, k=1, fp_est=0.645046, limit=120s)...Bloom filter size: 1 KiB, k_hashes: 1, min_items: 132
+ done (0.0578703s, 460386n)
+[2] Running Pancake IDTHSwTrans(1%, states=89, limit=1800s)... done (0.00388386s, 919n)
+[2] Running Pancake BiHS-Bloom(0.1%, k1, dynamic, size=1KiB, k=1, fp_est=0.645046, limit=120s)...Bloom filter size: 1 KiB, k_hashes: 1, min_items: 132
+ done (0.0577436s, 460386n)
+[2] Running Pancake IDTHSwTrans(0.1%, states=8, limit=1800s)... done (0.00371557s, 946n)
+[2] Running Pancake BiHS-Bloom(0.1%, optk, dynamic, size=1KiB, k=1, fp_est=0.645046, limit=120s)...Bloom filter size: 1 KiB, k_hashes: 1, min_items: 132
+ done (0.057711s, 460386n)
+[2] Running Pancake IDTHSwTrans(0.1%, states=8, limit=1800s)... done (0.00370699s, 946n)
+[2] Running Pancake BiHS-Bloom(0.1%, rootk, dynamic, size=1KiB, k=1, fp_est=0.645046, limit=120s)...Bloom filter size: 1 KiB, k_hashes: 1, min_items: 132
+ done (0.0578062s, 460386n)
+[2] Running Pancake IDTHSwTrans(0.1%, states=8, limit=1800s)... done (0.00366873s, 946n)
+Pancake #2 | A*: 0.018801s/506n | Rev-A*: 0.0114355s/505n | BAE*: 0.0117525s/866n | NBS: 0.0353895s/960n | MM: 0.0157687s/947n | IDA*: 0.00212461s/1035n | Parallel IDA*: 3.61121s/119787n | Rev-IDA*: 0.0100451s/4867n | BiHS-Bloom(50%,k1,dynamic): 0.0579963s/460386n | IDTHSwTrans(50%): 0.0182767s/4275n | BiHS-Bloom(50%,optk,dynamic): 0.057943s/460386n | IDTHSwTrans(50%): 0.0181757s/4275n | BiHS-Bloom(50%,rootk,dynamic): 0.0603673s/460386n | IDTHSwTrans(50%): 0.0182776s/4275n | BiHS-Bloom(10%,k1,dynamic): 0.0578651s/460386n | IDTHSwTrans(10%): 0.00871823s/1783n | BiHS-Bloom(10%,optk,dynamic): 0.0578823s/460386n | IDTHSwTrans(10%): 0.00874587s/1783n | BiHS-Bloom(10%,rootk,dynamic): 0.0578783s/460386n | IDTHSwTrans(10%): 0.00870754s/1783n | BiHS-Bloom(1%,k1,dynamic): 0.0578333s/460386n | IDTHSwTrans(1%): 0.00382372s/919n | BiHS-Bloom(1%,optk,dynamic): 0.0577471s/460386n | IDTHSwTrans(1%): 0.0038341s/919n | BiHS-Bloom(1%,rootk,dynamic): 0.0578703s/460386n | IDTHSwTrans(1%): 0.00388386s/919n | BiHS-Bloom(0.1%,k1,dynamic): 0.0577436s/460386n | IDTHSwTrans(0.1%): 0.00371557s/946n | BiHS-Bloom(0.1%,optk,dynamic): 0.057711s/460386n | IDTHSwTrans(0.1%): 0.00370699s/946n | BiHS-Bloom(0.1%,rootk,dynamic): 0.0578062s/460386n | IDTHSwTrans(0.1%): 0.00366873s/946n | Length: 13
+Results written to results/stp_pancake/parts/benchmark_pancake_2.csv

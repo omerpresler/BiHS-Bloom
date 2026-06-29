@@ -1,0 +1,11 @@
+------------------------------------
+Sun 28 Jun 2026 04:42:02 IDT
+SLURM_JOBID:		18482163
+SLURM_JOB_NODELIST:	ise-cpu-intl-27
+SLURM_SCRATCH_DIR:	
+Allocated Resouces:	cpu - 2 / mem - 4096 MB / gpu - 
+SLURM_GPU_INDEX:	
+Running as omerpr from felner account with normal QOS
+------------------------------------
+Merged 100 stp benchmark shards and 100 convergence shards
+Merged 100 pancake benchmark shards and 100 convergence shards
