@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-bash scripts/compile.sh
+bash scripts/conda_compile.sh
 
 binary="src/bin/release/stp_bihs_bloom"
 if [[ ! -x "$binary" ]]; then

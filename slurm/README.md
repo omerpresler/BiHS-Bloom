@@ -5,12 +5,25 @@ It supports both `stp` and `rubik`. It runs calibration first, derives the
 memory/frontier parameters, and then runs each BiHS-Bloom and IDTHSwTrans ratio
 as a separate Slurm job.
 
-## 1. Compile locally
+## 1. Compile
 
-On a Linux machine or WSL, from the repository root:
+On a Linux machine or the Slurm login node, from the repository root:
 
 ```bash
 bash slurm/prepare_binary.sh
+```
+
+This uses `scripts/conda_compile.sh`, creating/updating the `bihs-build` Conda
+environment with `make` and `cxx-compiler`, then packages the Linux executable
+at `slurm/bin/stp_bihs_bloom`.
+
+Optional smoke checks:
+
+```bash
+slurm/bin/stp_bihs_bloom --stp --instance-start 0 --instance-end 1 \
+  --benchmark-output /tmp/stp_0.csv \
+  --convergence-output /tmp/stp_conv_0.csv
+
 slurm/bin/stp_bihs_bloom --stp --phase calibrate --instance 0 --algorithm astar \
   --benchmark-output /tmp/calibration_0.csv
 

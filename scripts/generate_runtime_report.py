@@ -121,13 +121,11 @@ def discover_algorithms(df):
 
             label = f"BiHS {RATIO_LABELS[ratio_slug]}"
             if k_mode == "k1":
-                label += " k=1"
+                label += " k1"
             elif k_mode == "optk":
-                label += " opt-k"
+                label += " optk"
             elif k_mode == "rootk":
-                label += " root-k"
-            if match.group(3):
-                label += f" {split_mode}"
+                label += " rootk"
 
             seen_bihs.append((ratio_slug, k_mode or "old", split_mode, label, col, nodes_col))
             continue
@@ -345,7 +343,7 @@ def make_bihs_params(params):
     params["k_mode"] = params["k_mode"].fillna("optk")
     params["split_mode"] = params["split_mode"].fillna("fixed") if "split_mode" in params.columns else "fixed"
     ratio_labels = {0.5: "50%", 0.1: "10%", 0.01: "1%"}
-    mode_labels = {"k1": "k=1", "optk": "opt-k", "rootk": "root-k"}
+    mode_labels = {"k1": "k1", "optk": "optk", "rootk": "rootk"}
     groups_meta = []
     for ratio in [0.5, 0.1, 0.01]:
         ratio_rows = params[params["ratio"] == ratio]
@@ -354,7 +352,7 @@ def make_bihs_params(params):
             mode_rows = ratio_rows[ratio_rows["k_mode"] == mode]
             for split_mode in ["fixed", "dynamic"]:
                 if split_mode in mode_rows["split_mode"].dropna().unique():
-                    groups_meta.append((ratio, mode, split_mode, f"{ratio_labels[ratio]}\n{mode_labels[mode]}\n{split_mode}"))
+                    groups_meta.append((ratio, mode, split_mode, f"{ratio_labels[ratio]}\n{mode_labels[mode]}"))
         if not any(mode in ratio_modes for mode in ["k1", "optk", "rootk"]) and len(ratio_modes):
             mode = ratio_modes[0]
             groups_meta.append((ratio, mode, "fixed", ratio_labels[ratio]))
@@ -399,19 +397,26 @@ def table_html(summary):
     return display.to_html(index=False, classes="summary-table", border=0, escape=False)
 
 
+def bihs_summary_table_html(summary):
+    bihs = summary[summary["Algorithm"].astype(str).str.startswith("BiHS ")].copy()
+    if bihs.empty:
+        return '<p class="note">No BiHS-Bloom runs were found.</p>'
+    return table_html(bihs)
+
+
 def bihs_label_metadata(name):
-    match = re.fullmatch(r"BiHS (50%|10%|1%)(?: (k=1|opt-k|root-k))?(?: (fixed|dynamic))?", name)
+    match = re.fullmatch(r"BiHS (50%|10%|1%)(?: (k1|optk|rootk|k=1|opt-k|root-k))?(?: (fixed|dynamic))?", name)
     if not match:
         return None
     ratio = {"50%": 0.5, "10%": 0.1, "1%": 0.01}[match.group(1)]
     mode_label = match.group(2)
-    if mode_label == "k=1":
+    if mode_label in {"k1", "k=1"}:
         k_mode = "k1"
-    elif mode_label == "root-k":
+    elif mode_label in {"rootk", "root-k"}:
         k_mode = "rootk"
     else:
         k_mode = "optk"
-    split_mode = match.group(3) or "fixed"
+    split_mode = match.group(3)
     return ratio, k_mode, split_mode
 
 
@@ -432,9 +437,19 @@ def detail_table_html(df, params):
     return comparison_table_html(df, params, [name for name, cols in ALGOS.items() if cols[0] in df.columns])
 
 
+def bihs_detail_table_html(df, params):
+    return comparison_table_html(
+        df,
+        params,
+        [name for name, cols in ALGOS.items() if name.startswith("BiHS ") and cols[0] in df.columns],
+    )
+
+
 def comparison_table_html(df, params, algorithm_names):
     rows = []
     available = [(name, ALGOS[name][0]) for name in algorithm_names if name in ALGOS and ALGOS[name][0] in df.columns]
+    if not available:
+        return '<p class="note">No matching algorithm columns were found.</p>'
     k_lookup = build_k_lookup(params)
 
     for _, row in df.sort_values(["solution_length", "instance"]).iterrows():
@@ -466,7 +481,13 @@ def comparison_table_html(df, params, algorithm_names):
                 meta = bihs_label_metadata(name)
                 if meta is not None:
                     ratio, k_mode, split_mode = meta
-                    k_hashes = k_lookup.get((int(row["instance"]), round(ratio, 3), k_mode, split_mode))
+                    if split_mode is None:
+                        k_hashes = (
+                            k_lookup.get((int(row["instance"]), round(ratio, 3), k_mode, "dynamic"))
+                            or k_lookup.get((int(row["instance"]), round(ratio, 3), k_mode, "fixed"))
+                        )
+                    else:
+                        k_hashes = k_lookup.get((int(row["instance"]), round(ratio, 3), k_mode, split_mode))
                     if k_hashes is not None:
                         k_text = f'<span class="cell-note">k={k_hashes}</span>'
                 cell = f"{time_text}{k_text}"
@@ -729,8 +750,8 @@ def render_html(df, params, summary, image_paths):
         params_for_note = params.copy()
         params_for_note["k_mode"] = params_for_note["k_mode"].fillna("optk")
         params_for_note["split_mode"] = params_for_note["split_mode"].fillna("fixed") if "split_mode" in params_for_note.columns else "fixed"
-        k_summary = params_for_note.groupby(["ratio", "k_mode", "split_mode"])["k_hashes"].median().sort_index(ascending=False)
-        parts = [f"{int(r * 100)}% {mode} {split} median k={int(v)}" for (r, mode, split), v in k_summary.items()]
+        k_summary = params_for_note.groupby(["ratio", "k_mode"])["k_hashes"].median().sort_index(ascending=False)
+        parts = [f"{int(r * 100)}% {mode} median k={int(v)}" for (r, mode), v in k_summary.items()]
         bihs_note = "BiHS parameter medians: " + ", ".join(parts) + "."
 
     return f"""<!doctype html>
@@ -931,6 +952,11 @@ def render_html(df, params, summary, image_paths):
       <p class="note">Timeout and out-of-memory markers are excluded from runtime aggregates. {html.escape(bihs_note)}</p>
     </section>
     <section class="table-panel">
+      <h2>BiHS-Bloom Summary</h2>
+      {bihs_summary_table_html(summary)}
+      <p class="note">Only BiHS-Bloom variants are shown here.</p>
+    </section>
+    <section class="table-panel">
       <h2>BiHS-Bloom vs IDTHSwTrans Winner</h2>
       {bihs_vs_idths_winner_table_html(df)}
       <p class="note">The winner is based on solved-only advantages plus faster runtimes on instances both methods solved. Median speedup is IDTHSwTrans time divided by BiHS-Bloom time, so values above 1.00x favor BiHS-Bloom.</p>
@@ -950,6 +976,11 @@ def render_html(df, params, summary, image_paths):
       <h2>BiHS-Bloom vs IDTHSwTrans</h2>
       {comparison_table_html(df, params, bihs_vs_idths_algorithms())}
       <p class="note">Each BiHS-Bloom memory ratio is shown next to the matching IDTHSwTrans storage ratio. BiHS cells include the actual k used for that run.</p>
+    </section>
+    <section class="table-panel detail-panel">
+      <h2>Full BiHS-Bloom Runtimes</h2>
+      {bihs_detail_table_html(df, params)}
+      <p class="note">Rows are sorted by solution length. Green pills mark the fastest BiHS-Bloom variant for that challenge. Cells include the actual k used for that run.</p>
     </section>
     <section class="table-panel detail-panel">
       <h2>All Challenge Runtimes</h2>
