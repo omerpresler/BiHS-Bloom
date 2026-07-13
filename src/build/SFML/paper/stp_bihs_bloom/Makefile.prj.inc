@@ -26,6 +26,15 @@ PROJ_DBG_LNFLAGS = -L$(DBG_BINDIR)
 PROJ_REL_LNFLAGS = -L$(REL_BINDIR)
 PROJ_TEST_LNFLAGS = -L$(TEST_BINDIR)
 
+# Conda's Linux GCC toolchain links PIE executables by default, but hog2's
+# static libraries are built as non-PIE objects. Link this executable in the
+# traditional mode instead of requiring every library to be rebuilt with PIE.
+ifeq ($(findstring Linux,$(shell uname -s)),Linux)
+PROJ_DBG_LNFLAGS += -no-pie
+PROJ_REL_LNFLAGS += -no-pie
+PROJ_TEST_LNFLAGS += -no-pie
+endif
+
 PROJ_DBG_LIB = -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lgui -lgraph -lutils -lenvutil -lenvironments -lutils
 PROJ_REL_LIB = -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lgui -lgraph -lutils -lenvutil -lenvironments -lutils
 PROJ_TEST_LIB = -lenvironments -lmapalgorithms -lalgorithms -lgraphalgorithms -lgui -lgraph -lutils -lenvutil -lenvironments -lutils
