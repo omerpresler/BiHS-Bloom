@@ -5,6 +5,8 @@
 #include "MNPuzzle.h"
 #include "RC.h"
 
+class RubiksState;
+
 template <std::size_t ALT_LEN>
 struct Period2Window {
     static_assert(ALT_LEN >= 2);
@@ -81,6 +83,18 @@ size_t get_state_size(const PancakePuzzleState<N>&)
 }
 
 inline size_t get_state_size(const RCState&)
+{
+    double log_fact = 0.0;
+    for(int i = 1; i <= 12; i++) {
+        log_fact += std::log2(i);
+    }
+    for(int i = 1; i <= 8; i++) {
+        log_fact += std::log2(i);
+    }
+    return static_cast<size_t>(std::ceil(log_fact + 12.0 + 8.0 * std::log2(3.0)));
+}
+
+inline size_t get_state_size(const RubiksState&)
 {
     double log_fact = 0.0;
     for(int i = 1; i <= 12; i++) {

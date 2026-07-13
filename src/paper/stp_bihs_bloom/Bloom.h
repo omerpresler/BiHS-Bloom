@@ -23,9 +23,9 @@ static bool operator!=(const RCState &l1, const RCState &l2)
 }
 
 template <typename Key>
-class BloomFilter {
+class BiHSBloomFilter {
 public:
-    BloomFilter(size_t m_bits, size_t k_hashes) : m_bits(m_bits), k_hashes(k_hashes), n_inserted(0), bits_set_count(0)
+    BiHSBloomFilter(size_t m_bits, size_t k_hashes) : m_bits(m_bits), k_hashes(k_hashes), n_inserted(0), bits_set_count(0)
     {
         if (m_bits == 0 || k_hashes == 0) {
             bits = nullptr;
@@ -45,7 +45,7 @@ public:
             seed = (uint64_t)time(NULL) ^ (uintptr_t)this;
         }
     }
-    virtual ~BloomFilter()
+    virtual ~BiHSBloomFilter()
     {
         if (bits) {
             free(bits);
@@ -54,8 +54,8 @@ public:
     }
 
     // Delete copy constructor and assignment to avoid deep copy issues for now
-    BloomFilter(const BloomFilter&) = delete;
-    BloomFilter& operator=(const BloomFilter&) = delete;
+    BiHSBloomFilter(const BiHSBloomFilter&) = delete;
+    BiHSBloomFilter& operator=(const BiHSBloomFilter&) = delete;
 
     virtual void clear()
     {

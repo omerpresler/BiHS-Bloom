@@ -21,7 +21,7 @@ namespace BiHSBloomHelper {
 
         static uint64_t hash(const State& state)
         {
-            return BloomFilter<State>::stable_fingerprint(state);
+            return BiHSBloomFilter<State>::stable_fingerprint(state);
         }
 
         static uint64_t apply(uint64_t, const State& state, Action)
@@ -36,12 +36,12 @@ namespace BiHSBloomHelper {
 
         static uint64_t zobrist(unsigned pos, unsigned tile)
         {
-            return BloomFilter<MNPuzzleState<W, H>>::template zobrist_value<W * H>(pos, tile);
+            return BiHSBloomFilter<MNPuzzleState<W, H>>::template zobrist_value<W * H>(pos, tile);
         }
 
         static uint64_t hash(const MNPuzzleState<W, H>& state)
         {
-            return BloomFilter<MNPuzzleState<W, H>>::stable_fingerprint(state);
+            return BiHSBloomFilter<MNPuzzleState<W, H>>::stable_fingerprint(state);
         }
 
         static uint64_t apply(uint64_t h, const MNPuzzleState<W, H>& state, slideDir action)
@@ -71,12 +71,12 @@ namespace BiHSBloomHelper {
 
         static uint64_t zobrist(unsigned pos, unsigned tile)
         {
-            return BloomFilter<PancakePuzzleState<N>>::template zobrist_value<N>(pos, tile);
+            return BiHSBloomFilter<PancakePuzzleState<N>>::template zobrist_value<N>(pos, tile);
         }
 
         static uint64_t hash(const PancakePuzzleState<N>& state)
         {
-            return BloomFilter<PancakePuzzleState<N>>::stable_fingerprint(state);
+            return BiHSBloomFilter<PancakePuzzleState<N>>::stable_fingerprint(state);
         }
 
         static uint64_t apply(uint64_t h, const PancakePuzzleState<N>& state, PancakePuzzleAction action)
@@ -107,7 +107,7 @@ namespace BiHSBloomHelper {
 
         static uint64_t hash(const RCState& state)
         {
-            return BloomFilter<RCState>::stable_fingerprint(state);
+            return BiHSBloomFilter<RCState>::stable_fingerprint(state);
         }
 
         static uint64_t apply(uint64_t, const RCState& state, RCAction)
@@ -202,9 +202,9 @@ public:
     uint64_t GetTotalNodesExpanded() const { return totalNodesExpanded; }
     const std::vector<IterationStat>& GetIterStats() const { return iterStats; }
 
-    void InitBloom(BloomFilter<state> *&bf) {
+    void InitBloom(BiHSBloomFilter<state> *&bf) {
         size_t m_bits = size_in_KiB * 1024 * 8ULL;
-        bf = new BloomFilter<state>(m_bits, k_hashes);
+        bf = new BiHSBloomFilter<state>(m_bits, k_hashes);
     }
 
     void SanityCheck(state &start, state &goal, std::vector<action> &path) {
@@ -229,7 +229,7 @@ public:
     }
 
     void GetStatesFromBloomRecursive(state &curr, state &goal, uint64_t currHash, int depth,
-                                     int targetDepth, int upperBound, BloomFilter<state>* bf,
+                                     int targetDepth, int upperBound, BiHSBloomFilter<state>* bf,
                                      std::vector<action> &movesSoFar,
                                      std::vector<action> &actionScratch,
                                      std::unordered_map<uint64_t, StateWithPath> &states,
@@ -279,7 +279,7 @@ public:
 
     std::unordered_map<uint64_t, StateWithPath> GetStatesFromBloom(state &start, state &goal,
                                                 int targetDepth, int upperBound,
-                                                BloomFilter<state>* bf,
+                                                BiHSBloomFilter<state>* bf,
                                                 size_t typeIndex = 0, size_t typeCount = 1)
     {
         BiHSBloomHelper::store_goal(env, goal, 0);
@@ -326,7 +326,7 @@ public:
 
     PathExtractionResult GetPathFromBloom(state &start, state &goal,
                                     int forwardDepth, int backwardDepth,
-                                    BloomFilter<state>* bf,
+                                    BiHSBloomFilter<state>* bf,
                                     size_t lastForwardInserted,
                                     size_t lastBackwardInserted,
                                     size_t typeIndex = 0, size_t typeCount = 1)
@@ -357,7 +357,7 @@ public:
 
     PathExtractionResult GetPathFromForwardBloom(state &start, state &goal,
                                     int forwardDepth, int backwardDepth,
-                                    BloomFilter<state>* forwardBf,
+                                    BiHSBloomFilter<state>* forwardBf,
                                     size_t typeIndex = 0, size_t typeCount = 1)
     {
         int upperBound = forwardDepth + backwardDepth;
@@ -524,8 +524,8 @@ public:
         state &goal,
         int targetDepth,
         int upperBound,
-        BloomFilter<state>* oldBf,
-        BloomFilter<state>* newBf,
+        BiHSBloomFilter<state>* oldBf,
+        BiHSBloomFilter<state>* newBf,
         size_t typeIndex = 0,
         size_t typeCount = 1)
     {
@@ -601,9 +601,9 @@ public:
         }
     }
 
-    BloomFilter<state>* GetBloomOfStatesInBloomAtDepth(state start, state goal, int depth, int upperBound, BloomFilter<state>* oldBf, size_t typeIndex = 0, size_t typeCount = 1) {
+    BiHSBloomFilter<state>* GetBloomOfStatesInBloomAtDepth(state start, state goal, int depth, int upperBound, BiHSBloomFilter<state>* oldBf, size_t typeIndex = 0, size_t typeCount = 1) {
 
-        BloomFilter<state> *bf = nullptr;
+        BiHSBloomFilter<state> *bf = nullptr;
         InitBloom(bf);
         this->nodeExpanded = 0;
         uint64_t startHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
@@ -648,7 +648,7 @@ public:
                                             size_t typeIndex,
                                             size_t typeCount) {
         TerminationCondition term = TerminationCondition::NOT_TERMINATED;
-        std::unique_ptr<BloomFilter<state>> bf;
+        std::unique_ptr<BiHSBloomFilter<state>> bf;
         std::vector<action> path;
         int upperBound = forwardDepth + backwardDepth;
         size_t lastForwardInserted = 0;
@@ -736,7 +736,7 @@ public:
     std::vector<action> SolveAtDepthByTypesFromSeed(state start, state &goal,
                                                     int forwardDepth, int backwardDepth,
                                                     Timer &globalTimer,
-                                                    std::unique_ptr<BloomFilter<state>> seed,
+                                                    std::unique_ptr<BiHSBloomFilter<state>> seed,
                                                     size_t typeCount) {
         if (!seed) {
             return {};
@@ -752,7 +752,7 @@ public:
                 }
             }
 
-            std::unique_ptr<BloomFilter<state>> typedForward(
+            std::unique_ptr<BiHSBloomFilter<state>> typedForward(
                 GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound,
                                                seed.get(), typeIndex, typeCount));
 
@@ -799,7 +799,7 @@ public:
 
     std::vector<action> SolveAtDepth(state start, state &goal, int forwardDepth, int backwardDepth , Timer &globalTimer) {
         TerminationCondition term = TerminationCondition::NOT_TERMINATED;
-        std::unique_ptr<BloomFilter<state>> bf;
+        std::unique_ptr<BiHSBloomFilter<state>> bf;
         std::vector<action> path;
         int upperBound = forwardDepth + backwardDepth; // We know f value from node to goal cant be bigger then Df + Db
         size_t lastForwardInserted = 0;

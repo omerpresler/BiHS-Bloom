@@ -157,7 +157,7 @@ public:
   { return heuristic.HCost(from, to); }
 
   uint64_t GetStateHash(const RubiksState &node) const override
-  { return BloomFilter<RubiksState>::stable_fingerprint(node); }
+  { return BiHSBloomFilter<RubiksState>::stable_fingerprint(node); }
 
 private:
   void LoadOrBuild(RubikPDB &pdb, const RubiksState &goal)
