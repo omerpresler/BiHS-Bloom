@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -169,7 +170,14 @@ private:
           "Missing Rubik PDB in '" + gRubikPDBDir +
           "'. Prepare it once with --rubik --prepare-rubik-pdbs --rubik-pdb-dir <directory>");
     }
-    const unsigned int threads = std::min(64u, std::max(1u, std::thread::hardware_concurrency()));
+    unsigned int threads = std::min(64u, std::max(1u, std::thread::hardware_concurrency()));
+    const char *slurmCPUs = std::getenv("SLURM_CPUS_PER_TASK");
+    if (slurmCPUs != nullptr) {
+      char *end = nullptr;
+      const unsigned long allocated = std::strtoul(slurmCPUs, &end, 10);
+      if (end != slurmCPUs && *end == '\0' && allocated > 0)
+        threads = std::min(threads, static_cast<unsigned int>(allocated));
+    }
     pdb.BuildPDB(goal, threads);
     pdb.Save(gRubikPDBDir.c_str());
   }

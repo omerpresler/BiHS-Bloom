@@ -4,7 +4,9 @@
 #SBATCH --array=0-9%10
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
+# A* and MM on Korf Rubik instances can exceed 64 GiB even with the PDB.
+# Match the fixed workflow's allocation so the per-instance sequence has room.
+#SBATCH --mem=160G
 #SBATCH --time=1-00:00:00
 #SBATCH --output=results/logs/rubik_%A_%a.out
 #SBATCH --error=results/logs/rubik_%A_%a.err
