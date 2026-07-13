@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=main
 #SBATCH --job-name=bihs-rubik
-#SBATCH --array=0-99%10
+#SBATCH --array=0-9%10
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
@@ -37,6 +37,7 @@ instance="${SLURM_ARRAY_TASK_ID}"
 end="$((instance + 1))"
 
 srun "$binary" --rubik \
+  --rubik-pdb-dir "${RUBIK_PDB_DIR:-results/pdb/rubik}" \
   --instance-start "$instance" --instance-end "$end" \
   --benchmark-output "results/rubik/parts/benchmark_${instance}.csv" \
   --convergence-output "results/rubik/parts/convergence_${instance}.csv"

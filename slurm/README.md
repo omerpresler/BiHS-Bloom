@@ -47,10 +47,28 @@ STP is the default. For Rubik, run:
 DOMAIN=rubik bash slurm/submit.sh
 ```
 
+Rubik jobs use Korf's two 6-edge PDBs and one 8-corner PDB. The submit
+scripts first schedule `slurm/prepare_rubik_pdbs.sbatch`; dependent array jobs
+then load the files read-only from `results/pdb/rubik`. To use another shared
+location, export it before submission:
+
+```bash
+export RUBIK_PDB_DIR=/shared/path/rubik-pdb
+DOMAIN=rubik bash slurm/submit.sh
+```
+
+The databases can also be prepared directly with:
+
+```bash
+mkdir -p "${RUBIK_PDB_DIR:-results/pdb/rubik}"
+slurm/bin/stp_bihs_bloom --rubik --prepare-rubik-pdbs \
+  --rubik-pdb-dir "${RUBIK_PDB_DIR:-results/pdb/rubik}"
+```
+
 The dependency chain is:
 
 ```text
-calibration array -> params merge -> phase-2 manifest -> phase-2 array -> final merge
+ Rubik PDB preparation -> calibration array -> params merge -> phase-2 manifest -> phase-2 array -> final merge
 ```
 
 The default calibration manifest contains three jobs for instance `0`:
@@ -82,7 +100,7 @@ bash slurm/submit_rubik_fixed.sh
 The dependency chain is:
 
 ```text
-fixed Rubik array -> fixed Rubik merge
+ Rubik PDB preparation -> fixed Rubik array -> fixed Rubik merge
 ```
 
 ## 2c. Submit the combined STP + Pancake workflow

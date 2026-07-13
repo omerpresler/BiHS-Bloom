@@ -6,5 +6,7 @@ cd "$ROOT"
 
 mkdir -p results/logs results/rubik/parts
 
-job_id="$(sbatch --parsable slurm/rubik.sbatch)"
-echo "Submitted Rubik job: $job_id"
+pdb_job="$(sbatch --parsable --export=ALL,BIHS_BINARY="$ROOT/src/bin/release/stp_bihs_bloom" slurm/prepare_rubik_pdbs.sbatch)"
+job_id="$(sbatch --parsable --dependency="afterok:${pdb_job}" slurm/rubik.sbatch)"
+echo "Submitted Rubik PDB preparation job: $pdb_job"
+echo "Submitted Rubik job: $job_id (starts after PDB preparation)"

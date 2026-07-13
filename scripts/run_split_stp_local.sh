@@ -11,6 +11,13 @@ if [[ ! -x "$binary" ]]; then
   echo "Missing executable $binary. Build it first." >&2
   exit 1
 fi
+domain_args=()
+if [[ "$domain" == "rubik" ]]; then
+  pdb_dir="${RUBIK_PDB_DIR:-results/pdb/rubik}"
+  mkdir -p "$pdb_dir"
+  "$binary" --rubik --prepare-rubik-pdbs --rubik-pdb-dir "$pdb_dir"
+  domain_args+=(--rubik-pdb-dir "$pdb_dir")
+fi
 
 mkdir -p results/split/manifests results/split/calibration_parts \
   results/split/params results/split/run_parts results/split/convergence_parts results/merged
@@ -24,6 +31,7 @@ python3 scripts/generate_split_manifest.py \
 
 tail -n +2 results/split/manifests/calibration.csv | while IFS=, read -r job_id domain instance phase algorithm ratio k_mode; do
   "$binary" "--$domain" --phase calibrate --instance "$instance" --algorithm "$algorithm" \
+    "${domain_args[@]}" \
     --benchmark-output "results/split/calibration_parts/calibration_${domain}_${job_id}.csv"
 done
 
@@ -37,6 +45,7 @@ python3 scripts/generate_split_manifest.py \
 
 tail -n +2 results/split/manifests/run.csv | while IFS=, read -r job_id domain instance phase algorithm ratio k_mode; do
   "$binary" "--$domain" --phase run --instance "$instance" --algorithm "$algorithm" --ratio "$ratio" \
+    "${domain_args[@]}" \
     --k-mode "$k_mode" \
     --params-input "$params_file" \
     --benchmark-output "results/split/run_parts/result_${domain}_${job_id}.csv" \

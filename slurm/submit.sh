@@ -20,7 +20,13 @@ python3 scripts/generate_split_manifest.py \
   --instance-end "${INSTANCE_END:-1}" \
   --output results/split/manifests/calibration.csv
 
-calibration_job=$(sbatch --parsable slurm/stp_calibration.sbatch)
+calibration_dependency=()
+if [[ "$domain" == "rubik" ]]; then
+  pdb_job=$(sbatch --parsable slurm/prepare_rubik_pdbs.sbatch)
+  calibration_dependency+=(--dependency="afterok:${pdb_job}")
+  echo "Submitted Rubik PDB preparation job: ${pdb_job}"
+fi
+calibration_job=$(sbatch --parsable "${calibration_dependency[@]}" slurm/stp_calibration.sbatch)
 params_job=$(sbatch --parsable --dependency="afterok:${calibration_job}" slurm/merge_params.sbatch)
 manifest_job=$(sbatch --parsable --dependency="afterok:${params_job}" slurm/stp_run_manifest.sbatch)
 run_job=$(sbatch --parsable --dependency="afterok:${manifest_job}" slurm/stp_run.sbatch)

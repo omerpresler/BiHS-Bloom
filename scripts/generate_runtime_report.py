@@ -14,6 +14,22 @@ import pandas as pd
 CSV_FILE = "benchmark_stp_korf100.csv"
 OUT_DIR = Path("plots") / "runtime_report_assets"
 OUT_HTML = Path("plots") / "runtime_report.html"
+PRESET_REPORTS = {
+    "stp": (
+        Path("results") / "merged" / "benchmark_stp_korf100.csv",
+        Path("results") / "reports" / "runtime_assets",
+        Path("results") / "reports" / "runtime_report.html",
+        "STP",
+        "Korf STP rows included in the benchmark CSV.",
+    ),
+    "pancake": (
+        Path("results") / "merged" / "benchmark_pancake20_100.csv",
+        Path("results") / "reports" / "pancake_runtime_assets",
+        Path("results") / "reports" / "pancake_runtime_report.html",
+        "Pancake",
+        "Pancake rows included in the benchmark CSV.",
+    ),
+}
 TIMEOUT = -1.0
 OUT_OF_MEMORY = -2.0
 SKIPPED = -3.0
@@ -52,19 +68,30 @@ BIHS_COLORS = {
     ("1pct", "k1"): "#7f5a3d",
     ("1pct", "optk"): "#9c755f",
     ("1pct", "rootk"): "#54a24b",
+    ("0_1pct", "k1"): "#8f6fbd",
+    ("0_1pct", "optk"): "#bab0ac",
+    ("0_1pct", "rootk"): "#b279a2",
 }
 
 IDTHS_COLORS = {
     "50pct": "#5f8fbd",
     "10pct": "#67a772",
     "1pct": "#c58b43",
+    "0_1pct": "#9d7660",
 }
 
 RATIO_LABELS = {
     "50pct": "50%",
     "10pct": "10%",
     "1pct": "1%",
+    "0_1pct": "0.1%",
 }
+
+RATIO_ORDER = {"50pct": 0, "10pct": 1, "1pct": 2, "0_1pct": 3}
+RATIO_SLUG_RE = r"(50pct|10pct|1pct|0_1pct)"
+RATIO_VALUES = {"50pct": 0.5, "10pct": 0.1, "1pct": 0.01, "0_1pct": 0.001}
+RATIO_SLUGS_BY_VALUE = {round(value, 3): slug for slug, value in RATIO_VALUES.items()}
+MODE_LABELS = {"k1": "k1", "optk": "optk", "rootk": "rootk"}
 
 
 def load_results(path):
@@ -107,7 +134,7 @@ def discover_algorithms(df):
     seen_idths = []
 
     for col in df.columns:
-        match = re.fullmatch(r"bihs_bloom_time_(50pct|10pct|1pct)(?:_(k1|optk|rootk))?(?:_(fixed|dynamic))?", col)
+        match = re.fullmatch(rf"bihs_bloom_time_{RATIO_SLUG_RE}(?:_(k1|optk|rootk))?(?:_(fixed|dynamic))?", col)
         if match:
             ratio_slug = match.group(1)
             k_mode = match.group(2)
@@ -130,24 +157,23 @@ def discover_algorithms(df):
             seen_bihs.append((ratio_slug, k_mode or "old", split_mode, label, col, nodes_col))
             continue
 
-        match = re.fullmatch(r"idths_trans_time_(50pct|10pct|1pct)", col)
+        match = re.fullmatch(rf"idths_trans_time_{RATIO_SLUG_RE}", col)
         if match:
             ratio_slug = match.group(1)
             nodes_col = f"idths_trans_nodes_{ratio_slug}"
             if nodes_col in df.columns:
                 seen_idths.append((ratio_slug, f"IDTHSwTrans {RATIO_LABELS[ratio_slug]}", col, nodes_col))
 
-    ratio_order = {"50pct": 0, "10pct": 1, "1pct": 2}
     mode_order = {"k1": 0, "optk": 1, "rootk": 2, "old": 1}
     split_order = {"fixed": 0, "dynamic": 1}
     for ratio_slug, k_mode, split_mode, label, time_col, nodes_col in sorted(
         seen_bihs,
-        key=lambda item: (ratio_order[item[0]], mode_order.get(item[1], 9), split_order.get(item[2], 9)),
+        key=lambda item: (RATIO_ORDER[item[0]], mode_order.get(item[1], 9), split_order.get(item[2], 9)),
     ):
         algos[label] = (time_col, nodes_col)
         colors[label] = BIHS_COLORS.get((ratio_slug, k_mode), BIHS_COLORS.get((ratio_slug, "optk"), "#9c755f"))
 
-    for ratio_slug, label, time_col, nodes_col in sorted(seen_idths, key=lambda item: ratio_order[item[0]]):
+    for ratio_slug, label, time_col, nodes_col in sorted(seen_idths, key=lambda item: RATIO_ORDER[item[0]]):
         algos[label] = (time_col, nodes_col)
         colors[label] = IDTHS_COLORS.get(ratio_slug, "#5f8fbd")
 
@@ -206,6 +232,15 @@ def save_fig(fig, filename):
 def img_data_uri(path):
     encoded = base64.b64encode(path.read_bytes()).decode("ascii")
     return f"data:image/png;base64,{encoded}"
+
+
+def infer_report_context(path):
+    name = Path(path).name.lower()
+    if "pancake" in name:
+        return "Pancake", "Pancake rows included in the benchmark CSV."
+    if "stp" in name or "korf" in name:
+        return "STP", "Korf STP rows included in the benchmark CSV."
+    return "Benchmark", "Rows included in the benchmark CSV."
 
 
 def build_summary(long_df):
@@ -342,20 +377,19 @@ def make_bihs_params(params):
     params["ratio"] = params["ratio"].round(3)
     params["k_mode"] = params["k_mode"].fillna("optk")
     params["split_mode"] = params["split_mode"].fillna("fixed") if "split_mode" in params.columns else "fixed"
-    ratio_labels = {0.5: "50%", 0.1: "10%", 0.01: "1%"}
-    mode_labels = {"k1": "k1", "optk": "optk", "rootk": "rootk"}
     groups_meta = []
-    for ratio in [0.5, 0.1, 0.01]:
+    for ratio_slug in sorted(RATIO_LABELS, key=lambda slug: RATIO_ORDER[slug]):
+        ratio = RATIO_VALUES[ratio_slug]
         ratio_rows = params[params["ratio"] == ratio]
         ratio_modes = ratio_rows["k_mode"].dropna().unique()
-        for mode in ["k1", "optk", "rootk"]:
+        for mode in MODE_LABELS:
             mode_rows = ratio_rows[ratio_rows["k_mode"] == mode]
             for split_mode in ["fixed", "dynamic"]:
                 if split_mode in mode_rows["split_mode"].dropna().unique():
-                    groups_meta.append((ratio, mode, split_mode, f"{ratio_labels[ratio]}\n{mode_labels[mode]}"))
-        if not any(mode in ratio_modes for mode in ["k1", "optk", "rootk"]) and len(ratio_modes):
+                    groups_meta.append((ratio, mode, split_mode, f"{RATIO_LABELS[ratio_slug]}\n{MODE_LABELS[mode]}"))
+        if not any(mode in ratio_modes for mode in MODE_LABELS) and len(ratio_modes):
             mode = ratio_modes[0]
-            groups_meta.append((ratio, mode, "fixed", ratio_labels[ratio]))
+            groups_meta.append((ratio, mode, "fixed", RATIO_LABELS[ratio_slug]))
 
     for ax, metric, title, ylabel in [
         (axes[0], "size_kib", "Bloom Size", "KiB"),
@@ -376,7 +410,7 @@ def make_bihs_params(params):
                 continue
             groups.append(values)
             labels.append(label)
-            ratio_slug = {0.5: "50pct", 0.1: "10pct", 0.01: "1pct"}[ratio]
+            ratio_slug = RATIO_SLUGS_BY_VALUE[round(ratio, 3)]
             colors.append(BIHS_COLORS.get((ratio_slug, mode), "#9c755f"))
         bp = ax.boxplot(groups, labels=labels, patch_artist=True)
         for patch, color in zip(bp["boxes"], colors):
@@ -405,10 +439,12 @@ def bihs_summary_table_html(summary):
 
 
 def bihs_label_metadata(name):
-    match = re.fullmatch(r"BiHS (50%|10%|1%)(?: (k1|optk|rootk|k=1|opt-k|root-k))?(?: (fixed|dynamic))?", name)
+    label_to_ratio = {label: RATIO_VALUES[slug] for slug, label in RATIO_LABELS.items()}
+    ratio_pattern = "|".join(re.escape(label) for label in sorted(label_to_ratio, key=len, reverse=True))
+    match = re.fullmatch(rf"BiHS ({ratio_pattern})(?: (k1|optk|rootk|k=1|opt-k|root-k))?(?: (fixed|dynamic))?", name)
     if not match:
         return None
-    ratio = {"50%": 0.5, "10%": 0.1, "1%": 0.01}[match.group(1)]
+    ratio = label_to_ratio[match.group(1)]
     mode_label = match.group(2)
     if mode_label in {"k1", "k=1"}:
         k_mode = "k1"
@@ -498,16 +534,17 @@ def comparison_table_html(df, params, algorithm_names):
 
 
 def idths_vs_ida_algorithms():
+    idths_names = [f"IDTHSwTrans {RATIO_LABELS[slug]}" for slug in sorted(RATIO_LABELS, key=lambda item: RATIO_ORDER[item])]
     return [
         name
-        for name in ["IDA*", "Rev-IDA*", "IDTHSwTrans 50%", "IDTHSwTrans 10%", "IDTHSwTrans 1%"]
+        for name in ["IDA*", "Rev-IDA*", *idths_names]
         if name in ALGOS
     ]
 
 
 def bihs_vs_idths_algorithms():
     names = []
-    for ratio in ["50%", "10%", "1%"]:
+    for ratio in [RATIO_LABELS[slug] for slug in sorted(RATIO_LABELS, key=lambda item: RATIO_ORDER[item])]:
         bihs_names = [name for name in ALGOS if name.startswith(f"BiHS {ratio}")]
         names.extend(bihs_names)
         idths_name = f"IDTHSwTrans {ratio}"
@@ -522,6 +559,10 @@ def solved_time(value):
     return value
 
 
+def ratio_labels_in_order():
+    return [RATIO_LABELS[slug] for slug in sorted(RATIO_LABELS, key=lambda item: RATIO_ORDER[item])]
+
+
 def bihs_vs_idths_winner_table_html(df):
     rows = []
     totals = {
@@ -533,14 +574,16 @@ def bihs_vs_idths_winner_table_html(df):
         "idths_only": 0,
     }
     speedups = []
+    bihs_nodes_all = []
+    idths_nodes_all = []
 
-    for ratio in ["50%", "10%", "1%"]:
+    for ratio in ratio_labels_in_order():
         idths_name = f"IDTHSwTrans {ratio}"
         if idths_name not in ALGOS:
             continue
-        idths_col = ALGOS[idths_name][0]
+        idths_col, idths_nodes_col = ALGOS[idths_name]
         for bihs_name in [name for name in ALGOS if name.startswith(f"BiHS {ratio}")]:
-            bihs_col = ALGOS[bihs_name][0]
+            bihs_col, bihs_nodes_col = ALGOS[bihs_name]
             both_solved = 0
             bihs_wins = 0
             idths_wins = 0
@@ -548,6 +591,8 @@ def bihs_vs_idths_winner_table_html(df):
             bihs_only = 0
             idths_only = 0
             row_speedups = []
+            row_bihs_nodes = []
+            row_idths_nodes = []
 
             for _, result in df.iterrows():
                 bihs_time = solved_time(result[bihs_col])
@@ -564,6 +609,10 @@ def bihs_vs_idths_winner_table_html(df):
                     else:
                         idths_wins += 1
                     row_speedups.append(idths_time / bihs_time)
+                    if bihs_nodes_col in df.columns and result[bihs_nodes_col] > 0:
+                        row_bihs_nodes.append(result[bihs_nodes_col])
+                    if idths_nodes_col in df.columns and result[idths_nodes_col] > 0:
+                        row_idths_nodes.append(result[idths_nodes_col])
                 elif bihs_solved:
                     bihs_only += 1
                 elif idths_solved:
@@ -579,6 +628,8 @@ def bihs_vs_idths_winner_table_html(df):
             ]:
                 totals[key] += value
             speedups.extend(row_speedups)
+            bihs_nodes_all.extend(row_bihs_nodes)
+            idths_nodes_all.extend(row_idths_nodes)
 
             bihs_score = bihs_wins + bihs_only
             idths_score = idths_wins + idths_only
@@ -599,6 +650,8 @@ def bihs_vs_idths_winner_table_html(df):
                     "Ties": ties,
                     "BiHS solved only": bihs_only,
                     "IDTHS solved only": idths_only,
+                    "Mean BiHS nodes": np.mean(row_bihs_nodes) if row_bihs_nodes else np.nan,
+                    "Mean IDTHS nodes": np.mean(row_idths_nodes) if row_idths_nodes else np.nan,
                     "Median IDTHS/BiHS speedup": np.median(row_speedups) if row_speedups else np.nan,
                 }
             )
@@ -622,6 +675,8 @@ def bihs_vs_idths_winner_table_html(df):
                 "Ties": totals["ties"],
                 "BiHS solved only": totals["bihs_only"],
                 "IDTHS solved only": totals["idths_only"],
+                "Mean BiHS nodes": np.mean(bihs_nodes_all) if bihs_nodes_all else np.nan,
+                "Mean IDTHS nodes": np.mean(idths_nodes_all) if idths_nodes_all else np.nan,
                 "Median IDTHS/BiHS speedup": np.median(speedups) if speedups else np.nan,
             }
         )
@@ -629,6 +684,8 @@ def bihs_vs_idths_winner_table_html(df):
     display = pd.DataFrame(rows)
     if display.empty:
         return "<p class=\"note\">No matched BiHS-Bloom and IDTHSwTrans columns were found.</p>"
+    for col in ["Mean BiHS nodes", "Mean IDTHS nodes"]:
+        display[col] = display[col].map(fmt_num)
     display["Median IDTHS/BiHS speedup"] = display["Median IDTHS/BiHS speedup"].map(
         lambda value: "-" if pd.isna(value) else f"{value:.2f}x"
     )
@@ -638,9 +695,13 @@ def bihs_vs_idths_winner_table_html(df):
 def bihs_win_pattern_table_html(df):
     rows = []
     ratios = [
-        ("50%", "bihs_bloom_time_50pct_optk_dynamic", "idths_trans_time_50pct", "idths_trans_storage_states_50pct"),
-        ("10%", "bihs_bloom_time_10pct_optk_dynamic", "idths_trans_time_10pct", "idths_trans_storage_states_10pct"),
-        ("1%", "bihs_bloom_time_1pct_optk_dynamic", "idths_trans_time_1pct", "idths_trans_storage_states_1pct"),
+        (
+            RATIO_LABELS[slug],
+            f"bihs_bloom_time_{slug}_optk_dynamic",
+            f"idths_trans_time_{slug}",
+            f"idths_trans_storage_states_{slug}",
+        )
+        for slug in sorted(RATIO_LABELS, key=lambda item: RATIO_ORDER[item])
     ]
 
     for label, bihs_col, idths_col, storage_col in ratios:
@@ -681,11 +742,11 @@ def bihs_win_pattern_table_html(df):
 
 def bihs_win_length_bins_html(df):
     rows = []
-    bins = [0, 50, 55, 60, 65, 70, 100]
+    max_length = df["solution_length"].max()
+    bins = np.linspace(0, max(1, max_length), num=7)
     ratios = [
-        ("50%", "bihs_bloom_time_50pct_optk_dynamic", "idths_trans_time_50pct"),
-        ("10%", "bihs_bloom_time_10pct_optk_dynamic", "idths_trans_time_10pct"),
-        ("1%", "bihs_bloom_time_1pct_optk_dynamic", "idths_trans_time_1pct"),
+        (RATIO_LABELS[slug], f"bihs_bloom_time_{slug}_optk_dynamic", f"idths_trans_time_{slug}")
+        for slug in sorted(RATIO_LABELS, key=lambda item: RATIO_ORDER[item])
     ]
     comparisons = []
     for label, bihs_col, idths_col in ratios:
@@ -698,7 +759,7 @@ def bihs_win_length_bins_html(df):
 
     if not comparisons:
         return ""
-    combined = pd.concat(comparisons)
+    combined = pd.concat(comparisons, ignore_index=True)
     combined["Length bin"] = pd.cut(combined["solution_length"], bins=bins, include_lowest=True)
     counts = pd.crosstab(combined["Length bin"], combined["Winner"])
     for winner in ["BiHS", "IDTHS"]:
@@ -709,7 +770,7 @@ def bihs_win_length_bins_html(df):
     return counts.to_html(index=False, classes="summary-table", border=0, escape=False)
 
 
-def render_html(df, params, summary, image_paths):
+def render_html(df, params, summary, image_paths, report_name, instance_detail):
     fastest = summary.sort_values("Median time (s)").iloc[0]
     most_wins = summary.sort_values("Fastest wins", ascending=False).iloc[0]
     total_instances = len(df)
@@ -717,7 +778,7 @@ def render_html(df, params, summary, image_paths):
     generated = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")
 
     cards = [
-        ("Instances", str(total_instances), "Korf STP rows included in the benchmark CSV."),
+        ("Instances", str(total_instances), instance_detail),
         ("Best Median", html.escape(fastest["Algorithm"]), f"{fmt_num(fastest['Median time (s)'])} seconds."),
         ("Most Wins", html.escape(most_wins["Algorithm"]), f"{int(most_wins['Fastest wins'])} fastest instances."),
         ("Solved All", str(solved_all), "Algorithms with no timeout/OOM marker in this file."),
@@ -759,7 +820,7 @@ def render_html(df, params, summary, image_paths):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>STP Runtime Comparison Report</title>
+  <title>{html.escape(report_name)} Runtime Comparison Report</title>
   <style>
     :root {{
       --bg: #f6f7f9;
@@ -941,7 +1002,7 @@ def render_html(df, params, summary, image_paths):
 </head>
 <body>
   <header>
-    <h1>STP Runtime Comparison Report</h1>
+    <h1>{html.escape(report_name)} Runtime Comparison Report</h1>
     <p class="subtitle">Runtime and node-expansion comparison across baseline algorithms and BiHS-Bloom memory settings. Generated from <code>{html.escape(CSV_FILE)}</code> on {generated}.</p>
   </header>
   <main>
@@ -995,16 +1056,16 @@ def render_html(df, params, summary, image_paths):
 """
 
 
-def main():
+def generate_report(input_csv, output_dir, output_html, report_name=None, instance_detail=None):
     global CSV_FILE, OUT_DIR, OUT_HTML
-    parser = argparse.ArgumentParser(description="Generate the STP runtime report.")
-    parser.add_argument("--input", default=CSV_FILE, help="Merged benchmark CSV")
-    parser.add_argument("--output-dir", default=str(OUT_DIR), help="Directory for report assets")
-    parser.add_argument("--output-html", default=str(OUT_HTML), help="Output HTML file")
-    args = parser.parse_args()
-    CSV_FILE = args.input
-    OUT_DIR = Path(args.output_dir)
-    OUT_HTML = Path(args.output_html)
+    CSV_FILE = str(input_csv)
+    OUT_DIR = Path(output_dir)
+    OUT_HTML = Path(output_html)
+    if report_name is None or instance_detail is None:
+        inferred_name, inferred_detail = infer_report_context(CSV_FILE)
+        report_name = report_name or inferred_name
+        instance_detail = instance_detail or inferred_detail
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     OUT_HTML.parent.mkdir(parents=True, exist_ok=True)
     df, params = load_results(CSV_FILE)
@@ -1021,7 +1082,31 @@ def main():
         ("BiHS-Bloom memory, k, and estimated false-positive parameters", make_bihs_params(params)),
     ]
 
-    OUT_HTML.write_text(render_html(df, params, summary, images), encoding="utf-8")
+    OUT_HTML.write_text(render_html(df, params, summary, images, report_name, instance_detail), encoding="utf-8")
+    return OUT_HTML
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate runtime reports for STP or pancake benchmarks.")
+    parser.add_argument("--preset", choices=["stp", "pancake", "all"], help="Use built-in benchmark/report paths")
+    parser.add_argument("--input", default=CSV_FILE, help="Merged benchmark CSV")
+    parser.add_argument("--output-dir", default=str(OUT_DIR), help="Directory for report assets")
+    parser.add_argument("--output-html", default=str(OUT_HTML), help="Output HTML file")
+    parser.add_argument("--title", help="Report title prefix, for example STP or Pancake")
+    args = parser.parse_args()
+
+    if args.preset == "all":
+        for input_csv, output_dir, output_html, report_name, instance_detail in PRESET_REPORTS.values():
+            generate_report(input_csv, output_dir, output_html, report_name, instance_detail)
+        return
+
+    if args.preset:
+        input_csv, output_dir, output_html, report_name, instance_detail = PRESET_REPORTS[args.preset]
+        generate_report(input_csv, output_dir, output_html, args.title or report_name, instance_detail)
+        return
+
+    report_name, instance_detail = infer_report_context(args.input)
+    generate_report(args.input, args.output_dir, args.output_html, args.title or report_name, instance_detail)
 
 
 if __name__ == "__main__":

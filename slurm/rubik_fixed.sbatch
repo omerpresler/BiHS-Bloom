@@ -30,6 +30,7 @@ fi
 
 IFS=, read -r job_id domain instance phase algorithm ratio k_mode <<< "$row"
 srun "$binary" "--${domain}" --phase "$phase" \
+  --rubik-pdb-dir "${RUBIK_PDB_DIR:-results/pdb/rubik}" \
   --instance "$instance" \
   --algorithm "$algorithm" \
   --ratio "$ratio" \

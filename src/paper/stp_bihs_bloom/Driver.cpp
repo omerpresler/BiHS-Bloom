@@ -15,6 +15,8 @@
 
 #include "PancakeInstances.h"
 #include "RC.h"
+#include "RubiksCube.h"
+#include "RubiksInstances.h"
 
 #include <algorithm>
 #include <cmath>
@@ -33,10 +35,6 @@
 #include <memory>
 #include <limits>
 
-namespace RubiksCubeInstances {
-void GetKorfRubikInstance(RCState &start, int which);
-}
-
 static constexpr double SKIPPED_TIME = -3.0;
 static constexpr int NUM_BIHS_RUNS = 12;
 static constexpr bool WRITE_BIHS_PARAM_LOG = true;
@@ -51,6 +49,8 @@ static constexpr int RUBIK_FIXED_K_HASHES = 1;
 static constexpr int RUBIK_TOTAL_INSTANCES = 10;
 static constexpr const char *RUBIK_INSTANCE_SET = "korf";
 static bool gRunFullBaselines = false;
+static std::string gRubikPDBDir = "results/pdb/rubik";
+static bool gBuildRubikPDBs = false;
 
 static const char *SPLIT_RESULTS_HEADER =
     "domain,instance,algorithm,ratio,status,time,nodes,necessary_nodes,storage_states,"
@@ -116,12 +116,71 @@ static int ComputeKHashes(const BiHSRunConfig &run, double estimatedItems, doubl
   return optimizedKHashes;
 }
 
-class BenchmarkRC : public RC {
+class BenchmarkRC : public RubiksCube {
 public:
-  uint64_t GetStateHash(const RCState &node) const
+  BenchmarkRC()
   {
-    return BloomFilter<RCState>::stable_fingerprint(node);
+    if (gRubikPDBDir.empty())
+      throw std::runtime_error("Rubik runs require --rubik-pdb-dir <directory>");
+
+    RubiksState goal;
+    goal.Reset();
+    const std::vector<int> noPieces;
+    const std::vector<int> edges1 = {1, 3, 8, 9, 10, 11};
+    const std::vector<int> edges2 = {0, 2, 4, 5, 6, 7};
+    const std::vector<int> corners = {0, 1, 2, 3, 4, 5, 6, 7};
+
+    pdb1 = std::make_shared<RubikPDB>(this, goal, edges1, noPieces);
+    pdb2 = std::make_shared<RubikPDB>(this, goal, edges2, noPieces);
+    pdb3 = std::make_shared<RubikPDB>(this, goal, noPieces, corners);
+
+    LoadOrBuild(*pdb1, goal);
+    LoadOrBuild(*pdb2, goal);
+    LoadOrBuild(*pdb3, goal);
+
+    arbitrary1 = std::make_shared<RubikArbitraryGoalPDB>(pdb1.get());
+    arbitrary2 = std::make_shared<RubikArbitraryGoalPDB>(pdb2.get());
+    arbitrary3 = std::make_shared<RubikArbitraryGoalPDB>(pdb3.get());
+    heuristic.lookups.push_back({kMaxNode, 1, 3});
+    heuristic.lookups.push_back({kLeafNode, 0, 0});
+    heuristic.lookups.push_back({kLeafNode, 1, 0});
+    heuristic.lookups.push_back({kLeafNode, 2, 0});
+    heuristic.heuristics.push_back(arbitrary1.get());
+    heuristic.heuristics.push_back(arbitrary2.get());
+    heuristic.heuristics.push_back(arbitrary3.get());
   }
+
+  double HCost(const RubiksState &from, const RubiksState &to) const override
+  { return heuristic.HCost(from, to); }
+
+  double HCost(const RubiksState &from, const RubiksState &to, double) const override
+  { return heuristic.HCost(from, to); }
+
+  uint64_t GetStateHash(const RubiksState &node) const override
+  { return BloomFilter<RubiksState>::stable_fingerprint(node); }
+
+private:
+  void LoadOrBuild(RubikPDB &pdb, const RubiksState &goal)
+  {
+    if (pdb.Load(gRubikPDBDir.c_str()))
+      return;
+    if (!gBuildRubikPDBs) {
+      throw std::runtime_error(
+          "Missing Rubik PDB in '" + gRubikPDBDir +
+          "'. Prepare it once with --rubik --prepare-rubik-pdbs --rubik-pdb-dir <directory>");
+    }
+    const unsigned int threads = std::min(64u, std::max(1u, std::thread::hardware_concurrency()));
+    pdb.BuildPDB(goal, threads);
+    pdb.Save(gRubikPDBDir.c_str());
+  }
+
+  std::shared_ptr<RubikPDB> pdb1;
+  std::shared_ptr<RubikPDB> pdb2;
+  std::shared_ptr<RubikPDB> pdb3;
+  std::shared_ptr<RubikArbitraryGoalPDB> arbitrary1;
+  std::shared_ptr<RubikArbitraryGoalPDB> arbitrary2;
+  std::shared_ptr<RubikArbitraryGoalPDB> arbitrary3;
+  Heuristic<RubiksState> heuristic;
 };
 
 struct STPResult {
@@ -236,7 +295,7 @@ static void WriteSplitResultRow(std::ofstream &out, const std::string &domain, i
       << kMode << "," << splitMode << "\n";
 }
 
-static unsigned long FixedRubikStorageStates(const RCState &sample)
+static unsigned long FixedRubikStorageStates(const RubiksState &sample)
 {
   long double memoryBits = static_cast<long double>(RUBIK_FIXED_BLOOM_SIZE_KIB) * 8192.0L;
   long double stateBits = static_cast<long double>(std::max<size_t>(1, get_state_size(sample)));
@@ -437,8 +496,8 @@ static void runRubikCalibrationJob(int instance, const std::string &algorithm,
   out << SPLIT_CALIBRATION_HEADER;
 
   BenchmarkRC rubik;
-  RCState goal;
-  RCState puzzle;
+  RubiksState goal;
+  RubiksState puzzle;
   goal.Reset();
   RubiksCubeInstances::GetKorfRubikInstance(puzzle, instance);
   Timer t;
@@ -452,8 +511,8 @@ static void runRubikCalibrationJob(int instance, const std::string &algorithm,
 
   try {
     if (algorithm == "astar") {
-      TemplateAStar<RCState, RCAction, BenchmarkRC> astar;
-      std::vector<RCState> path;
+      TemplateAStar<RubiksState, RubiksAction, BenchmarkRC> astar;
+      std::vector<RubiksState> path;
       std::cout << "[" << instance << "] Calibrating Rubik A*..." << std::flush;
       t.StartTimer();
       astar.GetPath(&rubik, puzzle, goal, path);
@@ -463,8 +522,8 @@ static void runRubikCalibrationJob(int instance, const std::string &algorithm,
       solutionLength = static_cast<int>(path.size()) - 1;
       memoryItems = astar.GetNumItems();
     } else if (algorithm == "rev_astar") {
-      TemplateAStar<RCState, RCAction, BenchmarkRC> astar;
-      std::vector<RCState> path;
+      TemplateAStar<RubiksState, RubiksAction, BenchmarkRC> astar;
+      std::vector<RubiksState> path;
       std::cout << "[" << instance << "] Calibrating Rubik Rev-A*..." << std::flush;
       t.StartTimer();
       astar.GetPath(&rubik, goal, puzzle, path);
@@ -474,8 +533,8 @@ static void runRubikCalibrationJob(int instance, const std::string &algorithm,
       solutionLength = static_cast<int>(path.size()) - 1;
       memoryItems = astar.GetNumItems();
     } else if (algorithm == "mm") {
-      MM<RCState, RCAction, BenchmarkRC> mm;
-      std::vector<RCState> path;
+      MM<RubiksState, RubiksAction, BenchmarkRC> mm;
+      std::vector<RubiksState> path;
       std::cout << "[" << instance << "] Calibrating Rubik MM..." << std::flush;
       t.StartTimer();
       mm.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
@@ -524,8 +583,8 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
     throw std::runtime_error("Unsupported ratio/k-mode for split run: " + std::to_string(ratio) + "/" + effectiveKMode);
 
   BenchmarkRC rubik;
-  RCState goal;
-  RCState puzzle;
+  RubiksState goal;
+  RubiksState puzzle;
   goal.Reset();
   RubiksCubeInstances::GetKorfRubikInstance(puzzle, instance);
   Timer t;
@@ -542,10 +601,10 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
     int kHashes = ComputeKHashes(*run, estimatedFrontierItems, bloomBits);
     double fpEst = fp_rate(kHashes, estimatedFrontierItems, bloomBits);
 
-    using RubikBiHSBloom = BiHSBloom<RCState, RCAction, BenchmarkRC>;
+    using RubikBiHSBloom = BiHSBloom<RubiksState, RubiksAction, BenchmarkRC>;
     RubikBiHSBloom bihs(sizeKiB, kHashes, bihsTimeLimit, run->useDynamicSplit);
     bool outOfMemory = false;
-    std::vector<RCAction> path;
+    std::vector<RubiksAction> path;
     std::cout << "[" << instance << "] Split Rubik BiHS-Bloom(" << run->ratioLabel << ", "
               << run->kMode << ", " << run->splitMode << ")..." << std::flush;
     try {
@@ -584,7 +643,7 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
   } else if (algorithm == "idths_trans") {
     unsigned long storage = std::max<unsigned long>(
         static_cast<unsigned long>(params.minMemoryItems * ratio), IDTHS_MIN_STATES_BOUND);
-    IDTHSwTrans<RCState, RCAction, false> idthsTrans(true, true, true, 1, true);
+    IDTHSwTrans<RubiksState, RubiksAction, false> idthsTrans(true, true, true, 1, true);
     bool solved = false;
     bool outOfMemory = false;
     std::cout << "[" << instance << "] Split Rubik IDTHSwTrans(" << run->ratioLabel << ")..." << std::flush;
@@ -620,8 +679,8 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
   out << SPLIT_RESULTS_HEADER;
 
   BenchmarkRC rubik;
-  RCState goal;
-  RCState puzzle;
+  RubiksState goal;
+  RubiksState puzzle;
   goal.Reset();
   RubiksCubeInstances::GetKorfRubikInstance(puzzle, instance);
   Timer t;
@@ -632,10 +691,10 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
     const int kHashes = RUBIK_FIXED_K_HASHES;
     const double fpEst = 0.0;
 
-    using RubikBiHSBloom = BiHSBloom<RCState, RCAction, BenchmarkRC>;
+    using RubikBiHSBloom = BiHSBloom<RubiksState, RubiksAction, BenchmarkRC>;
     RubikBiHSBloom bihs(sizeKiB, kHashes, RUBIK_FIXED_SECONDS_LIMIT, false);
     bool outOfMemory = false;
-    std::vector<RCAction> path;
+    std::vector<RubiksAction> path;
     std::cout << "[" << instance << "] Fixed Rubik BiHS-Bloom(128GiB,k=1)..." << std::flush;
     try {
       t.StartTimer();
@@ -671,7 +730,7 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
     std::cout << " " << status << " (" << elapsed << "s, " << bihs.GetTotalNodesExpanded() << "n)\n" << std::flush;
   } else if (algorithm == "idths_trans") {
     unsigned long storage = FixedRubikStorageStates(puzzle);
-    IDTHSwTrans<RCState, RCAction, false> idthsTrans(true, true, true, 1, true);
+    IDTHSwTrans<RubiksState, RubiksAction, false> idthsTrans(true, true, true, 1, true);
     bool solved = false;
     bool outOfMemory = false;
     std::cout << "[" << instance << "] Fixed Rubik IDTHSwTrans(128GiB states=" << storage << ")..." << std::flush;
@@ -693,9 +752,9 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
                         storage, 0, 0, 0.0, solutionLength, "", "");
     std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
   } else if (algorithm == "ida") {
-    IDAStar<RCState, RCAction, false> ida;
+    IDAStar<RubiksState, RubiksAction, false> ida;
     bool outOfMemory = false;
-    std::vector<RCState> path;
+    std::vector<RubiksState> path;
     std::cout << "[" << instance << "] Fixed Rubik IDA*..." << std::flush;
     try {
       t.StartTimer();
@@ -1696,16 +1755,16 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
     size_t frontierSize = 0;
 
     BenchmarkRC rubik;
-    RCState goal;
-    RCState puzzle;
+    RubiksState goal;
+    RubiksState puzzle;
     goal.Reset();
     RubiksCubeInstances::GetKorfRubikInstance(puzzle, i);
     Timer t;
 
     std::cout << "[" << i << "] Running Rubik A*..." << std::flush;
     {
-      TemplateAStar<RCState, RCAction, BenchmarkRC> astar;
-      std::vector<RCState> path;
+      TemplateAStar<RubiksState, RubiksAction, BenchmarkRC> astar;
+      std::vector<RubiksState> path;
       try {
         t.StartTimer();
         astar.GetPath(&rubik, puzzle, goal, path);
@@ -1724,8 +1783,8 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
 
     std::cout << "[" << i << "] Running Rubik Rev-A*..." << std::flush;
     {
-      TemplateAStar<RCState, RCAction, BenchmarkRC> astar;
-      std::vector<RCState> path;
+      TemplateAStar<RubiksState, RubiksAction, BenchmarkRC> astar;
+      std::vector<RubiksState> path;
       try {
         t.StartTimer();
         astar.GetPath(&rubik, goal, puzzle, path);
@@ -1748,8 +1807,8 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
     } else {
       std::cout << "[" << i << "] Running Rubik BAE*..." << std::flush;
       {
-        BAE<RCState, RCAction, BenchmarkRC> bae;
-        std::vector<RCState> path;
+        BAE<RubiksState, RubiksAction, BenchmarkRC> bae;
+        std::vector<RubiksState> path;
         try {
           t.StartTimer();
           bae.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
@@ -1767,8 +1826,8 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
 
       std::cout << "[" << i << "] Running Rubik NBS..." << std::flush;
       {
-        NBS<RCState, RCAction, BenchmarkRC> nbs;
-        std::vector<RCState> path;
+        NBS<RubiksState, RubiksAction, BenchmarkRC> nbs;
+        std::vector<RubiksState> path;
         try {
           t.StartTimer();
           nbs.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
@@ -1787,8 +1846,8 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
 
     std::cout << "[" << i << "] Running Rubik MM..." << std::flush;
     {
-      MM<RCState, RCAction, BenchmarkRC> mm;
-      std::vector<RCState> path;
+      MM<RubiksState, RubiksAction, BenchmarkRC> mm;
+      std::vector<RubiksState> path;
       try {
         t.StartTimer();
         mm.GetPath(&rubik, puzzle, goal, &rubik, &rubik, path);
@@ -1811,8 +1870,8 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
     if (gRunFullBaselines) {
       std::cout << "[" << i << "] Running Rubik IDA*..." << std::flush;
       {
-        IDAStar<RCState, RCAction, false> ida;
-        std::vector<RCState> path;
+        IDAStar<RubiksState, RubiksAction, false> ida;
+        std::vector<RubiksState> path;
         try {
           t.StartTimer();
           ida.GetPath(&rubik, puzzle, goal, path);
@@ -1830,8 +1889,8 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
 
       std::cout << "[" << i << "] Running Rubik Rev-IDA*..." << std::flush;
       {
-        IDAStar<RCState, RCAction, false> ida;
-        std::vector<RCState> path;
+        IDAStar<RubiksState, RubiksAction, false> ida;
+        std::vector<RubiksState> path;
         try {
           t.StartTimer();
           ida.GetPath(&rubik, goal, puzzle, path);
@@ -1849,8 +1908,8 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
 
       std::cout << "[" << i << "] Running Rubik Parallel IDA*..." << std::flush;
       {
-        ParallelIDAStar<BenchmarkRC, RCState, RCAction> ida;
-        std::vector<RCAction> path;
+        ParallelIDAStar<BenchmarkRC, RubiksState, RubiksAction> ida;
+        std::vector<RubiksAction> path;
         try {
           t.StartTimer();
           ida.GetPath(&rubik, puzzle, goal, path);
@@ -1879,7 +1938,7 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
     std::cout << "[" << i << "] Rubik IDTHSwTrans state bound baseline: "
               << idthsStatesQuantityBound << "\n" << std::flush;
 
-    using RubikBiHSBloom = BiHSBloom<RCState, RCAction, BenchmarkRC>;
+    using RubikBiHSBloom = BiHSBloom<RubiksState, RubiksAction, BenchmarkRC>;
 
     for(int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
     {
@@ -1900,7 +1959,7 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
 
       RubikBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit, run.useDynamicSplit);
       bool bihsOutOfMemory = false;
-      std::vector<RCAction> pathBiHS;
+      std::vector<RubiksAction> pathBiHS;
       try {
         t.StartTimer();
         pathBiHS = bihs.GetPath(puzzle, goal);
@@ -1955,7 +2014,7 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
                 << ", states=" << idthsStorage << ", limit=" << IDTHS_SECONDS_LIMIT << "s)..."
                 << std::flush;
 
-      IDTHSwTrans<RCState, RCAction, false> idthsTrans(true, true, true, 1, true);
+      IDTHSwTrans<RubiksState, RubiksAction, false> idthsTrans(true, true, true, 1, true);
       bool idthsSolved = false;
       bool idthsOutOfMemory = false;
       try {
@@ -2045,6 +2104,7 @@ int main(int argc, char **argv) {
   bool slidingTilePuzzle = false;
   bool pancake = false;
   bool rubik = false;
+  bool prepareRubikPDBs = false;
   int instanceStart = 0;
   int instanceEnd = 100;
   int singleInstance = -1;
@@ -2063,6 +2123,12 @@ int main(int argc, char **argv) {
       pancake = true;
     else if (strcmp(argv[i], "--rubik") == 0)
       rubik = true;
+    else if (strcmp(argv[i], "--prepare-rubik-pdbs") == 0) {
+      prepareRubikPDBs = true;
+      gBuildRubikPDBs = true;
+    }
+    else if (strcmp(argv[i], "--rubik-pdb-dir") == 0 && i + 1 < argc)
+      gRubikPDBDir = argv[++i];
     else if (strcmp(argv[i], "--full") == 0)
       gRunFullBaselines = true;
     else if (strcmp(argv[i], "--phase") == 0 && i + 1 < argc)
@@ -2090,6 +2156,22 @@ int main(int argc, char **argv) {
   
   if ((pancake ? 1 : 0) + (slidingTilePuzzle ? 1 : 0) + (rubik ? 1 : 0) != 1){
     std::cerr << "Please choose exactly 1 domain";
+    return 0;
+  }
+
+  if (prepareRubikPDBs) {
+    if (!rubik) {
+      std::cerr << "--prepare-rubik-pdbs requires --rubik\n";
+      return 1;
+    }
+    try {
+      BenchmarkRC prepared;
+      std::cout << "Rubik PDBs are ready in " << gRubikPDBDir << "\n";
+    }
+    catch (const std::exception &e) {
+      std::cerr << e.what() << "\n";
+      return 1;
+    }
     return 0;
   }
 

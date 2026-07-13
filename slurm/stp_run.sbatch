@@ -29,7 +29,12 @@ if [[ -z "$row" ]]; then
 fi
 
 IFS=, read -r job_id domain instance phase algorithm ratio k_mode <<< "$row"
+extra_args=()
+if [[ "$domain" == "rubik" ]]; then
+  extra_args+=(--rubik-pdb-dir "${RUBIK_PDB_DIR:-results/pdb/rubik}")
+fi
 srun "$binary" "--${domain}" --phase run \
+  "${extra_args[@]}" \
   --instance "$instance" \
   --algorithm "$algorithm" \
   --ratio "$ratio" \
