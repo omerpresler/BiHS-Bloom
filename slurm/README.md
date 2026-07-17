@@ -5,6 +5,9 @@ It supports both `stp` and `rubik`. It runs calibration first, derives the
 memory/frontier parameters, and then runs each BiHS-Bloom and IDTHSwTrans ratio
 as a separate Slurm job.
 
+The active comparison matrix uses `optk` only, at 50%, 10%, and 1% memory.
+The former `k1`, `rootk`, and 0.1% configurations are not generated.
+
 ## 1. Compile
 
 On a Linux machine or the Slurm login node, from the repository root:
@@ -80,6 +83,25 @@ The default calibration manifest contains three jobs for instance `0`:
 If calibration does not produce usable `min_memory_items` and `frontier_items`,
 the params row is marked `missing_params` and phase 2 receives no work for that
 instance.
+
+## 2a. Submit the full STP arrays
+
+The normal 64GiB array excludes STP instances `59`, `81`, and `87`, which have
+previously exceeded that allocation:
+
+```bash
+sbatch slurm/stp_array.sbatch
+```
+
+Submit those three instances through the separate 128GiB array:
+
+```bash
+sbatch slurm/stp_high_memory.sbatch
+```
+
+Both arrays write the same per-instance shard paths under `results/parts/`, so
+merge only after both arrays have finished and all 100 instance shards pass
+validation. Their log prefixes are `stp_` and `stp_highmem_`, respectively.
 
 ## 2b. Submit the fixed Rubik 128GiB workflow
 
@@ -164,7 +186,7 @@ DOMAIN=rubik INSTANCE_START=0 INSTANCE_END=10 bash scripts/run_split_stp_local.s
 The Slurm array sizes are fixed for the one-instance trial:
 
 - `slurm/stp_calibration.sbatch`: `#SBATCH --array=0-2%3`
-- `slurm/stp_run.sbatch`: `#SBATCH --array=0-15%8`
+- `slurm/stp_run.sbatch`: `#SBATCH --array=0-5%6`
 - `slurm/rubik_fixed.sbatch`: `#SBATCH --array=0-2%3`
 
 When scaling past instance `0`, regenerate the manifests and expand those array

@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=main
 #SBATCH --job-name=bihs-stp-run
-#SBATCH --array=0-15%8
+#SBATCH --array=0-5%6
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=128G

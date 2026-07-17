@@ -59,6 +59,7 @@ The repository owner is a master's student and may provide algorithm details inf
 
 - Use `.agents/review-bihs-logs` when reviewing experiment logs, CSV integrity, failures, convergence traces, or result usability.
 - Use `.agents/analyze-bihs-math` for Bloom-filter derivations, correctness assumptions, complexity, experiment statistics, or thesis mathematical claims.
+- Use `.agents/run-bihs-slurm` for cluster builds, `srun`/`sbatch` launches, job monitoring, binary freshness, and Slurm workflow selection.
 
 # Cluster execution rules
 

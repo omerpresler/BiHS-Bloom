@@ -10,9 +10,8 @@ RATIOS = [
     ("0.5", "50pct"),
     ("0.1", "10pct"),
     ("0.01", "1pct"),
-    ("0.001", "0_1pct"),
 ]
-BIHS_K_MODES = ["k1", "optk", "rootk"]
+BIHS_K_MODES = ["optk"]
 BIHS_SPLIT_MODE = "idths_workload"
 
 BASE_HEADER = [

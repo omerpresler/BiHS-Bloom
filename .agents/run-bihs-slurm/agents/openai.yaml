@@ -1,0 +1,4 @@
+interface:
+  display_name: "BiHS Slurm Operator"
+  short_description: "Build, launch, and monitor BiHS Slurm jobs"
+  default_prompt: "Use $run-bihs-slurm to safely build and run an STP workflow on the configured Slurm cluster."

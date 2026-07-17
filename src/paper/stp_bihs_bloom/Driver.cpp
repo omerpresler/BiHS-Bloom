@@ -37,7 +37,7 @@
 #include <limits>
 
 static constexpr double SKIPPED_TIME = -3.0;
-static constexpr int NUM_BIHS_RUNS = 12;
+static constexpr int NUM_BIHS_RUNS = 3;
 static constexpr bool WRITE_BIHS_PARAM_LOG = true;
 static constexpr bool WRITE_CONVERGENCE_LOG = true;
 static constexpr unsigned long IDTHS_DEFAULT_STATES_BOUND = 1000000;
@@ -78,18 +78,9 @@ struct BiHSRunConfig {
 };
 
 static constexpr BiHSRunConfig BIHS_RUNS[NUM_BIHS_RUNS] = {
-    {0.5,  "50%", "50pct", "k1",    "idths_workload"},
     {0.5,  "50%", "50pct", "optk",  "idths_workload"},
-    {0.5,  "50%", "50pct", "rootk", "idths_workload"},
-    {0.1,  "10%", "10pct", "k1",    "idths_workload"},
     {0.1,  "10%", "10pct", "optk",  "idths_workload"},
-    {0.1,  "10%", "10pct", "rootk", "idths_workload"},
-    {0.01, "1%",  "1pct",  "k1",    "idths_workload"},
     {0.01, "1%",  "1pct",  "optk",  "idths_workload"},
-    {0.01, "1%",  "1pct",  "rootk", "idths_workload"},
-    {0.001, "0.1%", "0_1pct", "k1",    "idths_workload"},
-    {0.001, "0.1%", "0_1pct", "optk",  "idths_workload"},
-    {0.001, "0.1%", "0_1pct", "rootk", "idths_workload"},
 };
 
 static double fp_rate(int k, double n, double m) {
@@ -116,13 +107,9 @@ static int choose_k(double n, double m, double target = 0.01) {
 
 static int ComputeKHashes(const BiHSRunConfig &run, double estimatedItems, double bloomBits)
 {
-  int optimizedKHashes = std::max(1, static_cast<int>(
+  (void)run;
+  return std::max(1, static_cast<int>(
       std::round((bloomBits / std::max(1.0, estimatedItems)) * std::log(2.0))));
-  if (std::strcmp(run.kMode, "k1") == 0)
-    return 1;
-  if (std::strcmp(run.kMode, "rootk") == 0)
-    return std::max(1, static_cast<int>(std::round(std::sqrt(optimizedKHashes))));
-  return optimizedKHashes;
 }
 
 class BenchmarkRC : public RubiksCube {

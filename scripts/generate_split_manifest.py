@@ -6,8 +6,8 @@ import csv
 from pathlib import Path
 
 
-RATIOS = ["0.5", "0.1", "0.01", "0.001"]
-BIHS_K_MODES = ["k1", "optk", "rootk"]
+RATIOS = ["0.5", "0.1", "0.01"]
+BIHS_K_MODES = ["optk"]
 FIXED_RUBIK_ALGORITHMS = ["bihs_bloom", "idths_trans", "ida"]
 
 

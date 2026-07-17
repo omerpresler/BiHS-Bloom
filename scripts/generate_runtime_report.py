@@ -59,39 +59,28 @@ BASE_COLORS = {
 COLORS = dict(BASE_COLORS)
 
 BIHS_COLORS = {
-    ("50pct", "k1"): "#7b68a6",
     ("50pct", "optk"): "#b07aa1",
-    ("50pct", "rootk"): "#4c78a8",
-    ("10pct", "k1"): "#d36b8a",
     ("10pct", "optk"): "#ff9da7",
-    ("10pct", "rootk"): "#f58518",
-    ("1pct", "k1"): "#7f5a3d",
     ("1pct", "optk"): "#9c755f",
-    ("1pct", "rootk"): "#54a24b",
-    ("0_1pct", "k1"): "#8f6fbd",
-    ("0_1pct", "optk"): "#bab0ac",
-    ("0_1pct", "rootk"): "#b279a2",
 }
 
 IDTHS_COLORS = {
     "50pct": "#5f8fbd",
     "10pct": "#67a772",
     "1pct": "#c58b43",
-    "0_1pct": "#9d7660",
 }
 
 RATIO_LABELS = {
     "50pct": "50%",
     "10pct": "10%",
     "1pct": "1%",
-    "0_1pct": "0.1%",
 }
 
-RATIO_ORDER = {"50pct": 0, "10pct": 1, "1pct": 2, "0_1pct": 3}
-RATIO_SLUG_RE = r"(50pct|10pct|1pct|0_1pct)"
-RATIO_VALUES = {"50pct": 0.5, "10pct": 0.1, "1pct": 0.01, "0_1pct": 0.001}
+RATIO_ORDER = {"50pct": 0, "10pct": 1, "1pct": 2}
+RATIO_SLUG_RE = r"(50pct|10pct|1pct)"
+RATIO_VALUES = {"50pct": 0.5, "10pct": 0.1, "1pct": 0.01}
 RATIO_SLUGS_BY_VALUE = {round(value, 3): slug for slug, value in RATIO_VALUES.items()}
-MODE_LABELS = {"k1": "k1", "optk": "optk", "rootk": "rootk"}
+MODE_LABELS = {"optk": "optk"}
 
 
 def load_results(path):
@@ -134,7 +123,7 @@ def discover_algorithms(df):
     seen_idths = []
 
     for col in df.columns:
-        match = re.fullmatch(rf"bihs_bloom_time_{RATIO_SLUG_RE}(?:_(k1|optk|rootk))?(?:_(fixed|dynamic|idths_workload))?", col)
+        match = re.fullmatch(rf"bihs_bloom_time_{RATIO_SLUG_RE}(?:_(optk))?(?:_(fixed|dynamic|idths_workload))?", col)
         if match:
             ratio_slug = match.group(1)
             k_mode = match.group(2)
@@ -147,12 +136,8 @@ def discover_algorithms(df):
                 continue
 
             label = f"BiHS {RATIO_LABELS[ratio_slug]}"
-            if k_mode == "k1":
-                label += " k1"
-            elif k_mode == "optk":
+            if k_mode == "optk":
                 label += " optk"
-            elif k_mode == "rootk":
-                label += " rootk"
 
             seen_bihs.append((ratio_slug, k_mode or "old", split_mode, label, col, nodes_col))
             continue
@@ -164,7 +149,7 @@ def discover_algorithms(df):
             if nodes_col in df.columns:
                 seen_idths.append((ratio_slug, f"IDTHSwTrans {RATIO_LABELS[ratio_slug]}", col, nodes_col))
 
-    mode_order = {"k1": 0, "optk": 1, "rootk": 2, "old": 1}
+    mode_order = {"optk": 0, "old": 0}
     split_order = {"fixed": 0, "dynamic": 1, "idths_workload": 2}
     for ratio_slug, k_mode, split_mode, label, time_col, nodes_col in sorted(
         seen_bihs,
@@ -441,17 +426,12 @@ def bihs_summary_table_html(summary):
 def bihs_label_metadata(name):
     label_to_ratio = {label: RATIO_VALUES[slug] for slug, label in RATIO_LABELS.items()}
     ratio_pattern = "|".join(re.escape(label) for label in sorted(label_to_ratio, key=len, reverse=True))
-    match = re.fullmatch(rf"BiHS ({ratio_pattern})(?: (k1|optk|rootk|k=1|opt-k|root-k))?(?: (fixed|dynamic|idths_workload))?", name)
+    match = re.fullmatch(rf"BiHS ({ratio_pattern})(?: (optk|opt-k))?(?: (fixed|dynamic|idths_workload))?", name)
     if not match:
         return None
     ratio = label_to_ratio[match.group(1)]
     mode_label = match.group(2)
-    if mode_label in {"k1", "k=1"}:
-        k_mode = "k1"
-    elif mode_label in {"rootk", "root-k"}:
-        k_mode = "rootk"
-    else:
-        k_mode = "optk"
+    k_mode = "optk"
     split_mode = match.group(3)
     return ratio, k_mode, split_mode
 

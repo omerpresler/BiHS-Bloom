@@ -1,14 +1,13 @@
 #!/bin/bash
 #SBATCH --partition=main
-#SBATCH --job-name=bihs-stp
-# STP instances 59, 81, and 87 have exceeded 64 GiB; submit them separately.
-#SBATCH --array=0-58,60-80,82-86,88-99%10
+#SBATCH --job-name=bihs-stp-highmem
+#SBATCH --array=59,81,87%3
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=64G
+#SBATCH --mem=128G
 #SBATCH --time=1-00:00:00
-#SBATCH --output=results/logs/stp_%A_%a.out
-#SBATCH --error=results/logs/stp_%A_%a.err
+#SBATCH --output=results/logs/stp_highmem_%A_%a.out
+#SBATCH --error=results/logs/stp_highmem_%A_%a.err
 
 set -euo pipefail
 
