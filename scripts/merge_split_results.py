@@ -13,7 +13,7 @@ RATIOS = [
     ("0.001", "0_1pct"),
 ]
 BIHS_K_MODES = ["k1", "optk", "rootk"]
-BIHS_SPLIT_MODE = "dynamic"
+BIHS_SPLIT_MODE = "idths_workload"
 
 BASE_HEADER = [
     "instance", "solution_length",
@@ -115,6 +115,15 @@ def benchmark_header() -> list[str]:
     header.extend([f"idths_trans_nodes_{slug}" for _, slug in RATIOS])
     header.extend([f"idths_trans_necessary_nodes_{slug}" for _, slug in RATIOS])
     header.extend([f"idths_trans_storage_states_{slug}" for _, slug in RATIOS])
+    for metric in ["bound_cycles", "forward_scans", "backward_scans", "type_split_scans", "extraction_scans"]:
+        header.extend([
+            f"bihs_{metric}_{slug}_{k_mode}_{BIHS_SPLIT_MODE}"
+            for _, slug in RATIOS
+            for k_mode in BIHS_K_MODES
+        ])
+    for metric in ["bound_cycles", "forward_scans", "backward_scans",
+                   "table_full_backward_scans", "end_cycle_backward_scans"]:
+        header.extend([f"idths_{metric}_{slug}" for _, slug in RATIOS])
     return header
 
 
@@ -124,7 +133,10 @@ def merge_convergence(domain: str, input_dir: Path, output: Path) -> None:
         "instance", "size_kib", "ratio", "total_depth", "iteration", "n_inserted",
         "n_unique", "estimated_fp", "bits_set", "fill_ratio", "expected_fill_ratio",
         "materialized_forward", "materialized_backward", "materialized_total", "phase",
-        "type_index", "type_count", "k_mode", "k_hashes", "split_mode",
+        "type_index", "type_count", "bound_cycle", "forward_depth", "backward_depth",
+        "cumulative_forward_scans", "cumulative_backward_scans", "cumulative_type_scans",
+        "first_forward_work", "first_backward_work", "observed_next_f",
+        "k_mode", "k_hashes", "split_mode",
     ]
     rows = []
     for path in files:
@@ -194,6 +206,12 @@ def merge_final(domain: str, params_path: Path, run_dir: Path, convergence_dir: 
                     split_mode = bihs.get("split_mode") or BIHS_SPLIT_MODE
                     row[f"bihs_bloom_time_{slug}_{k_mode}_{split_mode}"] = bihs["time"]
                     row[f"bihs_bloom_nodes_{slug}_{k_mode}_{split_mode}"] = bihs["nodes"]
+                    row[f"bihs_bound_cycles_{slug}_{k_mode}_{split_mode}"] = bihs.get("bound_cycles", "0")
+                    row[f"bihs_forward_scans_{slug}_{k_mode}_{split_mode}"] = bihs.get("forward_scans", "0")
+                    row[f"bihs_backward_scans_{slug}_{k_mode}_{split_mode}"] = bihs.get("backward_scans", "0")
+                    row[f"bihs_type_split_scans_{slug}_{k_mode}_{split_mode}"] = bihs.get("type_split_scans", "0")
+                    extraction_scans = int(bihs.get("materialization_scans", "0")) + int(bihs.get("intersection_scans", "0"))
+                    row[f"bihs_extraction_scans_{slug}_{k_mode}_{split_mode}"] = str(extraction_scans)
                     if row["solution_length"] == "-1" and bihs["status"] == "ok":
                         row["solution_length"] = bihs["solution_length"]
                     converged = "1" if bihs["status"] == "ok" else "0"
@@ -208,6 +226,11 @@ def merge_final(domain: str, params_path: Path, run_dir: Path, convergence_dir: 
                 row[f"idths_trans_nodes_{slug}"] = idths["nodes"]
                 row[f"idths_trans_necessary_nodes_{slug}"] = idths["necessary_nodes"]
                 row[f"idths_trans_storage_states_{slug}"] = idths["storage_states"]
+                row[f"idths_bound_cycles_{slug}"] = idths.get("bound_cycles", "0")
+                row[f"idths_forward_scans_{slug}"] = idths.get("forward_scans", "0")
+                row[f"idths_backward_scans_{slug}"] = idths.get("backward_scans", "0")
+                row[f"idths_table_full_backward_scans_{slug}"] = idths.get("table_full_backward_scans", "0")
+                row[f"idths_end_cycle_backward_scans_{slug}"] = idths.get("end_cycle_backward_scans", "0")
                 if row["solution_length"] == "-1" and idths["status"] == "ok":
                     row["solution_length"] = idths["solution_length"]
 
@@ -233,7 +256,10 @@ def merge_rubik_fixed(run_dir: Path, convergence_dir: Path, output_dir: Path) ->
     fields = [
         "domain", "instance", "algorithm", "ratio", "status", "time", "nodes",
         "necessary_nodes", "storage_states", "size_kib", "k_hashes", "fp_est",
-        "solution_length", "k_mode", "split_mode",
+        "solution_length", "k_mode", "split_mode", "scan_schema", "bound_cycles",
+        "forward_scans", "backward_scans", "table_full_backward_scans",
+        "end_cycle_backward_scans", "type_split_scans", "materialization_scans",
+        "intersection_scans", "frontier_scans", "total_scans",
     ]
     with (output_dir / "benchmark_rubik_korf_fixed128g_k1.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
@@ -245,7 +271,10 @@ def merge_rubik_fixed(run_dir: Path, convergence_dir: Path, output_dir: Path) ->
         "instance", "size_kib", "ratio", "total_depth", "iteration", "n_inserted",
         "n_unique", "estimated_fp", "bits_set", "fill_ratio", "expected_fill_ratio",
         "materialized_forward", "materialized_backward", "materialized_total", "phase",
-        "type_index", "type_count", "k_mode", "k_hashes", "split_mode",
+        "type_index", "type_count", "bound_cycle", "forward_depth", "backward_depth",
+        "cumulative_forward_scans", "cumulative_backward_scans", "cumulative_type_scans",
+        "first_forward_work", "first_backward_work", "observed_next_f",
+        "k_mode", "k_hashes", "split_mode",
     ]
     convergence_rows = []
     for path in sorted(convergence_dir.glob("convergence_rubik_fixed_*.csv")):

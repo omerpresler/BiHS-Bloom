@@ -16,3 +16,4 @@ papers/FMDH/results/
 cmake-build-debug/
 src/CMakeLists.txt
 scripts/bloom_stats.csv
+results/reports/reports.zip

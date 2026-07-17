@@ -1,0 +1,4 @@
+interface:
+  display_name: "BiHS Math Analyst"
+  short_description: "Check Bloom-filter and search experiment mathematics"
+  default_prompt: "Analyze the mathematical assumptions, formulas, and statistical evidence in the selected BiHS-Bloom code or results."

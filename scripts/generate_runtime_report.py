@@ -134,7 +134,7 @@ def discover_algorithms(df):
     seen_idths = []
 
     for col in df.columns:
-        match = re.fullmatch(rf"bihs_bloom_time_{RATIO_SLUG_RE}(?:_(k1|optk|rootk))?(?:_(fixed|dynamic))?", col)
+        match = re.fullmatch(rf"bihs_bloom_time_{RATIO_SLUG_RE}(?:_(k1|optk|rootk))?(?:_(fixed|dynamic|idths_workload))?", col)
         if match:
             ratio_slug = match.group(1)
             k_mode = match.group(2)
@@ -165,7 +165,7 @@ def discover_algorithms(df):
                 seen_idths.append((ratio_slug, f"IDTHSwTrans {RATIO_LABELS[ratio_slug]}", col, nodes_col))
 
     mode_order = {"k1": 0, "optk": 1, "rootk": 2, "old": 1}
-    split_order = {"fixed": 0, "dynamic": 1}
+    split_order = {"fixed": 0, "dynamic": 1, "idths_workload": 2}
     for ratio_slug, k_mode, split_mode, label, time_col, nodes_col in sorted(
         seen_bihs,
         key=lambda item: (RATIO_ORDER[item[0]], mode_order.get(item[1], 9), split_order.get(item[2], 9)),
@@ -384,7 +384,7 @@ def make_bihs_params(params):
         ratio_modes = ratio_rows["k_mode"].dropna().unique()
         for mode in MODE_LABELS:
             mode_rows = ratio_rows[ratio_rows["k_mode"] == mode]
-            for split_mode in ["fixed", "dynamic"]:
+            for split_mode in ["fixed", "dynamic", "idths_workload"]:
                 if split_mode in mode_rows["split_mode"].dropna().unique():
                     groups_meta.append((ratio, mode, split_mode, f"{RATIO_LABELS[ratio_slug]}\n{MODE_LABELS[mode]}"))
         if not any(mode in ratio_modes for mode in MODE_LABELS) and len(ratio_modes):
@@ -441,7 +441,7 @@ def bihs_summary_table_html(summary):
 def bihs_label_metadata(name):
     label_to_ratio = {label: RATIO_VALUES[slug] for slug, label in RATIO_LABELS.items()}
     ratio_pattern = "|".join(re.escape(label) for label in sorted(label_to_ratio, key=len, reverse=True))
-    match = re.fullmatch(rf"BiHS ({ratio_pattern})(?: (k1|optk|rootk|k=1|opt-k|root-k))?(?: (fixed|dynamic))?", name)
+    match = re.fullmatch(rf"BiHS ({ratio_pattern})(?: (k1|optk|rootk|k=1|opt-k|root-k))?(?: (fixed|dynamic|idths_workload))?", name)
     if not match:
         return None
     ratio = label_to_ratio[match.group(1)]
@@ -519,6 +519,8 @@ def comparison_table_html(df, params, algorithm_names):
                     ratio, k_mode, split_mode = meta
                     if split_mode is None:
                         k_hashes = (
+                            k_lookup.get((int(row["instance"]), round(ratio, 3), k_mode, "idths_workload"))
+                            or
                             k_lookup.get((int(row["instance"]), round(ratio, 3), k_mode, "dynamic"))
                             or k_lookup.get((int(row["instance"]), round(ratio, 3), k_mode, "fixed"))
                         )

@@ -161,12 +161,13 @@ enum class TerminationCondition {
 template <class state, class action, class environment>
 class BiHSBloom {
 public:
-    BiHSBloom(int size_in_KiB, int k_hashes, double time_limit_seconds = 0, bool dynamic_splitting = false)
+    // The fourth parameter is retained only for source compatibility. BiHS-Bloom now
+    // always uses the IDTHSwTrans workload split.
+    BiHSBloom(int size_in_KiB, int k_hashes, double time_limit_seconds = 0, bool = false)
         : size_in_KiB(size_in_KiB),
           k_hashes(k_hashes),
           stab_tail_len(4),
           time_limit(time_limit_seconds),
-          dynamicSplitting(dynamic_splitting),
           timed_out(false),
           env() // default-construct environment
     {
@@ -196,11 +197,45 @@ public:
         bool   isTypeSplit;
         size_t typeIndex;
         size_t typeCount;
+        uint64_t boundCycle;
+        int forwardDepth;
+        int backwardDepth;
+        uint64_t cumulativeForwardBloomScans;
+        uint64_t cumulativeBackwardBloomScans;
+        uint64_t cumulativeTypeSplitScans;
+        uint64_t firstForwardWork;
+        uint64_t firstBackwardWork;
+        int observedNextF;
+    };
+
+    struct ScanStats {
+        uint64_t boundCycles = 0;
+        uint64_t forwardBloomScans = 0;
+        uint64_t backwardBloomScans = 0;
+        uint64_t typeSplitScans = 0;
+        uint64_t materializationScans = 0;
+        uint64_t intersectionScans = 0;
+
+        uint64_t FrontierScans() const { return forwardBloomScans + backwardBloomScans; }
+        uint64_t ExtractionScans() const { return materializationScans + intersectionScans; }
+        uint64_t TotalScans() const { return FrontierScans() + ExtractionScans(); }
+    };
+
+    struct BoundStat {
+        uint64_t cycle;
+        int totalBound;
+        int forwardDepth;
+        int backwardDepth;
+        uint64_t forwardWork;
+        uint64_t backwardWork;
+        int nextBound;
     };
 
     bool hasTimedOut() const { return timed_out; }
     uint64_t GetTotalNodesExpanded() const { return totalNodesExpanded; }
     const std::vector<IterationStat>& GetIterStats() const { return iterStats; }
+    const ScanStats& GetScanStats() const { return scanStats; }
+    const std::vector<BoundStat>& GetBoundStats() const { return boundStats; }
 
     void InitBloom(BiHSBloomFilter<state> *&bf) {
         size_t m_bits = size_in_KiB * 1024 * 8ULL;
@@ -282,6 +317,7 @@ public:
                                                 BiHSBloomFilter<state>* bf,
                                                 size_t typeIndex = 0, size_t typeCount = 1)
     {
+        scanStats.materializationScans++;
         BiHSBloomHelper::store_goal(env, goal, 0);
 
         uint64_t startHash = BiHSBloomHelper::StateFingerprint<state, action>::hash(start);
@@ -411,6 +447,7 @@ public:
         size_t typeIndex = 0,
         size_t typeCount = 1)
     {
+        scanStats.intersectionScans++;
         BiHSBloomHelper::store_goal(env, goal, 0);
 
         std::vector<Frame> st;
@@ -666,11 +703,15 @@ public:
             }
 
             if (i % 2 == 0) {
+                scanStats.forwardBloomScans++;
+                scanStats.typeSplitScans++;
                 bf.reset(GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound,
                                                         bf.get(), typeIndex, typeCount));
                 lastForwardInserted = bf->get_n_inserted();
                 haveForward = true;
             } else {
+                scanStats.backwardBloomScans++;
+                scanStats.typeSplitScans++;
                 bf.reset(GetBloomOfStatesInBloomAtDepth(goal, start, backwardDepth, upperBound,
                                                         bf.get(), typeIndex, typeCount));
                 lastBackwardInserted = bf->get_n_inserted();
@@ -691,7 +732,16 @@ public:
                 0,
                 true,
                 typeIndex,
-                typeCount
+                typeCount,
+                scanStats.boundCycles,
+                forwardDepth,
+                backwardDepth,
+                scanStats.forwardBloomScans,
+                scanStats.backwardBloomScans,
+                scanStats.typeSplitScans,
+                firstForwardNodeExpanded,
+                firstBackwardNodeExpanded,
+                nextSearchBound
             });
 
             if (bf->get_n_inserted() == 0) {
@@ -752,6 +802,8 @@ public:
                 }
             }
 
+            scanStats.forwardBloomScans++;
+            scanStats.typeSplitScans++;
             std::unique_ptr<BiHSBloomFilter<state>> typedForward(
                 GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound,
                                                seed.get(), typeIndex, typeCount));
@@ -770,7 +822,16 @@ public:
                 0,
                 true,
                 typeIndex,
-                typeCount
+                typeCount,
+                scanStats.boundCycles,
+                forwardDepth,
+                backwardDepth,
+                scanStats.forwardBloomScans,
+                scanStats.backwardBloomScans,
+                scanStats.typeSplitScans,
+                firstForwardNodeExpanded,
+                firstBackwardNodeExpanded,
+                nextSearchBound
             });
 
             if (typedForward->get_n_inserted() == 0) {
@@ -822,6 +883,7 @@ public:
             }
 
             if (i % 2 == 0){
+                scanStats.forwardBloomScans++;
                 bf.reset(GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound, bf.get()));
                 lastForwardInserted = bf->get_n_inserted();
                 haveForward = true;
@@ -829,6 +891,7 @@ public:
                     this->firstForwardNodeExpanded = this->nodeExpanded;
             }
             else {
+                scanStats.backwardBloomScans++;
                 bf.reset(GetBloomOfStatesInBloomAtDepth(goal, start, backwardDepth, upperBound, bf.get()));
                 lastBackwardInserted = bf->get_n_inserted();
                 haveBackward = true;
@@ -850,7 +913,16 @@ public:
                 0,
                 false,
                 0,
-                1
+                1,
+                scanStats.boundCycles,
+                forwardDepth,
+                backwardDepth,
+                scanStats.forwardBloomScans,
+                scanStats.backwardBloomScans,
+                scanStats.typeSplitScans,
+                firstForwardNodeExpanded,
+                firstBackwardNodeExpanded,
+                nextSearchBound
             });
 
             if (bf->get_n_inserted() == 0) {
@@ -894,6 +966,8 @@ public:
         timed_out = false;
         totalNodesExpanded = 0;
         iterStats.clear();
+        scanStats = ScanStats{};
+        boundStats.clear();
         BiHSBloomHelper::store_goal(env, goal, 0);
         int fh = env.HCost(start, goal);
         BiHSBloomHelper::store_goal(env, start, 0);
@@ -907,11 +981,13 @@ public:
         int backwardDepth = distance - forwardDepth;
         Timer globalTimer;
         globalTimer.StartTimer();
-        bool hasLearnedSplit = false;
 
         while(true){
             const int currentBound = forwardDepth + backwardDepth;
             ResetNextSearchBound(currentBound);
+            scanStats.boundCycles++;
+            boundStats.push_back({scanStats.boundCycles, currentBound, forwardDepth, backwardDepth,
+                                  0, 0, -1});
 
             // Check time limit at each depth iteration
             if (time_limit > 0) {
@@ -924,44 +1000,30 @@ public:
 
             std::vector<action> path = SolveAtDepth(start, goal, forwardDepth, backwardDepth, globalTimer);
 
+            BoundStat &boundStat = boundStats.back();
+            boundStat.forwardWork = firstForwardNodeExpanded;
+            boundStat.backwardWork = firstBackwardNodeExpanded;
+
             if (timed_out) return {};
 
             if (path.size() > 0){
-                //SanityCheck(start, goal, path);
+                SanityCheck(start, goal, path);
                 return path;
             }
             
             int totalDepth = GetNextSearchBound(currentBound);
+            boundStat.nextBound = totalDepth;
 
-            if (!dynamicSplitting ||
-                this->firstForwardNodeExpanded == 0 ||
+            if (this->firstForwardNodeExpanded == 0 ||
                 this->firstBackwardNodeExpanded == 0) {
                 forwardDepth = (totalDepth + 1) / 2;
                 backwardDepth = totalDepth - forwardDepth;
             } else {
-        
-                double F = std::max(1.0, static_cast<double>(this->firstForwardNodeExpanded));
-                double B = std::max(1.0, static_cast<double>(this->firstBackwardNodeExpanded));
-                
-                double forwardRatio = B / (B + F);
-
-                if (!hasLearnedSplit){
-                    forwardDepth = static_cast<int>(std::round(totalDepth * forwardRatio));
-                    backwardDepth = totalDepth - forwardDepth;
-                    hasLearnedSplit = true;
-                } else {
-                    // clamp ratio to avoid extreme collapse
-                    //this->depthRatio = std::max(0.1, std::min(10.0, this->depthRatio));
-
-                    int delta = totalDepth - (forwardDepth + backwardDepth);
-
-                    forwardDepth += static_cast<int>(delta * forwardRatio);
-                    //forwardDepth = std::max(1, std::min(totalDepth - 1, forwardDepth));
-
-                    backwardDepth = totalDepth - forwardDepth;
-                    //backwardDepth = std::max(1, backwardDepth);
-                }
-
+                forwardDepth = CalculateForwardDepthByWorkload(
+                    totalDepth, currentBound, forwardDepth,
+                    this->firstForwardNodeExpanded, this->firstBackwardNodeExpanded);
+                forwardDepth = std::max(0, std::min(totalDepth, forwardDepth));
+                backwardDepth = totalDepth - forwardDepth;
             }
 
             
@@ -971,6 +1033,14 @@ public:
     }
 
 private:
+    int CalculateForwardDepthByWorkload(int newBound, int previousBound, int oldForwardDepth,
+                                        uint64_t forwardLoad, uint64_t backwardLoad) const {
+        if (forwardLoad <= backwardLoad) {
+            return oldForwardDepth + newBound - previousBound;
+        }
+        return oldForwardDepth;
+    }
+
     void ResetNextSearchBound(int currentBound) {
         this->currentSearchBound = currentBound;
         this->nextSearchBound = -1;
@@ -1002,16 +1072,17 @@ private:
     uint64_t  nodeExpanded = 0;
     uint64_t totalNodesExpanded = 0;
     std::vector<IterationStat> iterStats;
-    double depthRatio = 1.0;
 
     int currentSearchBound = -1;
     int nextSearchBound = -1;
 
     double time_limit; // seconds, 0 = no limit
-    bool dynamicSplitting;
     bool timed_out;
     int type_split_target_load = 25;
     int max_type_splits = 8;
+
+    ScanStats scanStats;
+    std::vector<BoundStat> boundStats;
 
     environment env;
 };

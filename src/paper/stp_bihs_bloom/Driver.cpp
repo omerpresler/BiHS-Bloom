@@ -55,10 +55,19 @@ static bool gBuildRubikPDBs = false;
 
 static const char *SPLIT_RESULTS_HEADER =
     "domain,instance,algorithm,ratio,status,time,nodes,necessary_nodes,storage_states,"
-    "size_kib,k_hashes,fp_est,solution_length,k_mode,split_mode\n";
+    "size_kib,k_hashes,fp_est,solution_length,k_mode,split_mode,scan_schema,bound_cycles,"
+    "forward_scans,backward_scans,table_full_backward_scans,end_cycle_backward_scans,"
+    "type_split_scans,materialization_scans,intersection_scans,frontier_scans,total_scans\n";
 
 static const char *SPLIT_CALIBRATION_HEADER =
     "domain,instance,algorithm,status,time,nodes,solution_length,memory_items,frontier_items\n";
+
+static const char *CONVERGENCE_HEADER =
+    "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,"
+    "fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,"
+    "phase,type_index,type_count,bound_cycle,forward_depth,backward_depth,"
+    "cumulative_forward_scans,cumulative_backward_scans,cumulative_type_scans,"
+    "first_forward_work,first_backward_work,observed_next_f,k_mode,k_hashes,split_mode\n";
 
 struct BiHSRunConfig {
   double ratio;
@@ -66,22 +75,21 @@ struct BiHSRunConfig {
   const char *ratioSlug;
   const char *kMode;
   const char *splitMode;
-  bool useDynamicSplit;
 };
 
 static constexpr BiHSRunConfig BIHS_RUNS[NUM_BIHS_RUNS] = {
-    {0.5,  "50%", "50pct", "k1",    "dynamic", true},
-    {0.5,  "50%", "50pct", "optk",  "dynamic", true},
-    {0.5,  "50%", "50pct", "rootk", "dynamic", true},
-    {0.1,  "10%", "10pct", "k1",    "dynamic", true},
-    {0.1,  "10%", "10pct", "optk",  "dynamic", true},
-    {0.1,  "10%", "10pct", "rootk", "dynamic", true},
-    {0.01, "1%",  "1pct",  "k1",    "dynamic", true},
-    {0.01, "1%",  "1pct",  "optk",  "dynamic", true},
-    {0.01, "1%",  "1pct",  "rootk", "dynamic", true},
-    {0.001, "0.1%", "0_1pct", "k1",    "dynamic", true},
-    {0.001, "0.1%", "0_1pct", "optk",  "dynamic", true},
-    {0.001, "0.1%", "0_1pct", "rootk", "dynamic", true},
+    {0.5,  "50%", "50pct", "k1",    "idths_workload"},
+    {0.5,  "50%", "50pct", "optk",  "idths_workload"},
+    {0.5,  "50%", "50pct", "rootk", "idths_workload"},
+    {0.1,  "10%", "10pct", "k1",    "idths_workload"},
+    {0.1,  "10%", "10pct", "optk",  "idths_workload"},
+    {0.1,  "10%", "10pct", "rootk", "idths_workload"},
+    {0.01, "1%",  "1pct",  "k1",    "idths_workload"},
+    {0.01, "1%",  "1pct",  "optk",  "idths_workload"},
+    {0.01, "1%",  "1pct",  "rootk", "idths_workload"},
+    {0.001, "0.1%", "0_1pct", "k1",    "idths_workload"},
+    {0.001, "0.1%", "0_1pct", "optk",  "idths_workload"},
+    {0.001, "0.1%", "0_1pct", "rootk", "idths_workload"},
 };
 
 static double fp_rate(int k, double n, double m) {
@@ -217,6 +225,16 @@ struct STPResult {
   std::array<size_t, NUM_BIHS_RUNS> idthsTransNodeExpanded;
   std::array<size_t, NUM_BIHS_RUNS> idthsTransNecessaryExpanded;
   std::array<unsigned long, NUM_BIHS_RUNS> idthsTransStorage;
+  std::array<uint64_t, NUM_BIHS_RUNS> bihsBoundCycles;
+  std::array<uint64_t, NUM_BIHS_RUNS> bihsForwardScans;
+  std::array<uint64_t, NUM_BIHS_RUNS> bihsBackwardScans;
+  std::array<uint64_t, NUM_BIHS_RUNS> bihsTypeSplitScans;
+  std::array<uint64_t, NUM_BIHS_RUNS> bihsExtractionScans;
+  std::array<uint64_t, NUM_BIHS_RUNS> idthsBoundCycles;
+  std::array<uint64_t, NUM_BIHS_RUNS> idthsForwardScans;
+  std::array<uint64_t, NUM_BIHS_RUNS> idthsBackwardScans;
+  std::array<uint64_t, NUM_BIHS_RUNS> idthsTableFullBackwardScans;
+  std::array<uint64_t, NUM_BIHS_RUNS> idthsEndCycleBackwardScans;
 };
 
 static void MarkFullBaselineSkipped(STPResult &result, int instance)
@@ -260,6 +278,20 @@ struct STPSplitParams {
   std::string reason;
 };
 
+struct ScanMetrics {
+  uint64_t boundCycles = 0;
+  uint64_t forwardScans = 0;
+  uint64_t backwardScans = 0;
+  uint64_t tableFullBackwardScans = 0;
+  uint64_t endCycleBackwardScans = 0;
+  uint64_t typeSplitScans = 0;
+  uint64_t materializationScans = 0;
+  uint64_t intersectionScans = 0;
+
+  uint64_t FrontierScans() const { return forwardScans + backwardScans; }
+  uint64_t TotalScans() const { return FrontierScans() + materializationScans + intersectionScans; }
+};
+
 static STPSplitParams LoadSplitParams(const std::string &paramsFile, const std::string &domain, int instance)
 {
   STPSplitParams params;
@@ -295,12 +327,17 @@ static void WriteSplitResultRow(std::ofstream &out, const std::string &domain, i
                                 double ratio, const std::string &status, double time,
                                 size_t nodes, size_t necessaryNodes, unsigned long storageStates,
                                 int sizeKiB, int kHashes, double fpEst, int solutionLength,
-                                const std::string &kMode, const std::string &splitMode)
+                                const std::string &kMode, const std::string &splitMode,
+                                const ScanMetrics &scans = ScanMetrics{})
 {
   out << domain << "," << instance << "," << algorithm << "," << ratio << "," << status << ","
       << time << "," << nodes << "," << necessaryNodes << "," << storageStates << ","
       << sizeKiB << "," << kHashes << "," << fpEst << "," << solutionLength << ","
-      << kMode << "," << splitMode << "\n";
+      << kMode << "," << splitMode << ",scan_v1,"
+      << scans.boundCycles << "," << scans.forwardScans << "," << scans.backwardScans << ","
+      << scans.tableFullBackwardScans << "," << scans.endCycleBackwardScans << ","
+      << scans.typeSplitScans << "," << scans.materializationScans << ","
+      << scans.intersectionScans << "," << scans.FrontierScans() << "," << scans.TotalScans() << "\n";
 }
 
 static unsigned long FixedRubikStorageStates(const RubiksState &sample)
@@ -428,7 +465,7 @@ static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, 
     double fpEst = fp_rate(kHashes, estimatedFrontierItems, bloomBits);
 
     using STPBiHSBloom = BiHSBloom<MNPuzzleState<MN_SIZE, MN_SIZE>, slideDir, MNPuzzle<MN_SIZE, MN_SIZE>>;
-    STPBiHSBloom bihs(sizeKiB, kHashes, bihsTimeLimit, run->useDynamicSplit);
+    STPBiHSBloom bihs(sizeKiB, kHashes, bihsTimeLimit);
     bool outOfMemory = false;
     std::vector<slideDir> path;
     std::cout << "[" << instance << "] Split BiHS-Bloom(" << run->ratioLabel << ", "
@@ -446,15 +483,23 @@ static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, 
     std::string status = outOfMemory ? "oom" : (bihs.hasTimedOut() || path.empty() ? "timeout" : "ok");
     double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
     int solutionLength = status == "ok" ? static_cast<int>(path.size()) : params.solutionLength;
+    if (status == "ok" && params.solutionLength >= 0 && solutionLength != params.solutionLength) {
+      throw std::runtime_error("Split BiHS-Bloom returned a non-optimal STP path on instance " +
+                               std::to_string(instance));
+    }
+    const auto &bihsScans = bihs.GetScanStats();
+    ScanMetrics scanMetrics{bihsScans.boundCycles, bihsScans.forwardBloomScans,
+                            bihsScans.backwardBloomScans, 0, 0, bihsScans.typeSplitScans,
+                            bihsScans.materializationScans, bihsScans.intersectionScans};
     WriteSplitResultRow(out, "stp", instance, algorithm, ratio, status, elapsed,
                         bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength,
-                        run->kMode, run->splitMode);
+                        run->kMode, run->splitMode, scanMetrics);
 
     if (WRITE_CONVERGENCE_LOG) {
       std::ofstream conv(convergenceFile);
       if (!conv)
         throw std::runtime_error("Unable to open convergence output: " + convergenceFile);
-      conv << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
+      conv << CONVERGENCE_HEADER;
       for (const auto &s : bihs.GetIterStats())
         conv << instance << "," << sizeKiB << "," << ratio << ","
              << s.totalDepth << "," << s.iteration << ","
@@ -463,6 +508,10 @@ static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, 
              << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
              << s.materializedTotalStates << "," << (s.isTypeSplit ? "type" : "iter") << ","
              << s.typeIndex << "," << s.typeCount << ","
+             << s.boundCycle << "," << s.forwardDepth << "," << s.backwardDepth << ","
+             << s.cumulativeForwardBloomScans << "," << s.cumulativeBackwardBloomScans << ","
+             << s.cumulativeTypeSplitScans << "," << s.firstForwardWork << ","
+             << s.firstBackwardWork << "," << s.observedNextF << ","
              << run->kMode << "," << kHashes << "," << run->splitMode << "\n";
     }
     std::cout << " " << status << " (" << elapsed << "s, " << bihs.GetTotalNodesExpanded() << "n)\n" << std::flush;
@@ -486,9 +535,17 @@ static void runSTPSplitAlgorithmJob(int instance, const std::string &algorithm, 
     std::string status = outOfMemory ? "oom" : (solved ? "ok" : "timeout");
     double elapsed = outOfMemory ? -2.0 : (solved ? t.GetElapsedTime() : -1.0);
     int solutionLength = solved ? static_cast<int>(idthsTrans.getPathLength()) : params.solutionLength;
+    if (solved && params.solutionLength >= 0 && solutionLength != params.solutionLength) {
+      throw std::runtime_error("Split IDTHSwTrans returned a non-optimal STP length on instance " +
+                               std::to_string(instance));
+    }
+    const auto &idthsScans = idthsTrans.GetScanStats();
+    ScanMetrics scanMetrics{idthsScans.boundCycles, idthsScans.forwardScans,
+                            idthsScans.backwardScans, idthsScans.backwardTableFullScans,
+                            idthsScans.backwardEndOfCycleScans, 0, 0, 0};
     WriteSplitResultRow(out, "stp", instance, algorithm, ratio, status, elapsed,
                         idthsTrans.GetNodesExpanded(), idthsTrans.GetNecessaryExpansions(),
-                        storage, 0, 0, 0.0, solutionLength, "", "");
+                        storage, 0, 0, 0.0, solutionLength, "", "", scanMetrics);
     std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
   } else {
     throw std::runtime_error("Unsupported split run algorithm: " + algorithm);
@@ -610,7 +667,7 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
     double fpEst = fp_rate(kHashes, estimatedFrontierItems, bloomBits);
 
     using RubikBiHSBloom = BiHSBloom<RubiksState, RubiksAction, BenchmarkRC>;
-    RubikBiHSBloom bihs(sizeKiB, kHashes, bihsTimeLimit, run->useDynamicSplit);
+    RubikBiHSBloom bihs(sizeKiB, kHashes, bihsTimeLimit);
     bool outOfMemory = false;
     std::vector<RubiksAction> path;
     std::cout << "[" << instance << "] Split Rubik BiHS-Bloom(" << run->ratioLabel << ", "
@@ -628,15 +685,19 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
     std::string status = outOfMemory ? "oom" : (bihs.hasTimedOut() || path.empty() ? "timeout" : "ok");
     double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
     int solutionLength = status == "ok" ? static_cast<int>(path.size()) : params.solutionLength;
+    const auto &bihsScans = bihs.GetScanStats();
+    ScanMetrics scanMetrics{bihsScans.boundCycles, bihsScans.forwardBloomScans,
+                            bihsScans.backwardBloomScans, 0, 0, bihsScans.typeSplitScans,
+                            bihsScans.materializationScans, bihsScans.intersectionScans};
     WriteSplitResultRow(out, "rubik", instance, algorithm, ratio, status, elapsed,
                         bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength,
-                        run->kMode, run->splitMode);
+                        run->kMode, run->splitMode, scanMetrics);
 
     if (WRITE_CONVERGENCE_LOG) {
       std::ofstream conv(convergenceFile);
       if (!conv)
         throw std::runtime_error("Unable to open convergence output: " + convergenceFile);
-      conv << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
+      conv << CONVERGENCE_HEADER;
       for (const auto &s : bihs.GetIterStats())
         conv << instance << "," << sizeKiB << "," << ratio << ","
              << s.totalDepth << "," << s.iteration << ","
@@ -645,6 +706,10 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
              << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
              << s.materializedTotalStates << "," << (s.isTypeSplit ? "type" : "iter") << ","
              << s.typeIndex << "," << s.typeCount << ","
+             << s.boundCycle << "," << s.forwardDepth << "," << s.backwardDepth << ","
+             << s.cumulativeForwardBloomScans << "," << s.cumulativeBackwardBloomScans << ","
+             << s.cumulativeTypeSplitScans << "," << s.firstForwardWork << ","
+             << s.firstBackwardWork << "," << s.observedNextF << ","
              << run->kMode << "," << kHashes << "," << run->splitMode << "\n";
     }
     std::cout << " " << status << " (" << elapsed << "s, " << bihs.GetTotalNodesExpanded() << "n)\n" << std::flush;
@@ -668,9 +733,13 @@ static void runRubikSplitAlgorithmJob(int instance, const std::string &algorithm
     std::string status = outOfMemory ? "oom" : (solved ? "ok" : "timeout");
     double elapsed = outOfMemory ? -2.0 : (solved ? t.GetElapsedTime() : -1.0);
     int solutionLength = solved ? static_cast<int>(idthsTrans.getPathLength()) : params.solutionLength;
+    const auto &idthsScans = idthsTrans.GetScanStats();
+    ScanMetrics scanMetrics{idthsScans.boundCycles, idthsScans.forwardScans,
+                            idthsScans.backwardScans, idthsScans.backwardTableFullScans,
+                            idthsScans.backwardEndOfCycleScans, 0, 0, 0};
     WriteSplitResultRow(out, "rubik", instance, algorithm, ratio, status, elapsed,
                         idthsTrans.GetNodesExpanded(), idthsTrans.GetNecessaryExpansions(),
-                        storage, 0, 0, 0.0, solutionLength, "", "");
+                        storage, 0, 0, 0.0, solutionLength, "", "", scanMetrics);
     std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
   } else {
     throw std::runtime_error("Unsupported split run algorithm: " + algorithm);
@@ -700,7 +769,7 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
     const double fpEst = 0.0;
 
     using RubikBiHSBloom = BiHSBloom<RubiksState, RubiksAction, BenchmarkRC>;
-    RubikBiHSBloom bihs(sizeKiB, kHashes, RUBIK_FIXED_SECONDS_LIMIT, false);
+    RubikBiHSBloom bihs(sizeKiB, kHashes, RUBIK_FIXED_SECONDS_LIMIT);
     bool outOfMemory = false;
     std::vector<RubiksAction> path;
     std::cout << "[" << instance << "] Fixed Rubik BiHS-Bloom(128GiB,k=1)..." << std::flush;
@@ -717,15 +786,19 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
     std::string status = outOfMemory ? "oom" : (bihs.hasTimedOut() || path.empty() ? "timeout" : "ok");
     double elapsed = outOfMemory ? -2.0 : (status == "ok" ? t.GetElapsedTime() : -1.0);
     int solutionLength = status == "ok" ? static_cast<int>(path.size()) : -1;
+    const auto &bihsScans = bihs.GetScanStats();
+    ScanMetrics scanMetrics{bihsScans.boundCycles, bihsScans.forwardBloomScans,
+                            bihsScans.backwardBloomScans, 0, 0, bihsScans.typeSplitScans,
+                            bihsScans.materializationScans, bihsScans.intersectionScans};
     WriteSplitResultRow(out, "rubik", instance, algorithm, fixedRatio, status, elapsed,
                         bihs.GetTotalNodesExpanded(), 0, 0, sizeKiB, kHashes, fpEst, solutionLength,
-                        "k1", "flat");
+                        "k1", "idths_workload", scanMetrics);
 
     if (WRITE_CONVERGENCE_LOG) {
       std::ofstream conv(convergenceFile);
       if (!conv)
         throw std::runtime_error("Unable to open fixed Rubik convergence output: " + convergenceFile);
-      conv << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
+      conv << CONVERGENCE_HEADER;
       for (const auto &s : bihs.GetIterStats())
         conv << instance << "," << sizeKiB << "," << fixedRatio << ","
              << s.totalDepth << "," << s.iteration << ","
@@ -733,7 +806,11 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
              << s.bitsSet << "," << s.fillRatio << "," << s.expectedFillRatio << ","
              << s.materializedForwardStates << "," << s.materializedBackwardStates << ","
              << s.materializedTotalStates << "," << (s.isTypeSplit ? "type" : "iter") << ","
-             << s.typeIndex << "," << s.typeCount << ",fixed," << kHashes << ",flat\n";
+             << s.typeIndex << "," << s.typeCount << ","
+             << s.boundCycle << "," << s.forwardDepth << "," << s.backwardDepth << ","
+             << s.cumulativeForwardBloomScans << "," << s.cumulativeBackwardBloomScans << ","
+             << s.cumulativeTypeSplitScans << "," << s.firstForwardWork << ","
+             << s.firstBackwardWork << "," << s.observedNextF << ",fixed," << kHashes << ",idths_workload\n";
     }
     std::cout << " " << status << " (" << elapsed << "s, " << bihs.GetTotalNodesExpanded() << "n)\n" << std::flush;
   } else if (algorithm == "idths_trans") {
@@ -755,9 +832,13 @@ static void runRubikFixedAlgorithmJob(int instance, const std::string &algorithm
     std::string status = outOfMemory ? "oom" : (solved ? "ok" : "timeout");
     double elapsed = outOfMemory ? -2.0 : (solved ? t.GetElapsedTime() : -1.0);
     int solutionLength = solved ? static_cast<int>(idthsTrans.getPathLength()) : -1;
+    const auto &idthsScans = idthsTrans.GetScanStats();
+    ScanMetrics scanMetrics{idthsScans.boundCycles, idthsScans.forwardScans,
+                            idthsScans.backwardScans, idthsScans.backwardTableFullScans,
+                            idthsScans.backwardEndOfCycleScans, 0, 0, 0};
     WriteSplitResultRow(out, "rubik", instance, algorithm, fixedRatio, status, elapsed,
                         idthsTrans.GetNodesExpanded(), idthsTrans.GetNecessaryExpansions(),
-                        storage, 0, 0, 0.0, solutionLength, "", "");
+                        storage, 0, 0, 0.0, solutionLength, "", "", scanMetrics);
     std::cout << " " << status << " (" << elapsed << "s, " << idthsTrans.GetNodesExpanded() << "n)\n" << std::flush;
   } else if (algorithm == "ida") {
     IDAStar<RubiksState, RubiksAction, false> ida;
@@ -1042,7 +1123,7 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
               << ", size=" << size_in_KiB << "KiB, k=" << k_hashes << ", fp_est=" << fp_est
               << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
 
-    STPBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit, run.useDynamicSplit);
+    STPBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit);
     bool bihsOutOfMemory = false;
     std::vector<slideDir> pathBiHS;
     try {
@@ -1058,6 +1139,12 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
 
     result.bihsTime[runIdx] = bihsOutOfMemory ? -2.0 : (bihs.hasTimedOut() ? -1.0 : t.GetElapsedTime());
     result.bihsNodeExpanded[runIdx] = bihs.GetTotalNodesExpanded();
+    const auto &bihsScans = bihs.GetScanStats();
+    result.bihsBoundCycles[runIdx] = bihsScans.boundCycles;
+    result.bihsForwardScans[runIdx] = bihsScans.forwardBloomScans;
+    result.bihsBackwardScans[runIdx] = bihsScans.backwardBloomScans;
+    result.bihsTypeSplitScans[runIdx] = bihsScans.typeSplitScans;
+    result.bihsExtractionScans[runIdx] = bihsScans.ExtractionScans();
     bool converged = !bihsOutOfMemory && !bihs.hasTimedOut() && !pathBiHS.empty();
 
     if (bihsOutOfMemory)
@@ -1084,11 +1171,23 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
                 << s.materializedTotalStates << ","
                 << (s.isTypeSplit ? "type" : "iter") << ","
                 << s.typeIndex << "," << s.typeCount << ","
+                << s.boundCycle << "," << s.forwardDepth << "," << s.backwardDepth << ","
+                << s.cumulativeForwardBloomScans << "," << s.cumulativeBackwardBloomScans << ","
+                << s.cumulativeTypeSplitScans << "," << s.firstForwardWork << ","
+                << s.firstBackwardWork << "," << s.observedNextF << ","
                 << run.kMode << "," << k_hashes << "," << run.splitMode << "\n";
       convLog.flush();
     }
-    if (converged)
-      result.solutionLength = static_cast<int>(pathBiHS.size());
+    if (converged) {
+      const int bihsLength = static_cast<int>(pathBiHS.size());
+      if (result.solutionLength >= 0 && bihsLength != result.solutionLength) {
+        throw std::runtime_error("BiHS-Bloom returned a non-optimal STP path on instance " +
+                                 std::to_string(i) + ": got " + std::to_string(bihsLength) +
+                                 ", expected " + std::to_string(result.solutionLength));
+      }
+      if (result.solutionLength < 0)
+        result.solutionLength = bihsLength;
+    }
 
     unsigned long idthsStorage = std::max<unsigned long>(
         static_cast<unsigned long>(idthsStatesQuantityBound * run.ratio),
@@ -1116,13 +1215,26 @@ STPResult solveOneInstance(int i, std::ofstream &log, std::mutex &logMutex, std:
     result.idthsTransTime[runIdx] = idthsOutOfMemory ? -2.0 : (idthsSolved ? t.GetElapsedTime() : -1.0);
     result.idthsTransNodeExpanded[runIdx] = idthsTrans.GetNodesExpanded();
     result.idthsTransNecessaryExpanded[runIdx] = idthsTrans.GetNecessaryExpansions();
+    const auto &idthsScans = idthsTrans.GetScanStats();
+    result.idthsBoundCycles[runIdx] = idthsScans.boundCycles;
+    result.idthsForwardScans[runIdx] = idthsScans.forwardScans;
+    result.idthsBackwardScans[runIdx] = idthsScans.backwardScans;
+    result.idthsTableFullBackwardScans[runIdx] = idthsScans.backwardTableFullScans;
+    result.idthsEndCycleBackwardScans[runIdx] = idthsScans.backwardEndOfCycleScans;
 
     if (idthsOutOfMemory)
       std::cout << " OUT OF MEMORY (" << result.idthsTransNodeExpanded[runIdx] << "n)\n" << std::flush;
     else if (!idthsSolved)
       std::cout << " TIMED OUT (" << result.idthsTransNodeExpanded[runIdx] << "n)\n" << std::flush;
     else {
-      result.solutionLength = static_cast<int>(idthsTrans.getPathLength());
+      const int idthsLength = static_cast<int>(idthsTrans.getPathLength());
+      if (result.solutionLength >= 0 && idthsLength != result.solutionLength) {
+        throw std::runtime_error("IDTHSwTrans returned a non-optimal STP length on instance " +
+                                 std::to_string(i) + ": got " + std::to_string(idthsLength) +
+                                 ", expected " + std::to_string(result.solutionLength));
+      }
+      if (result.solutionLength < 0)
+        result.solutionLength = idthsLength;
       std::cout << " done (" << result.idthsTransTime[runIdx] << "s, "
                 << result.idthsTransNodeExpanded[runIdx] << "n)\n" << std::flush;
     }
@@ -1160,6 +1272,26 @@ void solveSTP(int instanceStart, int instanceEnd,
   for (const auto &run : BIHS_RUNS) {
     headers.push_back(std::string("idths_trans_storage_states_") + run.ratioSlug);
   }
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("bihs_bound_cycles_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("bihs_forward_scans_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("bihs_backward_scans_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("bihs_type_split_scans_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("bihs_extraction_scans_") + run.ratioSlug + "_" + run.kMode + "_" + run.splitMode);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("idths_bound_cycles_") + run.ratioSlug + "_" + run.kMode);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("idths_forward_scans_") + run.ratioSlug + "_" + run.kMode);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("idths_backward_scans_") + run.ratioSlug + "_" + run.kMode);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("idths_table_full_backward_scans_") + run.ratioSlug + "_" + run.kMode);
+  for (const auto &run : BIHS_RUNS)
+    headers.push_back(std::string("idths_end_cycle_backward_scans_") + run.ratioSlug + "_" + run.kMode);
   for(size_t i = 0; i < headers.size(); ++i) {
     log << headers[i];
     if (i < headers.size() - 1) log << ",";
@@ -1172,7 +1304,7 @@ void solveSTP(int instanceStart, int instanceEnd,
     if (!convLog) {
       throw std::runtime_error("Unable to open convergence output: " + convergenceFile);
     }
-    convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
+    convLog << CONVERGENCE_HEADER;
   }
 
   std::mutex logMutex;
@@ -1206,10 +1338,12 @@ void solveSTP(int instanceStart, int instanceEnd,
         for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx) {
           const auto &run = BIHS_RUNS[runIdx];
           std::cout << " | BiHS-Bloom(" << run.ratioLabel << "," << run.kMode << "," << run.splitMode
-                    << "): " << r.bihsTime[runIdx] << "s/" << r.bihsNodeExpanded[runIdx] << "n";
+                    << "): " << r.bihsTime[runIdx] << "s/" << r.bihsNodeExpanded[runIdx] << "n/"
+                    << (r.bihsForwardScans[runIdx] + r.bihsBackwardScans[runIdx]) << "scans";
           std::cout << " | IDTHSwTrans(" << run.ratioLabel
                     << "): " << r.idthsTransTime[runIdx] << "s/"
-                    << r.idthsTransNodeExpanded[runIdx] << "n";
+                    << r.idthsTransNodeExpanded[runIdx] << "n/"
+                    << (r.idthsForwardScans[runIdx] + r.idthsBackwardScans[runIdx]) << "scans";
         }
         std::cout << " | Length: " << r.solutionLength << std::endl;
       }
@@ -1247,6 +1381,26 @@ void solveSTP(int instanceStart, int instanceEnd,
         for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx) {
           log << "," << r.idthsTransStorage[runIdx];
         }
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+          log << "," << r.bihsBoundCycles[runIdx];
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+          log << "," << r.bihsForwardScans[runIdx];
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+          log << "," << r.bihsBackwardScans[runIdx];
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+          log << "," << r.bihsTypeSplitScans[runIdx];
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+          log << "," << r.bihsExtractionScans[runIdx];
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+          log << "," << r.idthsBoundCycles[runIdx];
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+          log << "," << r.idthsForwardScans[runIdx];
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+          log << "," << r.idthsBackwardScans[runIdx];
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+          log << "," << r.idthsTableFullBackwardScans[runIdx];
+        for (int runIdx = 0; runIdx < NUM_BIHS_RUNS; ++runIdx)
+          log << "," << r.idthsEndCycleBackwardScans[runIdx];
         log << "\n";
         log.flush();
       }
@@ -1306,7 +1460,7 @@ void solvePancake(int instanceStart, int instanceEnd,
     if (!convLog) {
       throw std::runtime_error("Unable to open convergence output: " + convergenceFile);
     }
-    convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
+    convLog << CONVERGENCE_HEADER;
   }
 
   std::mutex logMutex;
@@ -1550,7 +1704,7 @@ void solvePancake(int instanceStart, int instanceEnd,
                 << ", " << run.splitMode
                 << ", size=" << size_in_KiB << "KiB, k=" << k_hashes << ", fp_est=" << fp_est
                 << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
-      PancakeBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit, run.useDynamicSplit);
+      PancakeBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit);
 
       bool bihsOutOfMemory = false;
       std::vector<PancakePuzzleAction> pathBiHS;
@@ -1593,6 +1747,10 @@ void solvePancake(int instanceStart, int instanceEnd,
                   << s.materializedTotalStates << ","
                   << (s.isTypeSplit ? "type" : "iter") << ","
                   << s.typeIndex << "," << s.typeCount << ","
+                  << s.boundCycle << "," << s.forwardDepth << "," << s.backwardDepth << ","
+                  << s.cumulativeForwardBloomScans << "," << s.cumulativeBackwardBloomScans << ","
+                  << s.cumulativeTypeSplitScans << "," << s.firstForwardWork << ","
+                  << s.firstBackwardWork << "," << s.observedNextF << ","
                   << run.kMode << "," << k_hashes << "," << run.splitMode << "\n";
         convLog.flush();
       }
@@ -1726,7 +1884,7 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
   std::ofstream convLog;
   if (WRITE_CONVERGENCE_LOG) {
     convLog.open(convergenceFile);
-    convLog << "instance,size_kib,ratio,total_depth,iteration,n_inserted,n_unique,estimated_fp,bits_set,fill_ratio,expected_fill_ratio,materialized_forward,materialized_backward,materialized_total,phase,type_index,type_count,k_mode,k_hashes,split_mode\n";
+    convLog << CONVERGENCE_HEADER;
   }
 
   std::mutex logMutex;
@@ -1965,7 +2123,7 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
                 << ", size=" << size_in_KiB << "KiB, k=" << k_hashes << ", fp_est=" << fp_est
                 << ", limit=" << bihsTimeLimit << "s)..." << std::flush;
 
-      RubikBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit, run.useDynamicSplit);
+      RubikBiHSBloom bihs(size_in_KiB, k_hashes, bihsTimeLimit);
       bool bihsOutOfMemory = false;
       std::vector<RubiksAction> pathBiHS;
       try {
@@ -2007,6 +2165,10 @@ void solveRubik(int instanceStart, int instanceEnd, const std::string &benchmark
                   << s.materializedTotalStates << ","
                   << (s.isTypeSplit ? "type" : "iter") << ","
                   << s.typeIndex << "," << s.typeCount << ","
+                  << s.boundCycle << "," << s.forwardDepth << "," << s.backwardDepth << ","
+                  << s.cumulativeForwardBloomScans << "," << s.cumulativeBackwardBloomScans << ","
+                  << s.cumulativeTypeSplitScans << "," << s.firstForwardWork << ","
+                  << s.firstBackwardWork << "," << s.observedNextF << ","
                   << run.kMode << "," << k_hashes << "," << run.splitMode << "\n";
         convLog.flush();
       }

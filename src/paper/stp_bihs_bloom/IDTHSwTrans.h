@@ -28,6 +28,15 @@ template <class state, class action, bool verbose = true, class table = std::vec
 class IDTHSwTrans
 {
 public:
+	struct ScanStats
+	{
+		uint64_t boundCycles = 0;
+		uint64_t forwardScans = 0;
+		uint64_t backwardScans = 0;
+		uint64_t backwardTableFullScans = 0;
+		uint64_t backwardEndOfCycleScans = 0;
+	};
+
 	IDTHSwTrans(bool front2frontH = false, bool isConsistent = false, bool isUpdateByWorkload = false, double smallestEdge = 1, bool useHash = true)
 	{
 		this->front2frontH = front2frontH;
@@ -44,6 +53,7 @@ public:
 	uint64_t GetNodesTouched() { return nodesTouched; }
 	void ResetNodeCount() { nodesExpanded = nodesTouched = 0; }
 	unsigned long getDMMExpansions() { return dMMExpansions; }
+	const ScanStats &GetScanStats() const { return scanStats; }
 
 private:
 	unsigned long nodesExpanded, nodesTouched, dMMExpansions;
@@ -81,6 +91,7 @@ private:
 	double smallestEdge;
 	bool isUpdateByWorkload;
 	std::chrono::steady_clock::time_point startTimeTest;
+	ScanStats scanStats;
 };
 
 template <class state, class action, bool verbose, class table>
@@ -103,6 +114,7 @@ bool IDTHSwTrans<state, action, verbose, table>::GetPath(SearchEnvironment<state
 	this->availableStorage = availableStorage;
 	auto startTime = std::chrono::steady_clock::now();
 	nodesExpanded = nodesTouched = 0;
+	scanStats = ScanStats{};
 	originStart = fromState;
 	originGoal = toState;
 	double initialHeuristic = env->HCost(fromState, toState);
@@ -117,6 +129,7 @@ bool IDTHSwTrans<state, action, verbose, table>::GetPath(SearchEnvironment<state
 	}
 	while (true)
 	{
+		scanStats.boundCycles++;
 		dMMLastIterExpansions = 0;
 		auto currentTime = std::chrono::steady_clock::now();
 		std::chrono::duration<double> elapsed_seconds = currentTime - startTime;
@@ -133,6 +146,7 @@ bool IDTHSwTrans<state, action, verbose, table>::GetPath(SearchEnvironment<state
 		{
 			hash = env->GetStateHash(originStart);
 		}
+		scanStats.forwardScans++;
 		bool solved = DoIterationForward(env, originStart, originStart, hash, 0, midState);
 		if (verbose)
 		{
@@ -141,6 +155,8 @@ bool IDTHSwTrans<state, action, verbose, table>::GetPath(SearchEnvironment<state
 
 		if (!solved && transTable.size() > 0)
 		{
+			scanStats.backwardScans++;
+			scanStats.backwardEndOfCycleScans++;
 			solved = DoIterationBackward(env, originGoal, originGoal, 0, midState);
 		}
 		if (solved)
@@ -197,6 +213,8 @@ bool IDTHSwTrans<state, action, verbose, table>::DoIterationForward(SearchEnviro
 		}
 		if (transTable.size() > availableStorage)
 		{
+			scanStats.backwardScans++;
+			scanStats.backwardTableFullScans++;
 			bool isSolutionFound = DoIterationBackward(env, originGoal, originGoal, 0, midState);
 			if (isSolutionFound)
 			{

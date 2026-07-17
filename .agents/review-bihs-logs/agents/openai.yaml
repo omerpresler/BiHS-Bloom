@@ -1,0 +1,4 @@
+interface:
+  display_name: "BiHS Log Reviewer"
+  short_description: "Audit BiHS-Bloom experiment logs and CSV results"
+  default_prompt: "Review the selected BiHS-Bloom logs for integrity, failures, convergence behavior, and scientifically meaningful anomalies."
