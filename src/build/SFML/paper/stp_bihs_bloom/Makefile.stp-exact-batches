@@ -1,0 +1,15 @@
+# Loaded after the project Makefile by slurm/build_stp_exact_batches.sh.
+PILOT_OBJDIR = $(ROOT)/objs/$(PILOT_NAME)/release
+PILOT_SOURCES = $(PILOT_SOURCE) paper/fresh_bytes_20261016/Bloom.cpp
+PILOT_OBJECTS = $(patsubst %.cpp,$(PILOT_OBJDIR)/%.o,$(PILOT_SOURCES))
+
+$(PILOT_OBJDIR)/%.o: %.cpp
+	mkdir -p $(dir $@)
+	$(CXX) -c $(PROJ_REL_CXXFLAGS) $(COMMON_CXXFLAGS) -o $@ $<
+
+$(REL_BINDIR)/$(PILOT_NAME): $(PILOT_OBJECTS) $(PROJ_REL_DEP)
+	mkdir -p $(dir $@)
+	$(LN) -o $@ $(PILOT_OBJECTS) $(PROJ_REL_LIB) $(PROJ_REL_LNFLAGS) $(COMMON_LNFLAGS)
+
+.PHONY: stp-exact-batches
+stp-exact-batches: $(REL_BINDIR)/$(PILOT_NAME)
