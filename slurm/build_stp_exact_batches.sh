@@ -4,11 +4,15 @@ module load anaconda/anaconda
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate bihs-build
 
-root=results/stp_exact_batches_20261120
+case "${1:-}" in
+    "") root=results/stp_exact_batches_20261120 ;;
+    --half-bloom) root=results/stp_half_bloom_20261120 ;;
+    *) echo "Usage: $0 [--half-bloom]" >&2; exit 2 ;;
+esac
 source_dir=paper/stp_bihs_bloom/aem
 mkdir -p "$root/bin"
 for target in tests comparison; do
-    name="stp_exact_batches_20261120_${target}"
+    name="${root##*/}_${target}"
     if [[ "$target" == tests ]]; then
         source_file=AEMTests.cpp
     else

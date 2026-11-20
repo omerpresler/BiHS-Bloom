@@ -1294,22 +1294,46 @@ public:
         return {};
     }
 
+    std::unique_ptr<BiHSBloomFilter<state>> RebuildTypedSeed(
+        state &start, state &goal, int forwardDepth, int backwardDepth, uint64_t seedOrdinal) {
+        // Replay the original two scans with their original hash seeds.
+        struct RestoreOrdinal {
+            uint64_t &ordinal;
+            uint64_t saved;
+            ~RestoreOrdinal() { ordinal = saved; }
+        } restore{bloomFilterOrdinal, bloomFilterOrdinal};
+        bloomFilterOrdinal = seedOrdinal;
+        ++aemSeedRebuilds;
+        const int bound = forwardDepth + backwardDepth;
+        ++scanStats.forwardBloomScans;
+        ++scanStats.typeSplitScans;
+        std::unique_ptr<BiHSBloomFilter<state>> forward(
+            GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, bound, nullptr));
+        ++scanStats.backwardBloomScans;
+        ++scanStats.typeSplitScans;
+        return std::unique_ptr<BiHSBloomFilter<state>>(
+            GetBloomOfStatesInBloomAtDepth(goal, start, backwardDepth, bound, forward.get()));
+    }
+
     std::vector<action> SolveAtDepthByTypesFromSeed(state start, state &goal,
                                                     int forwardDepth, int backwardDepth,
                                                     std::unique_ptr<BiHSBloomFilter<state>> seed,
-                                                    size_t typeCount) {
+                                                    size_t typeCount, uint64_t seedOrdinal = 0) {
         if (!seed) {
             return {};
         }
 
         int upperBound = forwardDepth + backwardDepth;
         for (size_t typeIndex = 0; typeIndex < typeCount; ++typeIndex) {
+            if (!seed) seed = RebuildTypedSeed(start, goal, forwardDepth, backwardDepth, seedOrdinal);
             startedTypesThisBound.insert(typeIndex);
             scanStats.forwardBloomScans++;
             scanStats.typeSplitScans++;
             std::unique_ptr<BiHSBloomFilter<state>> typedForward(
                 GetBloomOfStatesInBloomAtDepth(start, goal, forwardDepth, upperBound,
                                                seed.get(), typeIndex, typeCount));
+            // From here on, this partition uses only its own refinement filters.
+            if (aemHalfBloom) seed.reset();
 
             iterStats.push_back({
                 forwardDepth + backwardDepth,
@@ -1534,6 +1558,7 @@ public:
         bool haveForward = false;
         bool haveBackward = false;
         double failedAEM[2] = {INFINITY, INFINITY};
+        const uint64_t seedOrdinal = bloomFilterOrdinal;
 
         this->firstForwardNodeExpanded = 0;
         this->firstBackwardNodeExpanded = 0;
@@ -1598,7 +1623,7 @@ public:
                 if (i == 1 && haveForward && haveBackward) {
                     const size_t types = ChooseTypeCount(lastForwardInserted, lastBackwardInserted);
                     if (types > 1) return SolveAtDepthByTypesFromSeed(start, goal, forwardDepth,
-                        backwardDepth, std::move(bf), types);
+                        backwardDepth, std::move(bf), types, seedOrdinal);
                 }
                 continue;
             }
@@ -1640,6 +1665,7 @@ public:
         if (GetAEMLiveManagedBytes()) throw std::logic_error("AEM storage leaked across searches");
         aemEvents.clear();
         aemBatchFlushes = 0;
+        aemSeedRebuilds = 0;
         aemPeakManagedBytes = 0;
         timedOut = false;
         deadlineVisits = 0;

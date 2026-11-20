@@ -29,6 +29,16 @@ the final nonempty batch too. The summary's `table_full_scans` counts
 opposite scans triggered by full batches in this mode. The historical
 Hanoi pilot used the Bloom fallback described below.
 
+With `--aem-exact-batches`, `--aem-half-bloom` assigns each live filter
+half the managed budget, rounded down and inclusive of its object header.
+Two filters can coexist during refinement. Exact batching holds only the
+filter used to screen materialized states and uses the remaining bytes for
+the exact table. During type splitting, building a partition's filter
+consumes the seed. If another partition is needed, the original forward and
+backward scans rebuild the seed with the same hash seeds. Rebuild work is
+charged to search time and scan counts. The summary reports
+`aem_seed_rebuilds` for this layout.
+
 ## Transition, correctness and fallback
 
 After each completed Bloom scan, estimate distinct insertions using

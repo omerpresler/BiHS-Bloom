@@ -119,6 +119,23 @@ int main() {
         Require(batched.GetAEMLiveManagedBytes() == 0 && batched.GetAEMPeakManagedBytes() <= 640,
                 "Batched extraction exceeded or leaked managed memory");
 
+        Search halfBloom(1, 1, env);
+        constexpr size_t halfBloomTestBudget = 4097;
+        halfBloom.SetMemoryBudgetBytes(halfBloomTestBudget);
+        halfBloom.SetBloomSeed(42);
+        halfBloom.EnableAEM(1.0, false, true, true);
+        auto typedSeed = halfBloom.RebuildTypedSeed(origin, goal, 1, 1, 0);
+        Require(halfBloom.GetAEMLiveManagedBytes() == halfBloomTestBudget / 2,
+                "One managed filter must occupy half the budget, rounded down");
+        const auto before = halfBloom.GetAEMSeedRebuilds();
+        const auto typedPath = halfBloom.SolveAtDepthByTypesFromSeed(
+            origin, goal, 1, 1, std::move(typedSeed), 2, 0);
+        Require(typedPath.empty() && halfBloom.GetAEMSeedRebuilds() == before + 1,
+                "A typed miss must rebuild the seed only for the next partition");
+        Require(halfBloom.GetAEMLiveManagedBytes() == 0 &&
+                halfBloom.GetAEMPeakManagedBytes() <= halfBloomTestBudget,
+                "Half-budget typed search exceeded or leaked managed memory");
+
         MNPuzzle<4, 4> stp;
         MNPuzzleState<4, 4> tileState;
         using TileFingerprint = BiHSBloomHelper::StateFingerprint<MNPuzzleState<4, 4>, slideDir>;

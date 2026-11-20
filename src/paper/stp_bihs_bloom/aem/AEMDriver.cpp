@@ -239,6 +239,7 @@ struct Options {
     double aemAlpha = 0.5;
     bool aemAlphaSpecified = false;
     bool aemExactBatches = false;
+    bool aemHalfBloom = false;
     std::string aemOutput;
     std::string domain;
     std::string algorithm;
@@ -313,6 +314,7 @@ Options ParseOptions(int argc, char **argv)
         }
         else if (arg == "--aem-output") result.aemOutput = value("--aem-output");
         else if (arg == "--aem-exact-batches") result.aemExactBatches = true;
+        else if (arg == "--aem-half-bloom") result.aemHalfBloom = true;
         else if (arg == "--k-hashes") result.kHashes = ParseInt(value("--k-hashes"), "--k-hashes");
         else if (arg == "--streaming-no-limit") result.streamingNoLimit = true;
         else if (arg == "--streaming-q-stop") {
@@ -365,9 +367,12 @@ void ValidateOptions(const Options &options)
             throw std::runtime_error("--aem-alpha must be in (0,1), or (0,1] with exact batches");
         if (options.aemExactBatches && options.domain != "stp")
             throw std::runtime_error("--aem-exact-batches requires the STP domain");
+        if (options.aemHalfBloom && !options.aemExactBatches)
+            throw std::runtime_error("--aem-half-bloom requires --aem-exact-batches");
         if (options.streamingNoLimit || options.streamingQStop > 0)
             throw std::runtime_error("AEM is a separate non-streaming variant");
-    } else if (options.aemAlphaSpecified || options.aemExactBatches || !options.aemOutput.empty()) {
+    } else if (options.aemAlphaSpecified || options.aemExactBatches ||
+               options.aemHalfBloom || !options.aemOutput.empty()) {
         throw std::runtime_error("AEM options require an explicit AEM algorithm label");
     }
     if (options.consistency != 0 && options.consistency != 1)
@@ -415,6 +420,7 @@ std::string EscapeCSV(const std::string &value)
 
 struct RunResult {
     size_t aemAttempts = 0, aemOverflows = 0, aemPeakManaged = 0, actualBloomBytes = 0;
+    size_t aemSeedRebuilds = 0;
     size_t idthsPeakStored = 0;
     size_t bihsPeakExactStored = 0;
     std::string status = "failed";
@@ -604,7 +610,9 @@ void WriteSummary(const Options &options, const RunResult &result, size_t stateB
            "peak_inserted,peak_estimated_unique,peak_bits_set,peak_fill_ratio,peak_estimated_fp,"
            "peak_materialized,actual_f2f_pruned,actual_consistency_pruned,"
            "shadow_f2f_would_prune,shadow_consistency_would_prune,shadow_both_would_prune,"
-           "counterfactual_scope,memory_accounting,memory_budget_bytes,exact_state_capacity,idths_peak_stored,strict_storage_limit,bloom_size_bytes,pancake_size,pancake_set,rubik_walk_length,rubik_walk_seed,bihs_peak_exact_stored,aem_enabled,aem_alpha,aem_trigger_mode,aem_attempts,aem_overflows,aem_peak_managed_bytes,aem_bloom_buffer_bytes\n";
+           "counterfactual_scope,memory_accounting,memory_budget_bytes,exact_state_capacity,idths_peak_stored,strict_storage_limit,bloom_size_bytes,pancake_size,pancake_set,rubik_walk_length,rubik_walk_seed,bihs_peak_exact_stored,aem_enabled,aem_alpha,aem_trigger_mode,aem_attempts,aem_overflows,aem_peak_managed_bytes,aem_bloom_buffer_bytes";
+    if (options.aemHalfBloom) out << ",aem_seed_rebuilds";
+    out << '\n';
     out << options.domain << ',' << options.instance << ',' << options.algorithm << ','
         << options.heuristic << ',' << options.f2f << ',' << options.consistency << ','
         << result.status << ',' << EscapeCSV(result.error) << ',' << std::setprecision(12)
@@ -644,7 +652,9 @@ void WriteSummary(const Options &options, const RunResult &result, size_t stateB
         << (IsAEM(options.algorithm) ? options.aemAlpha : 0) << ','
         << (options.algorithm == "bihs_bloom_aem_control" ? "insertion_count" : (IsAEM(options.algorithm) ? "occupancy_or_count" : "na"))
         << ',' << result.aemAttempts << ',' << result.aemOverflows << ',' << result.aemPeakManaged
-        << ',' << result.actualBloomBytes << '\n';
+        << ',' << result.actualBloomBytes;
+    if (options.aemHalfBloom) out << ',' << result.aemSeedRebuilds;
+    out << '\n';
     if (!options.bucketOutput.empty()) {
         std::ofstream buckets(options.bucketOutput);
         if (!buckets) throw std::runtime_error("Unable to open bucket output");
@@ -734,7 +744,7 @@ RunResult RunDomain(Options options, State start, State goal, Environment &envir
             search.SetTimeLimitSeconds(options.bihsTimeoutSeconds);
             if (IsAEM(options.algorithm)) {
                 search.EnableAEM(options.aemAlpha, options.algorithm == "bihs_bloom_aem_control",
-                                 options.aemExactBatches);
+                                 options.aemExactBatches, options.aemHalfBloom);
                 result.actualBloomBytes = search.GetAEMBloomBytes();
             }
             if (options.streamingNoLimit) search.EnableStreamingWithoutLoadLimit();
@@ -753,6 +763,7 @@ RunResult RunDomain(Options options, State start, State goal, Environment &envir
                 result.aemAttempts = search.GetAEMAttempts();
                 result.aemOverflows = search.GetAEMOverflows();
                 result.aemPeakManaged = search.GetAEMPeakManagedBytes();
+                result.aemSeedRebuilds = search.GetAEMSeedRebuilds();
                 if (search.GetAEMLiveManagedBytes()) throw std::logic_error("AEM storage leaked after search");
             }
             result.status = search.DidTimeOut() ? "timeout" :

@@ -1,5 +1,6 @@
 """Run one calibrated arm of the 15-puzzle exact-batching pilot."""
 
+import argparse
 import csv
 import hashlib
 import json
@@ -7,10 +8,10 @@ from pathlib import Path
 import shlex
 import socket
 import subprocess
-import sys
 
 
 ROOT = Path("results/stp_exact_batches_20261120")
+HALF_BLOOM_ROOT = Path("results/stp_half_bloom_20261120")
 REFERENCE = Path("results/fresh_bytes_20261016/manifests/stp.jsonl")
 REFERENCE_SHA = "558d41905717de089057724eb62955bdeefe83c5d4742a100c7927e35f2bf939"
 INSTANCES = (48, 55)
@@ -45,15 +46,16 @@ def calibration(instance):
     return line_number, cal
 
 
-def run(task):
+def run(task, half_bloom=False):
     if not 0 <= task < len(INSTANCES) * len(ARMS):
         raise ValueError("Task outside the four-run pilot")
     instance = INSTANCES[task // len(ARMS)]
     arm = ARMS[task % len(ARMS)]
     source_line, cal = calibration(instance)
     memory_bytes = int(cal["best_um_states"]) * int(cal["state_bits"]) // 800
-    binary = ROOT / "bin/comparison"
-    out = ROOT / "runs" / str(task)
+    root = HALF_BLOOM_ROOT if half_bloom else ROOT
+    binary = root / "bin/comparison"
+    out = root / "runs" / str(task)
     out.mkdir(parents=True, exist_ok=False)
     summary = out / "summary.csv"
     events = out / "events.csv"
@@ -67,8 +69,11 @@ def run(task):
         "--summary-output", str(summary), "--level-output", str(out / "levels.csv"),
         "--scan-output", str(out / "scans.csv"),
     ]
+    if half_bloom:
+        command.append("--aem-half-bloom")
     metadata = {
         "task": task, "instance": instance, "algorithm": arm, "budget_fraction": "1/100",
+        "bloom_layout": "half_budget" if half_bloom else "quarter_budget",
         "memory_budget_bytes": memory_bytes, "rounding": "floor(best_um_states * state_bits / 800)",
         "logical_state_capacity": memory_bytes * 8 // int(cal["state_bits"]),
         "calibration": cal, "calibration_reference": str(REFERENCE), "calibration_line": source_line,
@@ -89,6 +94,9 @@ def run(task):
             or not 0 < int(row["aem_peak_managed_bytes"]) <= memory_bytes
             or int(row["aem_overflows"]) != 0):
         raise ValueError(f"Invalid summary for task {task}")
+    if half_bloom and (int(row["aem_seed_rebuilds"]) < 0
+                       or not memory_bytes // 4 < int(row["aem_bloom_buffer_bytes"]) <= memory_bytes // 2):
+        raise ValueError(f"Invalid half-budget filter layout for task {task}")
     attempts = occupancy_only = 0
     min_capacity = max_capacity = None
     with events.open(newline="") as source:
@@ -111,4 +119,8 @@ def run(task):
 
 
 if __name__ == "__main__":
-    run(int(sys.argv[1]))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("task", type=int)
+    parser.add_argument("--half-bloom", action="store_true")
+    args = parser.parse_args()
+    run(args.task, args.half_bloom)

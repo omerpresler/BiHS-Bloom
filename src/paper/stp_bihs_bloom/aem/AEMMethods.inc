@@ -9,19 +9,25 @@ struct AEMEvent {
     std::string outcome = "started";
 };
 
-void EnableAEM(double alpha = 0.5, bool insertionCountControl = false, bool exactBatches = false) {
+void EnableAEM(double alpha = 0.5, bool insertionCountControl = false,
+               bool exactBatches = false, bool halfBloom = false) {
     if (!std::isfinite(alpha) || alpha <= 0 || alpha > 1 || (!exactBatches && alpha == 1))
         throw std::invalid_argument("AEM alpha must be in (0,1), or (0,1] with exact batches");
-    if (GetMemoryBudgetBytes() <= 4 * sizeof(AEMFilter) + 4)
+    if (halfBloom && !exactBatches)
+        throw std::invalid_argument("Half-budget Bloom filters require exact batches");
+    const size_t maxFilters = halfBloom ? 2 : 4;
+    if (GetMemoryBudgetBytes() <= maxFilters * (sizeof(AEMFilter) + 1))
         throw std::invalid_argument("AEM budget cannot hold its Bloom buffers and headers");
     aemEnabled = true;
     aemAlpha = alpha;
     aemCountControl = insertionCountControl;
     aemExactBatches = exactBatches;
+    aemHalfBloom = halfBloom;
 }
 bool IsAEMEnabled() const { return aemEnabled; }
 size_t GetAEMBloomBytes() const {
-    return aemEnabled ? (GetMemoryBudgetBytes() - 4 * sizeof(AEMFilter)) / 4
+    const size_t maxFilters = aemHalfBloom ? 2 : 4;
+    return aemEnabled ? GetMemoryBudgetBytes() / maxFilters - sizeof(AEMFilter)
                       : GetMemoryBudgetBytes();
 }
 size_t GetAEMPeakManagedBytes() const { return aemPeakManagedBytes; }
@@ -31,6 +37,7 @@ size_t GetAEMOverflows() const {
         [](const AEMEvent &e) { return e.outcome == "overflow"; });
 }
 size_t GetAEMBatchFlushes() const { return aemBatchFlushes; }
+size_t GetAEMSeedRebuilds() const { return aemSeedRebuilds; }
 size_t GetAEMLiveManagedBytes() const { return aemLiveBloomBytes + aemLiveExactBytes; }
 void WriteAEMEvents(const std::string &path) const {
     std::ofstream out(path);
@@ -51,7 +58,9 @@ void WriteAEMEvents(const std::string &path) const {
 private:
 bool aemEnabled = false, aemCountControl = false;
 bool aemExactBatches = false;
+bool aemHalfBloom = false;
 size_t aemBatchFlushes = 0;
+size_t aemSeedRebuilds = 0;
 double aemAlpha = 0.5;
 size_t aemLiveBloomBytes = 0, aemLiveExactBytes = 0, aemPeakManagedBytes = 0;
 std::vector<AEMEvent> aemEvents;
