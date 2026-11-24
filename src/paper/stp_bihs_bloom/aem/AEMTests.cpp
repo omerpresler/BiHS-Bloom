@@ -124,6 +124,8 @@ int main() {
         halfBloom.SetMemoryBudgetBytes(halfBloomTestBudget);
         halfBloom.SetBloomSeed(42);
         halfBloom.EnableAEM(1.0, false, true, true);
+        Require(halfBloom.GetAEMBloomBytes() == halfBloomTestBudget / 2,
+                "Bloom object header reduced the allocated bit-array payload");
         auto typedSeed = halfBloom.RebuildTypedSeed(origin, goal, 1, 1, 0);
         Require(halfBloom.GetAEMLiveManagedBytes() == halfBloomTestBudget / 2,
                 "One managed filter must occupy half the budget, rounded down");

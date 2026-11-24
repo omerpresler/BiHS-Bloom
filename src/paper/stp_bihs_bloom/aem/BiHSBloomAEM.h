@@ -369,9 +369,9 @@ public:
     size_t GetExactStateCapacity() const { return static_cast<size_t>(min_items); }
 
     void InitBloom(BiHSBloomFilter<state> *&bf) {
-        size_t m_bits = GetAEMBloomBytes() * 8;
+        const size_t bytes = GetAEMBloomBytes();
+        const size_t m_bits = bytes * 8;
         if (aemEnabled) {
-            const size_t bytes = sizeof(AEMFilter) + GetAEMBloomBytes();
             if (bytes > GetMemoryBudgetBytes() - GetAEMLiveManagedBytes())
                 throw std::logic_error("AEM Bloom allocation exceeds managed budget");
             const uint64_t seed = bloomSeedBase + 0x9E3779B97F4A7C15ULL * bloomFilterOrdinal++;

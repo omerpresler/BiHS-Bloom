@@ -30,7 +30,7 @@ opposite scans triggered by full batches in this mode. The historical
 Hanoi pilot used the Bloom fallback described below.
 
 With `--aem-exact-batches`, `--aem-half-bloom` assigns each live filter
-half the managed budget, rounded down and inclusive of its object header.
+half the managed budget as bit-array payload, rounded down.
 Two filters can coexist during refinement. Exact batching holds only the
 filter used to screen materialized states and uses the remaining bytes for
 the exact table. During type splitting, building a partition's filter
@@ -70,10 +70,11 @@ set has at least halved; a new bound/type restarts that retry gate.
 
 ## Memory definition
 
-The supplied byte budget bounds **managed frontier storage**: all live Bloom
-objects and bit arrays, the exact table object, occupied and unoccupied slots,
-and the full per-entry path arena. Up to four filter objects are reserved in the
-layout calculation; each bit array gets `(budget - 4*sizeof(AEMFilter))/4` bytes.
+The supplied byte budget bounds **managed frontier storage**, including live
+Bloom bit arrays, the exact table object, occupied and unoccupied slots,
+and the full per-entry path arena. The default layout assigns each bit array
+`budget / 4` bytes, rounded down. Bloom filter object headers are excluded from
+managed storage and still contribute to process memory.
 The common refinement path holds one or two filters; seeded type processing can
 hold more. Every allocation is checked against actual live managed storage.
 The exact capacity is recalculated from remaining bytes and path depth before
@@ -83,7 +84,7 @@ PDBs, DFS stacks/scratch, returned solution vectors, instrumentation and allocat
 bookkeeping are outside this managed budget. Total process RSS is measured by
 `/usr/bin/time -v`; the Slurm process allocation remains 16 GiB. This is not a
 claim that total process RAM is bounded by the managed frontier budget. Budgets
-too small for this variant's headers/buffers are recorded as `budget_too_small`
+too small for the bit arrays are recorded as `budget_too_small`
 without increasing the requested budget.
 
 ## Output and interpretation

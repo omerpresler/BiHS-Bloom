@@ -16,8 +16,8 @@ void EnableAEM(double alpha = 0.5, bool insertionCountControl = false,
     if (halfBloom && !exactBatches)
         throw std::invalid_argument("Half-budget Bloom filters require exact batches");
     const size_t maxFilters = halfBloom ? 2 : 4;
-    if (GetMemoryBudgetBytes() <= maxFilters * (sizeof(AEMFilter) + 1))
-        throw std::invalid_argument("AEM budget cannot hold its Bloom buffers and headers");
+    if (GetMemoryBudgetBytes() < maxFilters)
+        throw std::invalid_argument("AEM budget cannot hold its Bloom bit arrays");
     aemEnabled = true;
     aemAlpha = alpha;
     aemCountControl = insertionCountControl;
@@ -27,7 +27,7 @@ void EnableAEM(double alpha = 0.5, bool insertionCountControl = false,
 bool IsAEMEnabled() const { return aemEnabled; }
 size_t GetAEMBloomBytes() const {
     const size_t maxFilters = aemHalfBloom ? 2 : 4;
-    return aemEnabled ? GetMemoryBudgetBytes() / maxFilters - sizeof(AEMFilter)
+    return aemEnabled ? GetMemoryBudgetBytes() / maxFilters
                       : GetMemoryBudgetBytes();
 }
 size_t GetAEMPeakManagedBytes() const { return aemPeakManagedBytes; }
@@ -74,7 +74,7 @@ struct AEMFilter : BiHSBloomFilter<state> {
     size_t bytes;
     AEMFilter(BiHSBloom &owner, size_t bits, size_t k, uint64_t seed)
         : BiHSBloomFilter<state>(bits, k, seed), owner(owner),
-          bytes(sizeof(AEMFilter) + (bits + 7) / 8) {
+          bytes((bits + 7) / 8) {
         if (!this->bits) throw std::bad_alloc();
         owner.aemLiveBloomBytes += bytes;
         owner.AEMObserveMemory();
